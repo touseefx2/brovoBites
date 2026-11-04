@@ -1,0 +1,33 @@
+.DS_Store
+**/.DS_Store
+node_modules/
+.pnpm-store/
+apps/e2e/test-results/
+apps/e2e/playwright-report/
+apps/e2e/.email-outbox/
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+!.env.example
+!.env.*.example
+.next/
+dist/
+.turbo/
+coverage/
+*.log
+.vercel
+deploy/targets.local.env
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+.env*
+# …but the placeholder templates are safe to publish
+!.env.example
+!.env.*.example
+
+# Local Vercel auth caches (tokens)
+.tools/
+
+# CR Track (not used in this project)
+.cr-track/

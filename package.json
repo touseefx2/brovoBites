@@ -1,0 +1,39 @@
+{
+  "name": "bravo-bites",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:rules": "npx firebase-tools emulators:exec --only firestore --project demo-bravobites \"pnpm --filter @bravobites/rules-tests test:rules\"",
+    "test:e2e": "pnpm --filter @bravobites/e2e test:e2e",
+    "test:e2e:local": "bash scripts/e2e-local.sh",
+    "lint": "turbo run lint",
+    "seed": "pnpm --filter web seed",
+    "create-owner": "pnpm --filter web create-owner",
+    "copy-menu": "pnpm --filter web copy-menu",
+    "deploy:dev": "bash scripts/deploy.sh dev",
+    "deploy:dev:customer": "bash scripts/deploy.sh dev-customer",
+    "deploy:dev:all": "bash scripts/deploy.sh dev-all",
+    "deploy:live": "bash scripts/deploy.sh live",
+    "deploy:live:customer": "bash scripts/deploy.sh live-customer",
+    "deploy:live:all": "bash scripts/deploy.sh live-all",
+    "ship:dev": "bash scripts/ship.sh dev",
+    "ship:live": "bash scripts/ship.sh live",
+    "report-email:setup": "bash scripts/report-email-setup.sh",
+    "vercel:save-token": "bash scripts/save-vercel-token.sh"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.3",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "jose": "^5.9.6"
+    }
+  }
+}

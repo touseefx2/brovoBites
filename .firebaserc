@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "bravobites-dev",
+    "dev": "bravobites-dev",
+    "live": "bravobites-live"
+  }
+}

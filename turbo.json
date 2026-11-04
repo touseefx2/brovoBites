@@ -1,0 +1,47 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "public/sw.js",
+        "public/sw.js.map",
+        "public/workbox-*.js",
+        "public/workbox-*.js.map",
+        "public/worker-*.js",
+        "public/worker-*.js.map",
+        "public/swe-worker-*.js",
+        "public/fallback-*.js"
+      ],
+      "env": [
+        "NEXT_PUBLIC_APP_ENV",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_FIREBASE_API_KEY",
+        "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
+        "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+        "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
+        "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
+        "NEXT_PUBLIC_FIREBASE_APP_ID",
+        "NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY",
+        "NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT",
+        "NEXT_PUBLIC_IMAGE_UPLOAD_PROVIDER",
+        "IMAGEKIT_PRIVATE_KEY",
+        "IMAGEKIT_FOLDER",
+        "FIREBASE_ADMIN_PROJECT_ID",
+        "FIREBASE_ADMIN_CLIENT_EMAIL",
+        "FIREBASE_ADMIN_PRIVATE_KEY"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {}
+  }
+}

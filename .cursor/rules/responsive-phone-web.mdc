@@ -1,0 +1,37 @@
+---
+description: Every UI must be responsive on phone and desktop (Bootstrap-like)
+alwaysApply: true
+---
+
+# Responsive: phone + web (required)
+
+Any UI designed or changed in this project **must work on phone Chrome and desktop** — same standard as Bootstrap’s mobile-first grid.
+
+## Hard rules
+
+1. **Mobile-first**: default styles for ~360–430px width; enhance at `sm` (640), `md` (768), `lg` (1024).
+2. **No fixed desktop-only layouts**: avoid fixed widths that overflow phones; use `max-width`, `%`, `minmax`, flex/grid.
+3. **Fit the viewport**: first screen should not force awkward horizontal scroll. Prefer compact spacing on small screens (`p-4`/`gap-2`) and larger on `sm+`.
+4. **Safe areas**: use `env(safe-area-inset-*)` on full-bleed pages (login, landing, POS).
+5. **Touch targets**: buttons/inputs ≥ ~44px tall on mobile; inputs `font-size: 16px` minimum to avoid iOS zoom.
+6. **RTL**: Urdu (`dir="rtl"`) must keep gutters, toggles, and icons correct with logical props (`ps`/`pe`/`ms`/`me`/`start`/`end`), not only `left`/`right`.
+7. **Tall scripts**: Nastaliq needs tighter line-height on dense screens (login/forms) so cards fit without clipping.
+8. **Before done**: mentally check phone portrait + desktop. If unsure, tighten mobile padding/type/logo before shipping.
+
+## Patterns
+
+```tsx
+// ✅ GOOD — scales down on phone
+<div className="mx-auto w-full max-w-md p-4 sm:p-8">
+  <h1 className="text-xl sm:text-3xl">…</h1>
+</div>
+
+// ❌ BAD — desktop padding/type on a phone viewport
+<div className="w-[480px] p-10">
+  <h1 className="text-3xl">…</h1>
+</div>
+```
+
+## Out of scope excuse
+
+“Looks fine on my laptop” is not enough. Phone web is a deliverable for every page/component you touch.

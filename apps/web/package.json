@@ -1,0 +1,50 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack -p ${PORT:-3001}",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3001}",
+    "lint": "next lint",
+    "test": "echo \"web: domain tests via root pnpm test\"",
+    "seed": "tsx scripts/seed.ts",
+    "create-owner": "tsx scripts/create-owner.ts",
+    "copy-menu": "tsx scripts/copy-menu-dev-to-live.ts",
+    "seed:e2e": "tsx scripts/seed-e2e.ts",
+    "backfill-images": "tsx scripts/backfill-images.ts",
+    "set-menu-images": "tsx scripts/set-menu-images.ts",
+    "add-roti-naan": "tsx scripts/add-roti-naan.ts",
+    "upsert-soft-drink": "tsx scripts/upsert-soft-drink.ts"
+  },
+  "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
+    "@bravobites/domain": "workspace:^",
+    "@sparticuz/chromium-min": "153.0.0",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.5.0",
+    "html2canvas": "1.4.1",
+    "idb": "^8.0.3",
+    "jspdf": "4.2.1",
+    "next": "15.5.7",
+    "nodemailer": "10.0.16",
+    "puppeteer-core": "25.12.0",
+    "qrcode-generator": "1.4.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^18.0.3",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.7",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}

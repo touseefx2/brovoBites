@@ -1,0 +1,40 @@
+---
+description: How to deploy Bravo Bites to DEV vs LIVE (ship = Firestore + both Vercel domains)
+alwaysApply: true
+---
+
+# Deploy: DEV vs LIVE (required)
+
+Git push does **not** deploy. Tokens live in `deploy/targets.local.env` (gitignored).
+
+This repo is **Bravo Bites only**. It deploys to Bravo Bites' own Firebase projects, Bravo Bites' Vercel account(s) and Bravo Bites' ImageKit — never to any other shop's accounts. If `.firebaserc`, an env file or a Vercel token/org points anywhere else, **stop and ask** — do not deploy, read or write there.
+
+## What the user says → what to run
+
+| User says | Command |
+|-----------|---------|
+| **ship:dev** / deploy **dev** (sites + rules) | `pnpm ship:dev` |
+| **ship:live** / deploy **live** (sites + rules) | `pnpm ship:live` |
+| Only Vercel DEV domains | `pnpm deploy:dev:all` |
+| Only Vercel LIVE domains | `CONFIRM_LIVE=1 pnpm deploy:live:all` |
+| Only Firestore | `firebase deploy --only firestore:rules,firestore:indexes --project dev` (or `--project live`) |
+
+`pnpm ship:*` = Firestore rules+indexes **then** both Vercel domains for that world.
+
+## Worlds (do not mix)
+
+| | DEV | LIVE |
+|---|-----|------|
+| Command | `pnpm ship:dev` | `pnpm ship:live` |
+| Firebase | `bravobites-dev` | `bravobites-live` |
+| ImageKit | Bravo Bites DEV keys | Bravo Bites LIVE keys |
+| Vercel projects | admin + menu (Bravo Bites DEV Vercel) | admin + menu (Bravo Bites LIVE Vercel) |
+| Env on Vercel | `.env.development.local` | `.env.production.local` |
+
+Firebase ids come from `.firebaserc` (aliases `dev` / `live`, default = dev). A fresh clone has placeholder ids; the real ones are set once with `bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>`. Before any deploy, confirm the project id printed by the script matches the world the user asked for.
+
+**Env note:** ship/deploy does **not** upload ImageKit/Firebase keys to Vercel. If those change, paste into Vercel → Project → Settings → Environment Variables from the matching `.env.*.local` file.
+
+Never commit `deploy/targets.local.env`. Never put live Firebase keys in `.env.local` / `.env.development.local`.
+
+**Data safety:** Deploying code/rules is fine. **Never copy DEV Firestore documents into LIVE** — see `never-dev-data-to-live.mdc`. LIVE (`bravobites-live`) is Bravo Bites' real shop.

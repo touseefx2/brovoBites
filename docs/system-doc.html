@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bravo Bites POS — System</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    body { font-family: "Segoe UI", Arial, sans-serif; color: #1a1a1a; font-size: 12.5px; line-height: 1.5; }
+    h1 { color: #d4a017; font-size: 22px; margin: 0 0 8px; }
+    h2 { border-left: 4px solid #d4a017; padding-left: 8px; font-size: 16px; margin: 18px 0 8px; }
+    .cover { background: #0c0c0c; color: #f5e6c8; padding: 28px; border-radius: 8px; margin-bottom: 20px; }
+    .cover p { color: #c9b896; margin: 6px 0 0; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; }
+    th, td { border: 1px solid #e0d6bc; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #1a1408; color: #f0d78c; }
+    .box { background: #faf8f3; border: 1px solid #e8dfc8; border-radius: 8px; padding: 12px; margin: 10px 0; }
+    code { background: #f0ebe0; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+    ul { margin: 6px 0 12px; padding-left: 18px; }
+    .page-break { page-break-before: always; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <h1 style="color:#d4a017;margin:0">Bravo Bites POS</h1>
+    <p>POS System Documentation · Monorepo <code>bravoBites</code></p>
+    <p>Next.js + Firebase Auth + Firestore · Multi-branch ready</p>
+  </div>
+
+  <h2>1) Kya bana hai / What was built</h2>
+  <div class="box">
+    Web Point of Sale: counter pe order + bill print; owner pe menu, staff, branches, sales.
+    Black/gold professional UI. Mixed English + Roman Urdu labels.
+  </div>
+
+  <h2>2) Roles</h2>
+  <table>
+    <tr><th>Role</th><th>Access</th></tr>
+    <tr><td>Owner / Admin</td><td>Menu, prices, staff create, branches, dashboard sales, orders history, POS</td></tr>
+    <tr><td>Counter</td><td>POS — cart, checkout, print. Apni branch ke orders, expenses, inventory (permissions ke mutabiq). No menu edit</td></tr>
+  </table>
+
+  <h2>3) Routes</h2>
+  <table>
+    <tr><th>Path</th><th>Purpose</th></tr>
+    <tr><td>/login</td><td>Email + password</td></tr>
+    <tr><td>/pos</td><td>Counter screen</td></tr>
+    <tr><td>/admin</td><td>Sales dashboard</td></tr>
+    <tr><td>/admin/branches</td><td>New shop / branch</td></tr>
+    <tr><td>/admin/menu</td><td>Categories &amp; products</td></tr>
+    <tr><td>/admin/staff</td><td>Create counter users</td></tr>
+    <tr><td>/admin/orders</td><td>Order history</td></tr>
+  </table>
+
+  <h2>4) Data model (collections)</h2>
+  <ul>
+    <li><b>branches</b> — shop locations</li>
+    <li><b>users</b> — role + branchIds</li>
+    <li><b>categories / products</b> — menu (simple / sized / bundle)</li>
+    <li><b>orders / counters</b> — sales + order numbers</li>
+    <li><b>settings</b> — shop name, phone, tax, delivery charges, branding</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <h2>5) Kaise run karein</h2>
+  <div class="box">
+    <ol>
+      <li><code>cd bravoBites && pnpm install</code></li>
+      <li><code>apps/web/.env.local</code> banao — Firebase keys paste (<b>bravobites-dev</b>)</li>
+      <li>Auth Email/Password enable + Firestore create + rules deploy</li>
+      <li>Owner banao: <code>pnpm create-owner -- --email=... --password=... --name=Owner --primary</code> → UID copy</li>
+      <li>Optional sample menu: <code>pnpm seed -- --ownerUid=UID --ownerEmail=... --ownerName=Owner</code></li>
+      <li><code>pnpm --filter web dev</code> → http://localhost:3001</li>
+      <li><code>pnpm test</code> — domain unit tests</li>
+    </ol>
+  </div>
+
+  <h2>6) Multi-branch</h2>
+  <p>Kal nayi dukaan: Admin → Branches → Add → Staff assign. Same app, alag <code>branchId</code>.</p>
+
+  <h2>7) Print</h2>
+  <p>Browser Print → thermal printer (USB/Wi‑Fi). ESC-POS v1 mein nahi.</p>
+
+  <h2>8) Why not VPS</h2>
+  <p>Firebase + Vercel/serverless hosting kaafi. Alag VPS abhi zaroori nahi.</p>
+
+  <p style="margin-top:28px;color:#888;font-size:11px;text-align:center">
+    Bravo Bites POS · bravoBites · Generated with system docs
+  </p>
+</body>
+</html>

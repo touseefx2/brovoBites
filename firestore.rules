@@ -1,0 +1,670 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      return signedIn()
+        && (!('isActive' in userDoc()) || userDoc().isActive == true);
+    }
+
+    function isOwner() {
+      return isActiveUser() && userDoc().role == 'owner';
+    }
+
+    function isPrimaryOwner() {
+      return isOwner() && userDoc().get('isPrimaryOwner', false) == true;
+    }
+
+    function canAccessBranch(branchId) {
+      return isOwner() || (isActiveUser() && branchId in userDoc().branchIds);
+    }
+
+    // Missing permission field = allowed (matches the app's !== false default).
+    function staffPerm(name) {
+      return !('permissions' in userDoc())
+        || !(name in userDoc().permissions)
+        || userDoc().permissions[name] != false;
+    }
+
+    // ── Offline POS on a shared PC ──
+    // Work saved on the PC uploads when the net is back, whoever is signed in,
+    // always under the name of the person who made it. Someone else's work
+    // needs the uploader stamped at this very write (uploadedBy = me,
+    // uploadedAt = now) and keeps the maker's own limits (permissions, 72h
+    // window); deleting orders stays owner-only.
+    function userAt(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function activeIn(u, branchId) {
+      return u.get('isActive', true) == true
+        && (u.role == 'owner' || branchId in u.get('branchIds', []));
+    }
+
+    function uploadedNow() {
+      return request.resource.data.get('uploadedBy', '') == request.auth.uid
+        && request.resource.data.get('uploadedAt', null) == request.time;
+    }
+
+    // The signed-in user uploads actorUid's saved work, stamped; maker still active here.
+    function uploadsFor(actorUid, branchId) {
+      return actorUid != request.auth.uid
+        && uploadedNow()
+        && activeIn(userAt(actorUid), branchId);
+    }
+
+    // updatedBy, when it changes, names the maker.
+    function updatedByIs(uid) {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['updatedBy'])
+        || request.resource.data.updatedBy == uid;
+    }
+
+    // Same default as staffPerm (missing = allowed); owner has every permission.
+    function permOf(u, name) {
+      return u.role == 'owner'
+        || !('permissions' in u)
+        || !(name in u.permissions)
+        || u.permissions[name] != false;
+    }
+
+    // Any discount amount when canApplyDiscount is on (audited in activity logs).
+    function discountOkFor(u) {
+      return !('discountAmount' in request.resource.data)
+        || request.resource.data.discountAmount == 0
+        || permOf(u, 'canApplyDiscount');
+    }
+
+    // On amend: allow recomputed % amounts when type/value are unchanged; changing
+    // the discount itself still needs canApplyDiscount (or clearing to zero).
+    function discountUpdateOkFor(u) {
+      return discountOkFor(u)
+        || (
+          resource.data.get('discountType', '')
+            == request.resource.data.get('discountType', '')
+          && resource.data.get('discountValue', 0)
+            == request.resource.data.get('discountValue', 0)
+        );
+    }
+
+    function staffDiscountOk() {
+      return discountOkFor(userDoc());
+    }
+
+    function staffDiscountUpdateOk() {
+      return discountUpdateOkFor(userDoc());
+    }
+
+    function refundUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny([
+          'refundAmount',
+          'refundReason',
+          'refundedAt',
+          'refundedBy',
+          'refundedByName',
+          'refundCount',
+          'refunds',
+          'refundedAtServer',
+        ]);
+    }
+
+    // The app lets staff change their own order until its business day ends
+    // (e.g. 12 PM → 4 AM), checked at action time (works offline). Server hard
+    // limit: 72h after the order first reached the cloud (online create, or POS
+    // offline sync). Longer than a business day on purpose: a change made
+    // offline during a whole-day internet outage (PC then off overnight, or a
+    // closed day) only reaches the server a day or two later and must not be
+    // refused; old orders still lock.
+    function staffWithinEditWindow() {
+      let reachedCloud = resource.data.get('createdAtServer',
+        resource.data.get('syncedAtServer', null));
+      return reachedCloud is timestamp
+        && request.time <= reachedCloud + duration.value(72, 'h');
+    }
+
+    // Staff change their own order in their own name.
+    function updatedBySelf() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['updatedBy'])
+        || request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    // WhatsApp review request log: only the review fields, one send at a
+    // time, uploaded by the signed-in user; the send id stops a double count.
+    function reviewSendOk() {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys().hasOnly([
+          'reviewSentCount',
+          'reviewSentAtServer',
+          'reviewSentBy',
+          'reviewSentByName',
+          'reviewSentByEmail',
+          'reviewLastSendId',
+        ])
+        && d.reviewSentCount == resource.data.get('reviewSentCount', 0) + 1
+        && d.reviewSentBy == request.auth.uid
+        && d.reviewSentAtServer == request.time
+        && d.reviewSentByName is string && d.reviewSentByName.size() <= 120
+        && d.reviewSentByEmail is string && d.reviewSentByEmail.size() <= 200
+        && d.reviewLastSendId is string && d.reviewLastSendId.size() <= 64
+        && d.reviewLastSendId != resource.data.get('reviewLastSendId', '');
+    }
+
+    // Order edits never touch the review log (only reviewSendOk does).
+    function reviewFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'reviewSentCount',
+        'reviewSentAtServer',
+        'reviewSentBy',
+        'reviewSentByName',
+        'reviewSentByEmail',
+        'reviewLastSendId',
+      ]);
+    }
+
+    // Staff refund of their order (a partial cancel, so the cancel permission):
+    // refund fields only, more than before and at most the total, one more
+    // entry in the refund log, in the name of the maker `a` (user doc `u`).
+    function refundOk(a, u) {
+      let d = request.resource.data;
+      return permOf(u, 'canCancelOrders')
+        && d.status == 'completed'
+        && d.diff(resource.data).affectedKeys().hasOnly([
+          'refundAmount',
+          'refundReason',
+          'refundedAt',
+          'refundedAtServer',
+          'refundedBy',
+          'refundedByName',
+          'refundCount',
+          'refunds',
+          'updatedAt',
+          'updatedAtServer',
+          'lastClientMutationId',
+          'appliedClientMutationIds',
+          'uploadedBy',
+          'uploadedByName',
+          'uploadedAt',
+        ])
+        && d.refundAmount is number
+        && d.refundAmount > resource.data.get('refundAmount', 0)
+        && d.refundAmount <= d.total
+        && d.get('refundedBy', '') == a
+        && refundLogAppendsOnly(d.refundAmount - resource.data.get('refundAmount', 0));
+    }
+
+    // The refund log keeps every earlier entry as it was and gains exactly one,
+    // for exactly the amount refunded now (the cash drawer adds these up).
+    function refundLogAppendsOnly(amount) {
+      let before = resource.data.get('refunds', []);
+      let after = request.resource.data.get('refunds', []);
+      return after is list
+        && after.size() == before.size() + 1
+        // (an empty prefix can't be sliced: [0:0] is an index error in rules)
+        && (before.size() == 0 || after[0:before.size()] == before)
+        && after[before.size()].amount is number
+        && math.abs(after[before.size()].amount - amount) < 0.01
+        && after[before.size()].at is string;
+    }
+
+    // Staff change to an order made by `a` (user doc `u`): within the 72h
+    // window, discount rules, then a refund, an edit (not after a refund) or a cancel.
+    function staffOrderChange(a, u) {
+      return staffWithinEditWindow()
+        && discountUpdateOkFor(u)
+        && (
+          refundOk(a, u)
+          || (
+            refundUnchanged()
+            && (
+              (
+                request.resource.data.status == 'completed'
+                && permOf(u, 'canEditOrders')
+                // A refunded order is locked for edits (as in the app).
+                && resource.data.get('refundAmount', 0) == 0
+              )
+              || (
+                request.resource.data.status == 'cancelled'
+                && permOf(u, 'canCancelOrders')
+              )
+            )
+          )
+        );
+    }
+
+    // Money fields must be real, non-negative numbers (a negative total would
+    // hide missing cash in the day report). Checked when written / changed.
+    function orderAmountsOk() {
+      let d = request.resource.data;
+      return d.total is number && d.total >= 0
+        && d.get('subtotal', 0) is number && d.get('subtotal', 0) >= 0
+        && d.get('taxAmount', 0) is number && d.get('taxAmount', 0) >= 0
+        && d.get('deliveryCharges', 0) is number && d.get('deliveryCharges', 0) >= 0
+        && d.get('discountAmount', 0) is number && d.get('discountAmount', 0) >= 0
+        && d.total >= d.get('refundAmount', 0)
+        && d.get('items', []) is list && d.get('items', []).size() <= 300;
+    }
+
+    // Cloud-arrival stamps anchor the staff window: one is set to this write's
+    // server time on create, never changed after (else staff could push it forward).
+    function serverStampsNow() {
+      let d = request.resource.data;
+      return ('createdAtServer' in d || 'syncedAtServer' in d)
+        && d.get('createdAtServer', request.time) == request.time
+        && d.get('syncedAtServer', request.time) == request.time;
+    }
+
+    // A new order carries no refund — refunds are the owner's, on the saved
+    // order (else a "pre-refunded" sale could take cash out of today's drawer).
+    function noRefundOnCreate() {
+      return !request.resource.data.keys().hasAny([
+        'refundAmount',
+        'refundReason',
+        'refundedAt',
+        'refundedAtServer',
+        'refundedBy',
+        'refundedByName',
+        'refundCount',
+        'refunds',
+        'appliedClientMutationIds',
+        'lastClientMutationId',
+      ]);
+    }
+
+    function serverStampsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['createdAtServer', 'syncedAtServer']);
+    }
+
+    match /users/{uid} {
+      // Staff may read owners' profiles too (owner report: who the owners are).
+      allow read: if signedIn() && (
+        request.auth.uid == uid
+        || isOwner()
+        || (isActiveUser() && resource.data.role == 'owner')
+      );
+      allow create: if false;
+      // Owners manage staff via client; primary flag + main owner protection are locked.
+      allow update: if isOwner()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['isPrimaryOwner', 'createdAt'])
+        && !(
+          resource.data.get('isPrimaryOwner', false) == true
+          && (
+            request.resource.data.role != 'owner'
+            || request.resource.data.isActive != true
+          )
+        )
+        && (
+          resource.data.role != 'owner'
+          || request.auth.uid == uid
+          || isPrimaryOwner()
+        )
+        // Making (or unmaking) an owner is the main owner's call only.
+        && (request.resource.data.role == resource.data.role || isPrimaryOwner());
+      allow delete: if false;
+    }
+
+    match /branches/{branchId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // Central menu — shared by all branches (not scoped by branchId)
+    match /categories/{id} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+
+    match /products/{id} {
+      allow read: if true;
+      allow create, update, delete: if isOwner();
+    }
+
+    match /orders/{id} {
+      // Owner + branch staff can read all orders for that branch (incl. owner-created).
+      // resource == null: a missing doc reveals nothing — offline sync must check "already written?" before creating.
+      allow read: if isActiveUser() && (resource == null || canAccessBranch(resource.data.branchId));
+
+      // createdBy = the cashier who made the sale; anyone signed in on the PC may
+      // upload a saved sale under that name (stamped, maker's discount limits).
+      allow create: if isActiveUser()
+        && canAccessBranch(request.resource.data.branchId)
+        && request.resource.data.status == 'completed'
+        && orderAmountsOk()
+        && serverStampsNow()
+        && noRefundOnCreate()
+        && (
+          isOwner()
+          || (request.resource.data.createdBy == request.auth.uid && staffDiscountOk())
+          || (
+            uploadsFor(request.resource.data.createdBy, request.resource.data.branchId)
+            && discountOkFor(userAt(request.resource.data.createdBy))
+          )
+        );
+
+      // Owner: any non-cancelled order. Staff: own order within window (app: until its
+      // business day ends, server: 72h) — canEditOrders for edits (items / type /
+      // payment / customer), canCancelOrders for cancel.
+      // WhatsApp review log: anyone at the branch, cancelled orders too.
+      allow update: if isActiveUser()
+        && canAccessBranch(resource.data.branchId)
+        && reviewSendOk();
+      allow update: if isActiveUser()
+        && canAccessBranch(resource.data.branchId)
+        && request.resource.data.branchId == resource.data.branchId
+        && request.resource.data.orderNumber == resource.data.orderNumber
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && serverStampsUnchanged()
+        && reviewFieldsUnchanged()
+        && resource.data.status != 'cancelled'
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['total', 'subtotal', 'taxAmount', 'deliveryCharges', 'discountAmount', 'items'])
+          || orderAmountsOk()
+        )
+        && (
+          isOwner()
+          || (
+            resource.data.createdBy == request.auth.uid
+            && updatedBySelf()
+            && staffOrderChange(request.auth.uid, userDoc())
+          )
+          // The maker's saved change, uploaded by whoever is signed in.
+          || (
+            uploadsFor(resource.data.createdBy, resource.data.branchId)
+            && updatedByIs(resource.data.createdBy)
+            && staffOrderChange(resource.data.createdBy, userAt(resource.data.createdBy))
+          )
+        );
+
+      allow delete: if isOwner() && canAccessBranch(resource.data.branchId);
+    }
+
+    match /counters/{counterId} {
+      allow read: if isActiveUser()
+        && (counterId == 'global' || canAccessBranch(counterId));
+      allow create: if isActiveUser()
+        && counterId == 'global'
+        && request.resource.data.lastOrderNumber is int
+        && request.resource.data.lastOrderNumber >= 1;
+      allow update: if isActiveUser()
+        && (counterId == 'global' || canAccessBranch(counterId))
+        && request.resource.data.lastOrderNumber is int
+        && resource.data.lastOrderNumber is int
+        && request.resource.data.lastOrderNumber > resource.data.lastOrderNumber;
+      allow delete: if false;
+    }
+
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // Owner-only settings (the public settings doc above is readable by
+    // anyone): who gets the owner report by email. The server reads it.
+    match /privateSettings/{id} {
+      allow read: if isOwner();
+      allow write: if isOwner()
+        && id == 'ownerReport'
+        && request.resource.data.keys().hasOnly(['emails', 'autoDaily', 'lang', 'updatedAt', 'updatedBy'])
+        && request.resource.data.emails is list
+        && request.resource.data.emails.size() <= 5
+        && request.resource.data.autoDaily is bool
+        // 'lang': older docs only — every email now carries English and Urdu.
+        && (!('lang' in request.resource.data) || request.resource.data.lang in ['en', 'ur']);
+    }
+
+    // Owner-report emails sent (daily + by hand) — written by the server only.
+    match /reportEmails/{id} {
+      allow read: if isOwner();
+      allow write: if false;
+    }
+
+    // Staff delete: only expenses they entered, within the staff window (audited via activityLogs).
+    function staffMayDeleteExpense() {
+      return staffPerm('canDeleteExpenses')
+        && resource.data.createdBy == request.auth.uid
+        && staffWithinEditWindow();
+    }
+
+    // Staff file expenses under today's business date: the Karachi calendar day,
+    // or the day before until noon (an overnight shop's day ends after midnight).
+    function staffExpenseDateOk(dateStr) {
+      let karachi = request.time + duration.value(5, 'h');
+      let today = karachi.date();
+      let p = dateStr.split('-');
+      let day = timestamp.date(int(p[0]), int(p[1]), int(p[2]));
+      return day == today
+        || (karachi.hours() < 12 && day == today - duration.value(1, 'd'));
+    }
+
+    // A new staff expense: today's business date when added online; one saved
+    // offline (queued, syncedAtServer) may reach the cloud days later, so up to
+    // a week back.
+    function staffNewExpenseDateOk() {
+      let d = request.resource.data;
+      let today = (request.time + duration.value(5, 'h')).date();
+      let p = d.date.split('-');
+      let day = timestamp.date(int(p[0]), int(p[1]), int(p[2]));
+      return staffExpenseDateOk(d.date)
+        || ('syncedAtServer' in d && day <= today && day >= today - duration.value(7, 'd'));
+    }
+
+    // Staff change to an expense made by `a` (user doc `u`): add permission, 72h
+    // window, same day and author name.
+    function staffExpenseChange(u) {
+      return permOf(u, 'canAddExpenses')
+        && staffWithinEditWindow()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['date', 'createdByName']);
+    }
+
+    // Saved delete of a maker's expense, uploaded by someone else: a delete
+    // carries no data, so the uploader first stamps the row (who deleted, who
+    // uploads) …
+    function expenseDeleteMarkedFor() {
+      let a = resource.data.createdBy;
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['deleteRequestedBy', 'uploadedBy', 'uploadedByName', 'uploadedAt'])
+        && request.resource.data.get('deleteRequestedBy', '') == a
+        && uploadsFor(a, resource.data.branchId)
+        && permOf(userAt(a), 'canDeleteExpenses')
+        && staffWithinEditWindow();
+    }
+
+    // … then that same uploader deletes it.
+    function expenseDeleteUploadedFor() {
+      let a = resource.data.createdBy;
+      return a != request.auth.uid
+        && resource.data.get('deleteRequestedBy', '') == a
+        && resource.data.get('uploadedBy', '') == request.auth.uid
+        && activeIn(userAt(a), resource.data.branchId)
+        && permOf(userAt(a), 'canDeleteExpenses')
+        && staffWithinEditWindow();
+    }
+
+    function expenseAmountOk() {
+      return request.resource.data.amount is number
+        && request.resource.data.amount >= 0;
+    }
+
+    match /expenses/{id} {
+      // resource == null: a missing doc reveals nothing — offline sync must check "already written?" before creating.
+      allow read: if isActiveUser() && (resource == null || isOwner() || canAccessBranch(resource.data.branchId));
+      // Staff add with permission and change / delete only their own rows, like
+      // their orders: the app until that business day ends, the server within
+      // 72h of the row reaching the cloud. Owner: any row, any time. An owner
+      // may upload anyone's offline expense work under their name.
+      allow create: if isActiveUser()
+        && canAccessBranch(request.resource.data.branchId)
+        && expenseAmountOk()
+        && serverStampsNow()
+        && (
+          isOwner()
+          || (
+            request.resource.data.createdBy == request.auth.uid
+            && staffPerm('canAddExpenses')
+            && staffNewExpenseDateOk()
+          )
+          || (
+            uploadsFor(request.resource.data.createdBy, request.resource.data.branchId)
+            && permOf(userAt(request.resource.data.createdBy), 'canAddExpenses')
+            && staffNewExpenseDateOk()
+          )
+        );
+      allow update: if isActiveUser()
+        && canAccessBranch(resource.data.branchId)
+        && request.resource.data.branchId == resource.data.branchId
+        && request.resource.data.createdBy == resource.data.createdBy
+        && serverStampsUnchanged()
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['amount'])
+          || expenseAmountOk()
+        )
+        && (
+          isOwner()
+          || (
+            resource.data.createdBy == request.auth.uid
+            && updatedBySelf()
+            && staffExpenseChange(userDoc())
+          )
+          || (
+            uploadsFor(resource.data.createdBy, resource.data.branchId)
+            && updatedByIs(resource.data.createdBy)
+            && staffExpenseChange(userAt(resource.data.createdBy))
+          )
+          || expenseDeleteMarkedFor()
+        );
+      allow delete: if isActiveUser()
+        && canAccessBranch(resource.data.branchId)
+        && (isOwner() || staffMayDeleteExpense() || expenseDeleteUploadedFor());
+    }
+
+    match /inventory/{id} {
+      allow read: if isActiveUser() && canAccessBranch(resource.data.branchId);
+      // Owner or staff with inventory permission can add catalog items.
+      allow create: if isActiveUser()
+        && canAccessBranch(request.resource.data.branchId)
+        && (isOwner() || staffPerm('canManageInventory'));
+      // Owner / inventory staff: full edit. Other staff: stock qty only (POS sale/restock).
+      allow update: if isActiveUser()
+        && canAccessBranch(resource.data.branchId)
+        && request.resource.data.branchId == resource.data.branchId
+        && (
+          isOwner()
+          || staffPerm('canManageInventory')
+          || request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['currentStock', 'lastUpdated', 'lastUpdatedServer'])
+        );
+      // Owner, or inventory staff in their own branch (logged in activityLogs).
+      allow delete: if isActiveUser()
+        && canAccessBranch(resource.data.branchId)
+        && (isOwner() || staffPerm('canManageInventory'));
+    }
+
+    match /stockMovements/{id} {
+      // resource == null: a missing doc reveals nothing — offline sync must check "already written?" before creating.
+      allow read: if isActiveUser() && (resource == null || canAccessBranch(resource.data.branchId));
+      allow create: if isActiveUser()
+        && canAccessBranch(request.resource.data.branchId)
+        && request.resource.data.createdBy == request.auth.uid
+        && (
+          isOwner()
+          // POS checkout / cancel-restock must work for branch staff
+          || request.resource.data.movementType == 'sale'
+          || request.resource.data.movementType == 'restock'
+          || (
+            staffPerm('canManageInventory')
+            && (
+              request.resource.data.movementType == 'purchase'
+              || request.resource.data.movementType == 'waste'
+              || request.resource.data.movementType == 'adjustment'
+            )
+          )
+        );
+      allow update: if false;
+      allow delete: if isOwner();
+    }
+
+    match /activityLogs/{id} {
+      // Owner: all logs in any branch. Staff: everyone's logs in their assigned
+      // branches (the owner report shows them); the Activity page still lists
+      // only their own.
+      allow read: if isOwner()
+        || (isActiveUser() && canAccessBranch(resource.data.branchId));
+      // Logs of saved work are filed under the person who acted, whoever
+      // uploads them (syncedBy = the uploader, on record).
+      allow create: if isActiveUser()
+        && (
+          request.resource.data.createdBy == request.auth.uid
+          || isOwner()
+          || (
+            request.resource.data.get('syncedBy', '') == request.auth.uid
+            && activeIn(userAt(request.resource.data.createdBy), request.resource.data.branchId)
+          )
+        )
+        && canAccessBranch(request.resource.data.branchId)
+        && request.resource.data.keys().hasAll([
+          'branchId', 'entityType', 'entityId', 'action', 'summary',
+          'createdBy', 'createdByName', 'createdAt',
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /cashDrawers/{id} {
+      allow read: if isActiveUser() && canAccessBranch(resource.data.branchId);
+      // Opened in your own name.
+      allow create: if isActiveUser()
+        && canAccessBranch(request.resource.data.branchId)
+        && request.resource.data.status == 'open'
+        && request.resource.data.openedBy == request.auth.uid;
+      // Staff only close an open drawer — in their own name with their count,
+      // or as the day-end auto close, which records no count — and change
+      // nothing else about it.
+      allow update: if isActiveUser()
+        && canAccessBranch(resource.data.branchId)
+        && (
+          isOwner()
+          || (
+            resource.data.status == 'open'
+            && request.resource.data.status == 'closed'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'closingCount',
+              'expectedCash',
+              'difference',
+              'closedBy',
+              'closedByName',
+              'closedAt',
+              'updatedAtServer',
+              'autoClosed',
+            ])
+            && (
+              (
+                request.resource.data.closedBy == request.auth.uid
+                && request.resource.data.get('autoClosed', false) == false
+              )
+              || (
+                request.resource.data.closedBy == 'system'
+                && request.resource.data.get('autoClosed', false) == true
+                && request.resource.data.closingCount == null
+                && request.resource.data.difference == null
+              )
+            )
+          )
+        );
+      allow delete: if isOwner();
+    }
+  }
+}

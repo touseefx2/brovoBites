@@ -1,0 +1,16 @@
+{
+  "name": "@bravobites/rules-tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo \"run pnpm test:rules from the repo root (starts the emulator)\"",
+    "test:rules": "vitest run"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^12.19.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

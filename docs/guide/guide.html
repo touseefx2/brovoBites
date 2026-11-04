@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bravo Bites POS System — Complete Guide</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI", Arial, sans-serif; color: #1a1612; font-size: 12.5px; line-height: 1.55; }
+    h1 { color: #b8860b; font-size: 22px; margin: 0 0 6px; }
+    h2 { border-left: 4px solid #b8860b; padding-left: 10px; font-size: 16px; margin: 22px 0 8px; page-break-after: avoid; }
+    h3 { font-size: 13.5px; margin: 14px 0 6px; }
+    .cover { background: #111; color: #f5e6c8; padding: 28px; border-radius: 10px; margin-bottom: 18px; }
+    .cover p { color: #c9b896; margin: 6px 0 0; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 14px; }
+    th, td { border: 1px solid #e0d6bc; padding: 7px 8px; text-align: left; vertical-align: top; }
+    th { background: #1a1408; color: #f0d78c; }
+    .box { background: #faf8f3; border: 1px solid #e8dfc8; border-radius: 8px; padding: 12px; margin: 10px 0; }
+    .warn { background: #fff6e8; border-color: #e8c98a; }
+    .ok { background: #f3f8f1; border-color: #c9ddc0; }
+    code { background: #f0ebe0; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+    ul, ol { margin: 6px 0 12px; padding-left: 18px; }
+    .page-break { page-break-before: always; }
+    .muted { color: #6b6258; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <h1 style="color:#e4c15a;margin:0">Bravo Bites POS System</h1>
+    <p>Complete User Guide — Mukammal Rahnumai</p>
+    <p>Owner aur Staff ke roles, security, POS, reports — jo system aaj actually karta hai.</p>
+    <p>Version 1.1 — 27 September 2026 · Developed by Touseef</p>
+  </div>
+
+  <h2>Fehrist</h2>
+  <ol>
+    <li>System ka overview</li>
+    <li>Owner vs Staff</li>
+    <li>Dashboard, POS, Orders</li>
+    <li>Menu (ek tab — add/edit naya tab)</li>
+    <li>Branches, Staff (6 permissions)</li>
+    <li>Expenses, Inventory, Reports, Cash Drawer</li>
+    <li>Discount, Refund, Receipt</li>
+    <li>Security (server-side rules)</li>
+    <li>Real-time vs cache</li>
+    <li>Quick reference</li>
+  </ol>
+
+  <h2>1. System ka overview</h2>
+  <p>Ye ek complete POS + admin system hai Bravo Bites ke liye. Browser mein chalta hai — alag app install nahi.</p>
+  <ul>
+    <li><b>Admin panel</b> — menu, staff, reports, expenses, inventory, cash drawer</li>
+    <li><b>POS</b> — naya tab; order, checkout, 80mm receipt (branch + customer copy)</li>
+    <li><b>Public landing</b> — customer domain par sirf menu / branches</li>
+  </ul>
+  <div class="box">Bilingual EN/Urdu · Cloud Firestore · Multi-branch · Global order numbers (#0001, #0002… sab branches milakar)</div>
+
+  <h2>2. Two roles</h2>
+  <table>
+    <tr><th></th><th>Owner</th><th>Staff (counter)</th></tr>
+    <tr><td>POS / orders banana</td><td>Yes</td><td>Yes</td></tr>
+    <tr><td>Order edit / cancel</td><td>Hamesha</td><td>Apna order, business day khatam hone tak (kam az kam 30 min), permission ON</td></tr>
+    <tr><td>Order delete</td><td>Yes</td><td>No (rules bhi rok deti hain)</td></tr>
+    <tr><td>Refund</td><td>Koi bhi order</td><td>Sirf apna order, usi business day, cancel permission se</td></tr>
+    <tr><td>Doosre staff ke orders</td><td>Yes (sab branches)</td><td>Apni branch ke sab orders dekh sakta; edit / cancel sirf apne</td></tr>
+    <tr><td>Menu add/edit</td><td>Yes (naya tab)</td><td>Sirf dekhna</td></tr>
+    <tr><td>Staff / branches / landing</td><td>Yes</td><td>No</td></tr>
+    <tr><td>Discount</td><td>Unlimited</td><td>Koi bhi amount, permission se (log hota hai)</td></tr>
+    <tr><td>Expenses</td><td>Yes (koi bhi din)</td><td>Sirf aaj ki date, permission se; apne kharche usi din edit / delete</td></tr>
+    <tr><td>Inventory</td><td>Yes</td><td>Default ON via “Can manage inventory” (apni branch)</td></tr>
+  </table>
+  <div class="box warn"><b>Permission band = checkout band nahi.</b> Discount permission OFF ho to staff bina discount ke order bana sakta hai.</div>
+
+  <h2>3. Dashboard</h2>
+  <p>Aaj ki sales aur order count. Owner all branches; staff apni branch ke sab orders (owner wale bhi). Live listener — refresh ki zarurat nahi.</p>
+  <p class="muted">Open POS sidebar ke top gold button se naya tab khulta hai. Dashboard par alag POS/Orders buttons nahi.</p>
+
+  <h2>4. POS</h2>
+  <ol>
+    <li>Category / search se product</li>
+    <li>Sized item par size choose</li>
+    <li>+/− qty, optional kitchen note</li>
+    <li>Checkout → dine-in / takeaway / delivery · cash / card / digital</li>
+    <li>Optional discount · Confirm → 2 receipts</li>
+  </ol>
+  <div class="box">Drawer khula hona zaroori nahi — cash sale phir bhi save hoti hai. Expected cash drawer page par orders se calculate hota hai.</div>
+  <p>Tax % aur delivery charges checkout ke dauran lock ho jate hain (mid-ticket settings change se bill nahi badlega). Cart line price add ke waqt snapshot hoti hai.</p>
+
+  <h2>5. Orders</h2>
+  <p>Status model: <code>completed</code> ya <code>cancelled</code>. “Edited” / “Refunded” badges hain, alag status nahi.</p>
+  <ul>
+    <li>Edit items → tax % dubara subtotal par, discount re-apply</li>
+    <li>Partial refund accumulate hota hai, remaining se zyada nahi</li>
+    <li>Cancel / delete completed order stock wapas (linked inventory)</li>
+    <li>Staff ki window (business day khatam hone tak, kam az kam 30 min) <b>server time</b> se — PC / phone ki clock se bypass nahi</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <h2>6. Menu — ek tab</h2>
+  <p><b>View Menu aur Menu ab merge hain.</b> Sidebar mein sirf <b>Menu</b>. Staff ko photo grid (read-only). Owner ko same design + Add category / Add item / Edit / Hide / Delete.</p>
+  <p>Add aur Edit <b>naye tab</b> mein khulte hain. Save ke baad pehli tab live update (BroadcastChannel, leak-safe cleanup).</p>
+  <table>
+    <tr><th>Type</th><th>Matlab</th></tr>
+    <tr><td>Simple</td><td>Ek price</td></tr>
+    <tr><td>Sized</td><td>Half / Full, S / M / L</td></tr>
+    <tr><td>Bundle</td><td>Deal contents + ek price</td></tr>
+  </table>
+
+  <h2>7. Branches</h2>
+  <p>Owner only. Staff ko ek branch assign. Staff doosri branch ka sales data nahi dekh / likh sakta.</p>
+
+  <h2>8. Staff — 6 permissions</h2>
+  <table>
+    <tr><th>Toggle</th><th>Default</th><th>Kaam</th></tr>
+    <tr><td>Can add expenses</td><td>ON</td><td>Aaj ke kharche add; apne usi din edit</td></tr>
+    <tr><td>Can delete expenses</td><td>ON</td><td>Sirf apne kharche, usi din</td></tr>
+    <tr><td>Can apply discounts</td><td>ON</td><td>Koi bhi amount (log hota hai)</td></tr>
+    <tr><td>Can edit orders</td><td>ON</td><td>Apna, business day tak (kam az kam 30 min)</td></tr>
+    <tr><td>Can cancel orders</td><td>ON</td><td>Apna, business day tak; refund bhi isi se</td></tr>
+    <tr><td>Can manage inventory</td><td>ON</td><td>Items add / edit / delete, stock movements (apni branch, log)</td></tr>
+  </table>
+  <p>Reset to defaults sab ON. Disable staff = login band. Password reset edit staff se. UI ek branch assign karti hai.</p>
+
+  <h2>9. Expenses</h2>
+  <p>8 categories. Staff sirf aaj ki date par add (permission); apne kharche usi din edit / delete (permission). “Added by [name]”. Owner “All branches” par add karte waqt branch picker <b>jo select kiya wahi</b> save hota hai.</p>
+
+  <h2>10. Inventory</h2>
+  <p>From menu ya manual. Low-stock color. Purchase +stock, Waste −stock, <b>Adjust = naya counted stock</b> (barha ya ghata). Sale ke baad linked product auto-minus. Cancel/delete restock.</p>
+  <p class="muted">Bundle ke andar ke components alag se nahi kat-te — sirf deal product ka row (agar hai).</p>
+
+  <h2>11–13. Reports</h2>
+  <ul>
+    <li><b>Item sales</b> — qty + revenue; staff apne orders</li>
+    <li><b>Day report</b> — sales, payment split, expenses <b>expense date</b> se, discounts, refunds, net. Owner staff breakdown</li>
+    <li><b>Cash drawer</b> — open opening balance, close counted cash. Expected = opening + cash sales − cash expenses − cash refunds. Staff expected unke apne cash orders se</li>
+  </ul>
+
+  <h2>14–16. Discount, refund, receipt</h2>
+  <p>Discount tax ke baad, delivery tax-free. Staff ki discount permission rules mein bhi check hoti hai. Refund: owner koi bhi order; staff sirf apna, usi business day (cancel permission). Reason zaroori, partial refunds accumulate. Receipt: shop, #, cashier, type, items+notes, tax, delivery, discount, total, payment, 2 copies.</p>
+
+  <div class="page-break"></div>
+
+  <h2>17. Security — server-side</h2>
+  <div class="box ok">
+    Ye client hide-button nahi. Firestore rules + owner-token APIs:
+    <ul>
+      <li>Staff sirf apni branch ke orders read (branch-scoped)</li>
+      <li>Staff update sirf apne order par, 24h server cap; refund sirf refund fields, total se zyada nahi</li>
+      <li>Discount permission check; order counter sirf aage barhta hai</li>
+      <li>Closed cash drawer staff rewrite nahi</li>
+      <li>Expense create <code>createdBy</code> bind + permission + aaj ki date</li>
+      <li>ImageKit upload/delete owner Bearer token</li>
+    </ul>
+  </div>
+  <p><b>Roz check:</b> Day report · Cash short · Extra cancels · Discounts · Expenses.</p>
+
+  <h2>18. Real-time</h2>
+  <table>
+    <tr><th>Surface</th><th>Kaise update</th></tr>
+    <tr><td>POS menu + tax/delivery</td><td>Live onSnapshot — price change turant</td></tr>
+    <tr><td>Orders, expenses, inventory, drawer, day/item reports</td><td>Live onSnapshot</td></tr>
+    <tr><td>Public landing / Menu showcase</td><td>45s cache + save par cross-tab invalidate</td></tr>
+    <tr><td>Staff / branches lists</td><td>Fetch on visit</td></tr>
+  </table>
+  <p>Page chorne par listeners unsubscribe. Menu invalidate BroadcastChannel close hota hai.</p>
+
+  <h2>19. Sidebar</h2>
+  <table>
+    <tr><th>Tab</th><th>Kaun</th><th>Kaam</th></tr>
+    <tr><td>Open POS</td><td>Dono</td><td>Naya tab</td></tr>
+    <tr><td>Dashboard / Orders</td><td>Dono</td><td>Overview / history</td></tr>
+    <tr><td>Menu</td><td>Dono</td><td>Grid; owner manage</td></tr>
+    <tr><td>Item sales / Expenses / Inventory / Day / Drawer</td><td>Dono</td><td>Reports + ops</td></tr>
+    <tr><td>Branches / Staff / Landing</td><td>Owner</td><td>Setup</td></tr>
+  </table>
+
+  <h2>Owner daily checklist</h2>
+  <ol>
+    <li>Day report — profit, expenses, refunds</li>
+    <li>Cash drawer difference</li>
+    <li>Cancelled / edited orders</li>
+    <li>Total discounts</li>
+    <li>Staff expenses reasonable?</li>
+  </ol>
+
+  <p class="muted">Bravo Bites POS · Version 1.1 · September 2026 · Touseef</p>
+</body>
+</html>

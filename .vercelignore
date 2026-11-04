@@ -1,0 +1,22 @@
+# Service worker files are made by every build (next-pwa). A copy left from a
+# local build must never be uploaded: on a build-cache hit Vercel would serve
+# it, and it points at chunks of that old build — the POS PC then silently
+# loses its offline service worker.
+apps/web/public/sw.js*
+apps/web/public/workbox-*.js*
+apps/web/public/worker-*.js*
+apps/web/public/swe-worker-*.js
+apps/web/public/fallback-*.js
+
+# Local build / deps / test artifacts — keep upload small (CLI can otherwise
+# try to push ~1GB and abort).
+node_modules
+.pnpm-store
+.next
+apps/web/.next
+.turbo
+apps/web/.turbo
+apps/e2e/test-results
+apps/e2e/playwright-report
+.git
+.tools
