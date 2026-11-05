@@ -1,5 +1,8 @@
 /** Public customer menu deployments — no staff screens there. */
 const CUSTOMER_HOSTS = [
+  "brovobites.vercel.app",
+  "brovobites-dev.vercel.app",
+  // Old URLs — they now redirect to the two above.
   "brovobites-menu.vercel.app",
   "brovobites-menu-dev.vercel.app",
 ];

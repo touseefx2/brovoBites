@@ -75,7 +75,7 @@ Suggested names:
 | | DEV | LIVE |
 |---|---|---|
 | Staff/admin POS | `brovobites-pos-dev` | `brovobites-pos` |
-| Customer menu (landing only) | `brovobites-menu-dev` | `brovobites-menu` |
+| Customer menu (landing only) | `brovobites-dev` (brovobites-dev.vercel.app) | `brovobites` (brovobites.vercel.app) |
 
 Do not name a Vercel project exactly like a Firebase project id — `scripts/set-firebase-ids.sh` would rewrite that name in the docs too.
 

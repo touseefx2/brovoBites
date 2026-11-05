@@ -215,7 +215,7 @@ cp apps/web/.env.example apps/web/.env.production.local    # LIVE Firebase + LIV
 | | DEV | LIVE |
 |---|---|---|
 | Staff/admin POS | e.g. `brovobites-pos-dev` | e.g. `brovobites-pos` |
-| Customer menu (landing only) | e.g. `brovobites-menu-dev` | e.g. `brovobites-menu` |
+| Customer menu (landing only) | `brovobites-dev` | `brovobites` |
 
 - Kisi Vercel project ka naam bilkul Firebase project id jaisa mat rakho — `set-firebase-ids.sh` docs me woh naam bhi badal dega.
 - Banane ka tareeqa: Brovo Bites GitHub repo import karo (git deploy waise bhi off hai), ya sirf CLI deploy (Git link ke bina bhi chalta hai).

@@ -134,7 +134,7 @@ Uses a Firestore transaction on `/counters/global` to atomically increment one s
 
 Each environment (DEV and LIVE, in separate Vercel accounts) has two Vercel projects deployed from the same repo:
 - **Admin / POS** (e.g. `brovodev`, `borovo-ffc56`) — full POS + Admin access
-- **Customer menu** (e.g. `brovobites-customer`, `brovobites-menu`) — landing page only (`NEXT_PUBLIC_CUSTOMER_MODE=true`; middleware blocks admin routes)
+- **Customer menu** (`brovobites` / `brovobites-dev`) — landing page only (`NEXT_PUBLIC_CUSTOMER_MODE=true`; middleware blocks admin routes)
 
 See [DEPLOYMENT.md](../DEPLOYMENT.md) for deploy commands, env vars, and domain setup.
 
