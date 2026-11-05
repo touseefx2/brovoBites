@@ -11,7 +11,7 @@ export default function OfflineFallback() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#1a1206] px-6 text-center">
-      <img src="/logo.png" alt="Bravo Bites" className="h-24 w-24 rounded-full" />
+      <img src="/logo-full.png" alt="Bravo Bites" className="h-40 w-auto" />
       <h1 className="text-xl font-bold text-[#d4a843]">You are offline</h1>
       <p className="max-w-sm text-sm text-stone-400">
         Internet connection lost. The page will reload automatically when you&apos;re back online.

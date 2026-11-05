@@ -1906,6 +1906,19 @@ html[lang=”ur”] .landing-cat-header.landing-reveal .landing-cat-header-line 
   text-wrap: balance;
 }
 
+/* Hero shows the full logo (mark + name) instead of the name as text. */
+.landing-title-logo {
+  max-width: none;
+  line-height: 0;
+}
+
+.landing-title-logo .brand-full-logo {
+  display: block;
+  width: auto;
+  height: clamp(9rem, 34vw, 15rem);
+  filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.5));
+}
+
 .landing-tagline {
   margin: 1rem 0 0;
   max-width: 28rem;

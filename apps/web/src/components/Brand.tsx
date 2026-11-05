@@ -6,6 +6,8 @@ import { usePublicMenuOptional } from "@/lib/menu-context";
 
 /** Bundled mark in `/public` — PNG so the circular badge keeps a transparent edge (JPEG baked a white fringe). */
 export const DEFAULT_LOCAL_LOGO = "/logo.png";
+/** Full logo: the round mark with the shop name under it. Light lettering — dark backgrounds only. */
+export const DEFAULT_LOCAL_LOGO_FULL = "/logo-full.png";
 
 export function BrandLogo({
   size = "md",
@@ -41,6 +43,25 @@ export function BrandLogo({
       width={px}
       height={px}
       className={`brand-mark ${size === "sm" ? "brand-mark-sm" : ""} ${className}`}
+      priority
+    />
+  );
+}
+
+export function BrandFullLogo({
+  alt = "Bravo Bites",
+  className = "",
+}: {
+  alt?: string;
+  className?: string;
+}) {
+  return (
+    <Image
+      src={DEFAULT_LOCAL_LOGO_FULL}
+      alt={alt}
+      width={720}
+      height={835}
+      className={`brand-full-logo ${className}`}
       priority
     />
   );

@@ -14,7 +14,7 @@ import { getAuthRoleHint, useAuth } from "@/lib/auth-context";
 import { useLocale } from "@/i18n/locale-context";
 import { usePublicMenu } from "@/lib/menu-context";
 import { LanguageToggle } from "@/components/LanguageToggle";
-import { BrandLogo } from "@/components/Brand";
+import { BrandFullLogo, BrandLogo } from "@/components/Brand";
 import { resolveProductImage, resolveCategoryImage } from "@/lib/menu-images";
 import { MenuFoodLoader } from "@/components/MenuFoodLoader";
 import { AtmosphereBg } from "@/components/AtmosphereBg";
@@ -507,7 +507,9 @@ export function LandingPage() {
         <div className="landing-hero-scrim" />
         <div className="landing-hero-content">
           <p className="landing-eyebrow landing-hero-line">{settings.eyebrow || DEFAULT_SETTINGS.eyebrow}</p>
-          <h1 className="landing-title landing-hero-line">{shopName}</h1>
+          <h1 className="landing-title landing-title-logo landing-hero-line">
+            <BrandFullLogo alt={shopName} />
+          </h1>
           <p className="landing-tagline landing-hero-line">{slogan}</p>
           <div className="landing-cta-row landing-hero-line">
             <a

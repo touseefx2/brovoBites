@@ -307,14 +307,14 @@ Node 22.x/24.x + Fluid Compute (4.2) zaroori. Poori detail: [DEPLOYMENT.md](DEPL
 
 ---
 
-## 6. Branding — abhi baqi
+## 6. Branding
 
 | Kya | Kahan | Abhi |
 |---|---|---|
-| Logo | Admin → Landing Page → Logo (min 512×512, ImageKit pe → `settings/shop.logoUrl`) | khali → fallback `apps/web/public/logo.png` |
-| Fallback logo | `apps/web/public/logo.png` (1024×1024 PNG) — code me replace | placeholder "BRAVO BITES" badge |
-| POS / PWA icons | `apps/web/public/icon-192.png`, `icon-512.png` (`public/manifest.json` "Bravo Bites POS") — code me replace | placeholder |
-| Favicon | `apps/web/src/app/favicon.ico` | Next.js default |
+| Logo (gol badge) | `apps/web/public/logo.png` — sirf BB circle (header, login, footer, loader). Admin → Landing Page → Logo upload isay override karta hai: wahan bhi **circle** wala logo daalna, naam wala nahi (gol frame me kat jata hai) | ✅ asli logo |
+| Full logo (naam ke saath) | `apps/web/public/logo-full.png` — landing hero + offline page. Halke (cream) letters → sirf dark background pe | ✅ asli logo |
+| POS / PWA icons | `apps/web/public/icon-192.png`, `icon-512.png`, `src/app/apple-icon.png` (iPhone) | ✅ asli logo |
+| Favicon | `apps/web/src/app/favicon.ico` (16/32/48) | ✅ asli logo |
 | Shop phone | Admin → Branches → Main → Phone (landing page branch phone dikhata hai). Seed se pehle chaho to `packages/domain/src/types.ts` `DEFAULT_SETTINGS.phone` bhi bhar do (seed branch me copy karta hai) | khali (phone chip chhupa rehta hai) |
 | Shop name, tagline, eyebrow, copyright, WhatsApp, Google review link | Admin → Landing Page (`settings/shop`); code defaults `DEFAULT_SETTINGS` | "Bravo Bites", "Authentic Taste, Royal Experience", eyebrow purane menu wala |
 | Meta description | `apps/web/src/app/layout.tsx` → `metadata.description` (tagline + dish list) — code | purana |
