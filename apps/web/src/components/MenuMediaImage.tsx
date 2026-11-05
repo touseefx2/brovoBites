@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { optimizeMenuImageUrl } from "@/lib/optimize-menu-image";
+import { cdnCrossOrigin, cdnImageLoader } from "@/lib/image-cdn";
 
 /** Last resort when a photo is missing: the brand badge (shown contained, not cropped). */
 const BRAND_FALLBACK = "/logo.png";
@@ -17,10 +17,8 @@ type MenuMediaImageProps = {
   sizes: string;
   /** Prefer true for first-screen images only */
   priority?: boolean;
-  /** next/image quality 1–100 — keep ≥80 so food photos stay clean */
-  quality?: number;
-  /** ImageKit width hint (2× typical CSS width). Ignored for local /menu paths. */
-  ikWidth?: number;
+  /** 75 or 80 (must be listed in next.config images.qualities) — 80 keeps food photos clean */
+  quality?: 75 | 80;
   className?: string;
   /** Tried when `src` fails to load (e.g. a category photo not shipped yet). Then the brand badge. */
   fallbackSrc?: string;
@@ -69,7 +67,8 @@ function watchNear(el: Element, onNear: () => void) {
 }
 
 /**
- * Menu / landing photo: next/image + soft fade-in. Quality stays high (default 82).
+ * Menu / landing photo: next/image + soft fade-in, resized by the image CDN
+ * (src/lib/image-cdn.ts: ImageKit, Vercel only as fallback). Quality default 80.
  * Adds .menu-media-img, plus .is-loaded once loaded (CSS fades it in and stops the
  * shimmer). A broken photo falls back to `fallbackSrc`, then to the brand badge
  * (.is-fallback) so a card never stays an empty shimmer.
@@ -79,8 +78,7 @@ export function MenuMediaImage({
   alt,
   sizes,
   priority = false,
-  quality = 82,
-  ikWidth = 800,
+  quality = 80,
   className = "",
   fallbackSrc,
   deferOffscreen = false,
@@ -118,7 +116,6 @@ export function MenuMediaImage({
   );
   const stage = Math.min(state.stage, candidates.length - 1);
   const current = candidates[stage] ?? BRAND_FALLBACK;
-  const optimized = optimizeMenuImageUrl(current, { width: ikWidth, quality });
 
   // Always a fragment, so the <Image> keeps its place (no remount) when the sweep goes.
   return (
@@ -126,7 +123,9 @@ export function MenuMediaImage({
       {shimmer && !state.loaded ? <span className="menu-media-shimmer" aria-hidden /> : null}
       <Image
         key={current}
-        src={optimized}
+        src={current}
+        loader={cdnImageLoader}
+        crossOrigin={cdnCrossOrigin(current)}
         alt={alt}
         fill
         sizes={sizes}

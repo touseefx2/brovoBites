@@ -1125,7 +1125,6 @@ export function LandingPage() {
                           }
                           alt=""
                           sizes="(max-width: 639px) 42vw, (max-width: 1023px) 26vw, 180px"
-                          ikWidth={480}
                           quality={80}
                           deferOffscreen
                           shimmer
@@ -1173,7 +1172,6 @@ export function LandingPage() {
                           }
                           alt=""
                           sizes="72px"
-                          ikWidth={160}
                           quality={80}
                           deferOffscreen
                           shimmer
@@ -1210,7 +1208,6 @@ export function LandingPage() {
                                 alt={product.name}
                                 // Below the 100svh hero → always lazy; widths match the 2 / 3 / 4-column grid.
                                 sizes="(max-width: 767px) 50vw, (max-width: 1099px) 33vw, 300px"
-                                ikWidth={640}
                                 quality={80}
                                 deferOffscreen
                                 shimmer

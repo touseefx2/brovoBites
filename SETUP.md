@@ -166,6 +166,15 @@ SEED_ENV=production pnpm create-owner -- \
 - Teeno chahiye. Private key missing → `/api/upload-menu-image` 503 "ImageKit is not configured". Public key/endpoint missing → admin me upload hi band.
 - DEV aur LIVE ke liye **alag** ImageKit accounts best: image delete (`/api/delete-image`) ImageKit se file hata deta hai, to shared account me DEV ka delete LIVE ki image ura sakta hai. Ek account bhi chalega — bas dhyan.
 - `IMAGEKIT_FOLDER` optional. Unset → `brovobites/menu/branding`, `brovobites/menu/hero-slides`, `brovobites/menu/categories/<branch>`, `brovobites/menu/products/<branch>`. Set kiya to **har** upload usi ek folder me. Normally unset rakho.
+- [ ] **Bundled photos ImageKit pe** (`public/menu/**` — hero, category, item placeholders). Har ImageKit account ke liye ek dafa, aur jab bhi `public/menu` me koi photo add / change ho:
+
+  ```bash
+  pnpm --filter web images:sync                        # DEV account (.env.development.local)
+  SEED_ENV=production pnpm --filter web images:sync    # LIVE account (.env.production.local)
+  pnpm --filter web images:sync --check                # bina network: map up to date hai?
+  ```
+
+  Phir `apps/web/src/lib/static-images.imagekit.json` commit karo. Kyun: Vercel Hobby pe sirf 5K image transformations/mahina hain — website ki saari photos ImageKit resize karta hai (`src/lib/image-cdn.ts`), Vercel sirf logo. Sync nahi kiya → kuch nahi tootta: nayi / badli hui photo Vercel se resize hoti hai (build me `[images] … changed since the last ImageKit sync` warning aati hai), aur jis ImageKit account pe sync hi nahi hua wahan saari bundled photos Vercel se. Bundled photos git me hi rehti hain, to kal ko CDN badalna ho to unke liye `image-cdn.ts` + naya upload step kaafi hai. Owner ki upload ki hui photos Firestore me poore ImageKit URL ke saath save hain — unhe move karne ke liye files copy + Firestore URLs badalne honge (tab tak ImageKit pe chalti rahengi).
 
 ---
 

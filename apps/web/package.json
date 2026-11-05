@@ -12,7 +12,8 @@
     "create-owner": "tsx scripts/create-owner.ts",
     "copy-menu": "tsx scripts/copy-menu-dev-to-live.ts",
     "seed:e2e": "tsx scripts/seed-e2e.ts",
-    "backfill-images": "tsx scripts/backfill-images.ts"
+    "backfill-images": "tsx scripts/backfill-images.ts",
+    "images:sync": "tsx scripts/sync-static-images.ts"
   },
   "dependencies": {
     "@bravobites/domain": "workspace:^",

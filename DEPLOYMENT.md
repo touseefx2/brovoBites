@@ -55,6 +55,15 @@ If Firebase gave other ids than the placeholders, run `scripts/set-firebase-ids.
 
 Best: one ImageKit account for DEV and a separate one for LIVE (like Firebase). Deleting a menu image deletes the file from ImageKit by its URL, so with one shared account a delete on DEV can remove an image LIVE still uses. One account for both works, but then be careful.
 
+Then copy the bundled photos (`apps/web/public/menu/**`) to each ImageKit account and commit the map it writes (`apps/web/src/lib/static-images.imagekit.json`):
+
+```bash
+pnpm --filter web images:sync                       # DEV keys
+SEED_ENV=production pnpm --filter web images:sync   # LIVE keys
+```
+
+Re-run it whenever a photo in `public/menu` is added or changed (`images:sync --check` tells you; the build also warns). Website photos are resized by ImageKit, not Vercel (`src/lib/image-cdn.ts`) — Vercel Hobby allows 5K image transformations a month. Until you re-sync, a new or changed photo is resized by Vercel; an account never synced uses Vercel for all bundled photos.
+
 ### 3) Vercel — create 2 projects per world
 
 Brovo Bites LIVE Vercel account is required. DEV can be a second Brovo Bites Vercel account, or the **same** account with 2 more projects (then the same token + org id go in both the DEV and LIVE slots of `deploy/targets.local.env`).

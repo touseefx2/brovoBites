@@ -650,8 +650,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                         src={catImg}
                         alt={category.name}
                         sizes="72px"
-                        ikWidth={160}
-                        quality={84}
+                        quality={80}
                         priority={false}
                       />
                     </div>
@@ -752,8 +751,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                                 src={src}
                                 alt={product.name}
                                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
-                                ikWidth={800}
-                                quality={82}
+                                quality={80}
                                 priority={false}
                               />
                               {manage ? (
@@ -887,8 +885,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                             src={src}
                             alt={product.name}
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
-                            ikWidth={800}
-                            quality={82}
+                            quality={80}
                           />
                           <div className="absolute inset-x-0 bottom-0 z-[2] flex justify-end gap-1.5 bg-gradient-to-t from-black/55 to-transparent p-2.5 pt-8">
                             <Link

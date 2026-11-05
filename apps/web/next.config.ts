@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
@@ -6,6 +8,36 @@ import withPWAInit from "@ducanh2912/next-pwa";
 // build's service worker (their HTML points at that build's chunks).
 const PAGE_REVISION = Date.now().toString(36);
 const isCustomerBuild = process.env.NEXT_PUBLIC_CUSTOMER_MODE === "true";
+
+/**
+ * Bundled photos whose ImageKit copy is out of date: the file in public/ changed (or
+ * is gone) since scripts/sync-static-images.ts last ran. Each copy's name carries the
+ * hash of the content it was made from; a mismatch sends that photo back to Vercel's
+ * optimizer (src/lib/image-cdn.ts), so the new photo shows instead of the old copy.
+ */
+function staleStaticImages(): string[] {
+  const manifestPath = path.join(__dirname, "src/lib/static-images.imagekit.json");
+  if (!existsSync(manifestPath)) return [];
+  const { files } = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+    files: Record<string, string>;
+  };
+  const stale = Object.entries(files)
+    .filter(([src, copy]) => {
+      const file = path.join(__dirname, "public", src);
+      if (!existsSync(file)) return true;
+      const hash = createHash("sha256").update(readFileSync(file)).digest("hex").slice(0, 10);
+      return !copy.endsWith(`.${hash}${path.extname(src).toLowerCase()}`);
+    })
+    .map(([src]) => src);
+  if (stale.length) {
+    console.warn(
+      `[images] ${stale.length} bundled photo(s) changed since the last ImageKit sync — ` +
+        "served by Vercel until you run: pnpm --filter web images:sync\n  " +
+        stale.join("\n  "),
+    );
+  }
+  return stale;
+}
 
 const withPWA = withPWAInit({
   dest: "public",
@@ -74,6 +106,25 @@ const withPWA = withPWAInit({
         },
       },
       {
+        // Menu / hero photos from ImageKit (owner uploads + bundled photos, see
+        // src/lib/image-cdn.ts). Every URL is one fixed file at one size (uploads
+        // get unique names, bundled copies carry a content hash), so a stored copy
+        // is served at once and refreshed in the background — the POS keeps its
+        // product photos offline. Status 0: the POS loads uploads with plain <img>
+        // (no CORS) — opaque responses must be cacheable too.
+        urlPattern: ({ url }) => url.hostname === "ik.imagekit.io",
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "imagekit-images",
+          expiration: {
+            maxEntries: 200,
+            maxAgeSeconds: 30 * 24 * 60 * 60,
+            purgeOnQuotaError: true,
+          },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      {
         // next-pwa's default "cross-origin" cache, minus Firestore. Its live
         // listen channel is a long-hanging GET: routed through the worker it
         // keeps the old worker busy, and Chrome never activates a waiting
@@ -100,6 +151,9 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_STALE_STATIC_IMAGES: JSON.stringify(staleStaticImages()),
+  },
   // Default ".next". A separate dir lets a local production build / perf check
   // or the e2e dev server run next to `pnpm dev` without sharing its cache.
   distDir: process.env.NEXT_DIST_DIR || ".next",
@@ -142,7 +196,11 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     // Every `quality` used with next/image (75 = the default when none is
     // given). Production refuses any other value with a 400.
-    qualities: [60, 70, 75, 80, 82, 84, 85, 90],
+    // Photos are resized on ImageKit (src/lib/image-cdn.ts); this optimizer is
+    // only the fallback + logos, which use 75 / 80. 82 and 84: an admin tab still
+    // running the build before Nov 2026 asks for them — drop them once every
+    // staff PC has updated. A value nobody requests costs nothing.
+    qualities: [75, 80, 82, 84],
     remotePatterns: [
       {
         protocol: "https",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getImageProps } from "next/image";
-import { optimizeMenuImageUrl } from "@/lib/optimize-menu-image";
+import { cdnCrossOrigin, cdnImageLoader } from "@/lib/image-cdn";
 import { FOOD_HERO_SLIDES, HERO_SLIDES, type HeroSlide } from "@/lib/menu-images";
 
 /**
@@ -251,16 +251,19 @@ export function AtmosphereBg({
           .filter(Boolean)
           .join(" ");
 
-        const remote = /^https?:\/\//i.test(slide.src);
-        const wideSrc = remote
-          ? optimizeMenuImageUrl(slide.src, { width: 1920, quality: 82 })
-          : slide.src;
-        const common = { alt: "", fill: true, quality: PHOTO_QUALITY } as const;
+        const common = {
+          alt: "",
+          fill: true,
+          quality: PHOTO_QUALITY,
+          loader: cdnImageLoader,
+          // Both crops of a slide live on the same CDN (both bundled, or one upload).
+          crossOrigin: cdnCrossOrigin(slide.src),
+        } as const;
         const first = i === 0 && priority;
-        const wide = getImageProps({ ...common, src: wideSrc, sizes: SIZES_WIDE }).props;
+        const wide = getImageProps({ ...common, src: slide.src, sizes: SIZES_WIDE }).props;
         const img = slide.tall
           ? getImageProps({ ...common, src: slide.tall, sizes: SIZES_TALL, priority: first }).props
-          : getImageProps({ ...common, src: wideSrc, sizes: SIZES_WIDE_ONLY, priority: first })
+          : getImageProps({ ...common, src: slide.src, sizes: SIZES_WIDE_ONLY, priority: first })
               .props;
 
         return (

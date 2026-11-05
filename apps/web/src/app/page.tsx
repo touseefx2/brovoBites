@@ -1,5 +1,6 @@
 import { preconnect } from "react-dom";
 import { LandingPage } from "@/components/LandingPage";
+import { imageCdnOrigin } from "@/lib/image-cdn";
 import { PublicMenuProvider } from "@/lib/menu-context";
 import { getPublicBranchesForPage, getPublicMenuForPage } from "@/lib/server/public-menu";
 
@@ -27,6 +28,10 @@ export default async function HomePage() {
   // An uploaded logo is a plain <img> from its CDN, painted in the first screen.
   const logoOrigin = remoteOrigin(menu?.settings.logoUrl);
   if (logoOrigin) preconnect(logoOrigin);
+  // Hero + menu photos come from the image CDN as CORS requests (crossOrigin="anonymous"),
+  // which use their own connection — warm that one up during the intro.
+  const photoOrigin = imageCdnOrigin();
+  if (photoOrigin) preconnect(photoOrigin, { crossOrigin: "anonymous" });
 
   return (
     <PublicMenuProvider initial={menu} initialBranches={branches}>
