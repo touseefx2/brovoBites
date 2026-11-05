@@ -196,8 +196,8 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     // Every `quality` used with next/image (75 = the default when none is
     // given). Production refuses any other value with a 400.
-    // Photos are resized on ImageKit (src/lib/image-cdn.ts); this optimizer is
-    // only the fallback + logos, which use 75 / 80. 82 and 84: an admin tab still
+    // Photos and logos are resized on ImageKit (src/lib/image-cdn.ts); this
+    // optimizer is only the fallback, with the same 75 / 80. 82 and 84: an admin tab still
     // running the build before Nov 2026 asks for them — drop them once every
     // staff PC has updated. A value nobody requests costs nothing.
     qualities: [75, 80, 82, 84],

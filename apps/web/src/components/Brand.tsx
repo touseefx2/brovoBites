@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { cdnCrossOrigin, cdnImageLoader } from "@/lib/image-cdn";
 import { useLocale } from "@/i18n/locale-context";
 import { usePublicMenuOptional } from "@/lib/menu-context";
 
@@ -39,6 +40,8 @@ export function BrandLogo({
   return (
     <Image
       src={src}
+      loader={cdnImageLoader}
+      crossOrigin={cdnCrossOrigin(src)}
       alt="Brovo Bites"
       width={px}
       height={px}
@@ -58,6 +61,8 @@ export function BrandFullLogo({
   return (
     <Image
       src={DEFAULT_LOCAL_LOGO_FULL}
+      loader={cdnImageLoader}
+      crossOrigin={cdnCrossOrigin(DEFAULT_LOCAL_LOGO_FULL)}
       alt={alt}
       width={720}
       height={835}

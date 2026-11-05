@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { cdnCrossOrigin, cdnImageLoader } from "@/lib/image-cdn";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Expense, Order, ShopSettings } from "@bravobites/domain";
@@ -879,6 +880,8 @@ function AdminDashboardPage() {
       <header className="dash-hero">
         <Image
           src="/logo.png"
+          loader={cdnImageLoader}
+          crossOrigin={cdnCrossOrigin("/logo.png")}
           alt=""
           width={176}
           height={176}

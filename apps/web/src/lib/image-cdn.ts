@@ -7,11 +7,11 @@ import staticImages from "./static-images.imagekit.json";
  *
  * - Owner uploads (ImageKit URLs): ImageKit resizes them (`?tr=w-…,q-…`), once per
  *   width the browser asks for. Vercel never touches them.
- * - Bundled photos (/menu/… in public/): served from their ImageKit copies when
+ * - Bundled photos (/menu/… and the logos in public/): served from their ImageKit copies when
  *   scripts/sync-static-images.ts has put the current set on this ImageKit account.
  *   A photo changed since then (next.config.ts checks at build), or an account never
  *   synced, is resized by Vercel's optimizer as before.
- * - Anything else (Firebase Storage, logo, …): Vercel's optimizer as before.
+ * - Anything else (Firebase Storage, …): Vercel's optimizer as before.
  *
  * Vercel Hobby allows 5K image transformations a month; ImageKit's free plan has no
  * transformation cap (bandwidth is its limit), so photos belong there.

@@ -37,6 +37,7 @@ import { AtmosphereBg } from "@/components/AtmosphereBg";
 import { LogoLoader } from "@/components/LogoLoader";
 import { LANDING_BOOT_SEEN_ATTR, LANDING_BOOT_SEEN_KEY } from "@/lib/landing-boot-script";
 import { MenuMediaImage } from "@/components/MenuMediaImage";
+import { cdnCrossOrigin, cdnImageLoader } from "@/lib/image-cdn";
 import { loadBranches, peekBranches, type PublicBranch } from "@/lib/branches-data";
 
 /** Keep section titles clear of the fixed nav (+ small breathing gap). */
@@ -46,6 +47,8 @@ const NAV_SCROLL_GAP_PX = 12;
 const LEGACY_SLOGANS: ReadonlySet<string> = new Set([
   "Authentic Taste, Royal Experience",
   "اصیل ذائقہ، شاہی تجربہ",
+  "Loaded. Saucy. Proper Bites.",
+  "بھرپور، چٹپٹا، زبردست ذائقہ",
 ]);
 
 function prefersReducedMotion() {
@@ -1401,6 +1404,8 @@ export function LandingPage() {
                 `priority`, which would preload a 1920w copy against the hero badge). */}
             <Image
               src={DEFAULT_LOCAL_LOGO_FULL}
+              loader={cdnImageLoader}
+              crossOrigin={cdnCrossOrigin(DEFAULT_LOCAL_LOGO_FULL)}
               alt={shopName}
               width={720}
               height={835}

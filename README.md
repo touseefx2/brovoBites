@@ -24,7 +24,7 @@ Production **Point of Sale + Admin** system for **Brovo Bites**, a multi-branch 
 ## Monorepo Structure
 
 ```
-bravoBites/
+brovoBites/
 ├── apps/
 │   ├── e2e/                          # Playwright end-to-end tests
 │   └── web/                          # Next.js app (POS + Admin + Landing)
@@ -214,7 +214,7 @@ All properly cleaned up on unmount (no memory leaks):
 ## Quick Start (Development)
 
 ```bash
-cd bravoBites
+cd brovoBites
 pnpm install
 
 # Create the env files (never committed):

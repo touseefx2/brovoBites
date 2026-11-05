@@ -240,7 +240,7 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   shopName: "Brovo Bites",
   phone: "",
   currency: "PKR",
-  slogan: "Authentic Taste, Royal Experience",
+  slogan: "Dip it. Bite it. Brovo it.",
   eyebrow: "Burgers · Wings · Fries · Wraps",
   logoUrl: "",
   copyrightName: "Brovo Bites",

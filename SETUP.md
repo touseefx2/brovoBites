@@ -174,7 +174,7 @@ SEED_ENV=production pnpm create-owner -- \
   pnpm --filter web images:sync --check                # bina network: map up to date hai?
   ```
 
-  Phir `apps/web/src/lib/static-images.imagekit.json` commit karo. Kyun: Vercel Hobby pe sirf 5K image transformations/mahina hain — website ki saari photos ImageKit resize karta hai (`src/lib/image-cdn.ts`), Vercel sirf logo. Sync nahi kiya → kuch nahi tootta: nayi / badli hui photo Vercel se resize hoti hai (build me `[images] … changed since the last ImageKit sync` warning aati hai), aur jis ImageKit account pe sync hi nahi hua wahan saari bundled photos Vercel se. Bundled photos git me hi rehti hain, to kal ko CDN badalna ho to unke liye `image-cdn.ts` + naya upload step kaafi hai. Owner ki upload ki hui photos Firestore me poore ImageKit URL ke saath save hain — unhe move karne ke liye files copy + Firestore URLs badalne honge (tab tak ImageKit pe chalti rahengi).
+  Phir `apps/web/src/lib/static-images.imagekit.json` commit karo. Kyun: Vercel Hobby pe sirf 5K image transformations/mahina hain — website ki saari photos aur logo ImageKit resize karta hai (`src/lib/image-cdn.ts`), Vercel koi image resize nahi karta. Sync nahi kiya → kuch nahi tootta: nayi / badli hui photo Vercel se resize hoti hai (build me `[images] … changed since the last ImageKit sync` warning aati hai), aur jis ImageKit account pe sync hi nahi hua wahan saari bundled photos Vercel se. Bundled photos git me hi rehti hain, to kal ko CDN badalna ho to unke liye `image-cdn.ts` + naya upload step kaafi hai. Owner ki upload ki hui photos Firestore me poore ImageKit URL ke saath save hain — unhe move karne ke liye files copy + Firestore URLs badalne honge (tab tak ImageKit pe chalti rahengi).
 
 ---
 

@@ -17,7 +17,7 @@
 ## Architecture
 
 ```
-bravoBites/
+brovoBites/
 ├── apps/web/          → Next.js app (all UI + API routes)
 │   ├── src/app/       → Pages (App Router)
 │   ├── src/components → Reusable components

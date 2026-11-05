@@ -46,7 +46,7 @@ const lilita = localFont({
 
 export const metadata: Metadata = {
   title: "Brovo Bites",
-  description: "Authentic Taste, Royal Experience — Zinger & Beef Burgers, Wings, Nuggets, Loaded Fries & Wraps",
+  description: "Dip it. Bite it. Brovo it. — Zinger & Beef Burgers, Wraps, Wings, Nuggets, Loaded Fries & Dips",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

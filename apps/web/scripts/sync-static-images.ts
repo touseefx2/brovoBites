@@ -25,8 +25,9 @@ import { extname, join, relative, resolve, sep } from "path";
 
 const webRoot = resolve(__dirname, "..");
 const PUBLIC_DIR = join(webRoot, "public");
-/** Bundled photo folders (under public/) that go to ImageKit. */
+/** Bundled photo folders and single files (under public/) that go to ImageKit. */
 const SOURCE_DIRS = ["menu"];
+const SOURCE_FILES = ["logo.png", "logo-full.png"];
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 /** Folder on ImageKit — separate from owner uploads (brovobites/menu/...). */
 const IK_ROOT = "brovobites/static";
@@ -63,21 +64,27 @@ function sha(data: Buffer | string, len: number) {
 
 type Photo = { publicPath: string; ikPath: string; abs: string };
 
+function photo(abs: string): Photo {
+  const rel = relative(PUBLIC_DIR, abs).split(sep).join("/");
+  const ext = extname(rel);
+  const hash = sha(readFileSync(abs), 10);
+  return {
+    publicPath: `/${rel}`,
+    ikPath: `${IK_ROOT}/${rel.slice(0, -ext.length)}.${hash}${ext.toLowerCase()}`,
+    abs,
+  };
+}
+
 function collect(): { photos: Photo[]; files: Record<string, string>; version: string } {
   const photos: Photo[] = [];
   for (const d of SOURCE_DIRS) {
     const root = join(PUBLIC_DIR, d);
     if (!existsSync(root)) continue;
-    for (const abs of walk(root)) {
-      const rel = relative(PUBLIC_DIR, abs).split(sep).join("/");
-      const ext = extname(rel);
-      const hash = sha(readFileSync(abs), 10);
-      photos.push({
-        publicPath: `/${rel}`,
-        ikPath: `${IK_ROOT}/${rel.slice(0, -ext.length)}.${hash}${ext.toLowerCase()}`,
-        abs,
-      });
-    }
+    for (const abs of walk(root)) photos.push(photo(abs));
+  }
+  for (const f of SOURCE_FILES) {
+    const abs = join(PUBLIC_DIR, f);
+    if (existsSync(abs)) photos.push(photo(abs));
   }
   photos.sort((a, b) => a.publicPath.localeCompare(b.publicPath));
   const files = Object.fromEntries(photos.map((p) => [p.publicPath, p.ikPath]));
