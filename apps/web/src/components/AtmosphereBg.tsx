@@ -42,12 +42,12 @@ type AtmosphereBgProps = {
   /** Called once, when the first slide has loaded. */
   onReady?: () => void;
   /**
-   * true = download every slide as soon as `load` is on (hidden until its turn), instead of
-   * one ahead — the landing keeps its intro up until the whole set is in the cache.
+   * How many slides (from the first) to download as soon as `load` is on, before the show
+   * runs — the landing keeps its intro up until they are in. The rest still load one ahead.
    */
-  preloadAll?: boolean;
-  /** Called when every slide has loaded or failed (each slide list once). */
-  onAllReady?: () => void;
+  preloadCount?: number;
+  /** Called when the first `preloadCount` slides have loaded or failed (each slide list once). */
+  onPreloaded?: () => void;
   /** false = hold still (no cycle, no zoom) — e.g. while the landing intro still covers it. */
   play?: boolean;
 };
@@ -79,8 +79,8 @@ export function AtmosphereBg({
   defaultSlides = FOOD_SLIDES,
   load = true,
   onReady,
-  preloadAll = false,
-  onAllReady,
+  preloadCount = 1,
+  onPreloaded,
   play = true,
 }: AtmosphereBgProps) {
   const activeSlides = useMemo<readonly HeroSlide[]>(
@@ -135,13 +135,13 @@ export function AtmosphereBg({
   );
   const upNext = nextUsable(index);
 
-  // Mount the current slide (or, with preloadAll, every slide); once it has loaded AND the
-  // show is running, the one after it (lazy, one ahead — nothing extra downloads while an intro still covers the photos).
+  // Mount the current slide (and the first `preloadCount`); once it has loaded AND the
+  // show is running, the one after it (lazy, one ahead — nothing else downloads while an
+  // intro still covers the photos).
   if (!listChanged && load && count > 0) {
     let want = addTo(mountedSet, index);
-    if (preloadAll) {
-      for (let i = 0; i < count; i++) want = addTo(want, i);
-    } else if (loadedSet.has(index) && play && usableCount > 1 && !reduceMotion) {
+    for (let i = 0; i < Math.min(preloadCount, count); i++) want = addTo(want, i);
+    if (loadedSet.has(index) && play && usableCount > 1 && !reduceMotion) {
       want = addTo(want, upNext);
     }
     if (want !== mountedSet) setMountedSet(want);
@@ -210,14 +210,19 @@ export function AtmosphereBg({
     if (anyReady) onReadyRef.current?.();
   }, [anyReady]);
 
-  const onAllReadyRef = useRef(onAllReady);
+  const onPreloadedRef = useRef(onPreloaded);
   useEffect(() => {
-    onAllReadyRef.current = onAllReady;
-  }, [onAllReady]);
-  const allSettled = !listChanged && count > 0 && loadedSet.size + failedSet.size >= count;
+    onPreloadedRef.current = onPreloaded;
+  }, [onPreloaded]);
+  const preloadTarget = Math.min(preloadCount, count);
+  let preloadedSettled = 0;
+  for (let i = 0; i < preloadTarget; i++) {
+    if (loadedSet.has(i) || failedSet.has(i)) preloadedSettled++;
+  }
+  const preloaded = !listChanged && preloadTarget > 0 && preloadedSettled >= preloadTarget;
   useEffect(() => {
-    if (allSettled) onAllReadyRef.current?.();
-  }, [allSettled, slidesKey]);
+    if (preloaded) onPreloadedRef.current?.();
+  }, [preloaded, slidesKey]);
 
   const firstPaint = cycle === 0;
   const state = usableCount <= 0 ? "empty" : anyReady ? "ready" : load ? "loading" : "idle";

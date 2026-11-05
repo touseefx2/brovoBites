@@ -35,6 +35,7 @@ import {
 } from "@/lib/menu-images";
 import { AtmosphereBg } from "@/components/AtmosphereBg";
 import { LogoLoader } from "@/components/LogoLoader";
+import { LANDING_BOOT_SEEN_ATTR, LANDING_BOOT_SEEN_KEY } from "@/lib/landing-boot-script";
 import { MenuMediaImage } from "@/components/MenuMediaImage";
 import { loadBranches, peekBranches, type PublicBranch } from "@/lib/branches-data";
 
@@ -248,15 +249,20 @@ function matchesMenuQuery(product: Product, q: string, categoryName = "") {
 
 /* ───────────── Hero: brand intro (big badge + falling cheese) → photo slideshow ───────────── */
 
-/** Start fetching the hero photos this long after navigation start (behind the boot loader). */
-const HERO_PHOTOS_ARM_MS = 1200;
+/** Start fetching the hero photos this long after navigation start (after the badge has painted). */
+const HERO_PHOTOS_ARM_MS = 800;
 /** …but first give the shop settings (owner hero photos) up to this long to arrive. */
 const HERO_PHOTOS_WAIT_SETTINGS_MS = 4000;
-/** The intro stays on screen at least this long once the boot loader lifts — even when every photo is cached. */
-const HERO_INTRO_MIN_MS = 2000;
 /**
- * The intro waits for the WHOLE photo set; on a slow connection it gives up after this long
- * on screen and crossfades as soon as one photo is in (the rest keep loading behind it).
+ * The intro (badge + falling sauce) stays on screen at least this long from when it becomes
+ * visible — on every visit and every reload, even when the photos are cached.
+ */
+const HERO_INTRO_MIN_MS = 2000;
+/** The intro waits for this many photos (the first ones of the show); the rest load one ahead as it plays. */
+const HERO_PRELOAD_PHOTOS = 2;
+/**
+ * On a slow connection the intro gives up waiting for all of them after this long on screen
+ * and crossfades as soon as one photo is in.
  */
 const HERO_INTRO_MAX_MS = 12000;
 /** Crossfade length — keep in step with .landing-hero-* transitions in 05-landing.css. */
@@ -266,8 +272,7 @@ type HeroPhase = "intro" | "fade" | "photos";
 
 /**
  * Data Saver on, or a 2G-class connection (Chromium's Network Information API; other
- * browsers → false): the hero downloads one photo ahead instead of the whole set, and the
- * intro waits for the first photo only.
+ * browsers → false): the intro waits for the first photo only.
  */
 function prefersLightHero(): boolean {
   const conn = (
@@ -302,9 +307,9 @@ type LandingHeroProps = {
 /**
  * Server-rendered under the boot loader: the dark logo background with the big BB badge
  * (preloaded, fetchpriority=high) and mustard drips falling from its cheese drip, copy
- * anchored bottom-start. Every hero photo starts downloading from ~1.2s (behind the boot
- * loader); the intro stays until the whole set is ready AND it has been on screen ≥2s,
- * then crossfades into the slideshow (Data Saver / 2G: first photo only, one ahead).
+ * anchored bottom-start. The first two hero photos start downloading from ~0.8s; the intro
+ * stays until they are ready AND it has been on screen ≥2s, then crossfades into the
+ * slideshow, which fetches the rest one ahead (Data Saver / 2G: first photo only).
  * Once per page load.
  * Memoised: scroll-spy / search renders of the page don't touch it.
  */
@@ -325,9 +330,9 @@ const LandingHero = memo(function LandingHero({
   const [phase, setPhase] = useState<HeroPhase>("intro");
   const [armed, setArmed] = useState(false);
   const [stopWaiting, setStopWaiting] = useState(false);
-  /** At least one photo is in / every photo is in (or failed). */
+  /** At least one photo is in / the first HERO_PRELOAD_PHOTOS are in (or failed). */
   const [firstReady, setFirstReady] = useState(false);
-  const [allReady, setAllReady] = useState(false);
+  const [preloaded, setPreloaded] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
   /** Data Saver / 2G — set after hydration (the server can't know), long before the photos arm. */
   const [lightHero, setLightHero] = useState(false);
@@ -357,9 +362,9 @@ const LandingHero = memo(function LandingHero({
   }, []);
 
   const onPhotoReady = useCallback(() => setFirstReady(true), []);
-  const onAllPhotosReady = useCallback(() => setAllReady(true), []);
+  const onPreloaded = useCallback(() => setPreloaded(true), []);
 
-  // Slow connection: stop waiting for the whole set after HERO_INTRO_MAX_MS on screen.
+  // Slow connection: stop waiting for the first photos after HERO_INTRO_MAX_MS on screen.
   useEffect(() => {
     if (introStartAt == null) return;
     const id = window.setTimeout(
@@ -369,9 +374,9 @@ const LandingHero = memo(function LandingHero({
     return () => window.clearTimeout(id);
   }, [introStartAt]);
 
-  // Crossfade once the photos are in (none at all → the intro simply stays) and the intro
-  // has had its 2s on screen.
-  const photosReady = firstReady && (allReady || gaveUp || lightHero);
+  // Crossfade once the first photos are in (none at all → the intro simply stays) and the
+  // intro has had its 2s on screen.
+  const photosReady = firstReady && (preloaded || gaveUp || lightHero);
   const started = phase !== "intro";
   useEffect(() => {
     if (started || introStartAt == null || !photosReady) return;
@@ -399,9 +404,9 @@ const LandingHero = memo(function LandingHero({
           defaultSlides={LANDING_HERO_SLIDES}
           priority={false}
           load={loadPhotos}
-          preloadAll={!lightHero}
+          preloadCount={lightHero ? 1 : HERO_PRELOAD_PHOTOS}
           onReady={onPhotoReady}
-          onAllReady={onAllPhotosReady}
+          onPreloaded={onPreloaded}
           play={phase !== "intro"}
         />
       </div>
@@ -480,7 +485,7 @@ const LandingHero = memo(function LandingHero({
   );
 });
 
-/* ───────────── Boot loader: the full-screen LogoLoader over the whole site ───────────── */
+/* ───────────── Boot loader: the full-screen LogoLoader, once per browser session ───────────── */
 
 /** The boot loader stays at least this long after navigation start — even when everything is cached. */
 const BOOT_MIN_MS = 1500;
@@ -492,8 +497,9 @@ const BOOT_FADE_MS = 450;
 type BootPhase = "on" | "exit" | "off";
 
 /**
- * Set once the boot loader has run in this tab: coming back to "/" in-app (no reload)
- * skips it. Module state is per browser tab; on the server it is never set (effects only).
+ * Set once the boot loader has run (or was skipped) in this page load: coming back to "/"
+ * in-app skips it. Module state is per browser tab; never set on the server (effects only).
+ * Across reloads, sessionStorage (LANDING_BOOT_SEEN_KEY) does the same for the session.
  */
 let landingBootDone = false;
 
@@ -631,6 +637,15 @@ export function LandingPage() {
     if (hash) pendingHashRef.current = hash;
   }, []);
 
+  // Already shown this session (the <head> script flagged <html>, and CSS kept the server's
+  // loader hidden): drop it before the first hydrated paint.
+  useLayoutEffect(() => {
+    if (landingBootDone || !document.documentElement.hasAttribute(LANDING_BOOT_SEEN_ATTR)) return;
+    landingBootDone = true;
+    setIntroStartAt(performance.now());
+    setBoot("off");
+  }, []);
+
   // Boot loader: up until the menu is in (server HTML or network, or it failed) and the
   // fonts + logo are decoded, and for at least BOOT_MIN_MS — capped at BOOT_MAX_MS.
   useEffect(() => {
@@ -651,6 +666,11 @@ export function LandingPage() {
     const until = menuSettled && bootAssetsReady ? BOOT_MIN_MS : BOOT_MAX_MS;
     const id = window.setTimeout(() => {
       landingBootDone = true;
+      try {
+        sessionStorage.setItem(LANDING_BOOT_SEEN_KEY, "1");
+      } catch {
+        // Storage blocked (private mode): the loader just shows again on the next reload.
+      }
       setIntroStartAt(performance.now());
       setBoot("exit");
     }, Math.max(0, until - performance.now()));

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Providers } from "@/components/Providers";
 import { POS_THEME_BOOT_SCRIPT } from "@/lib/pos-theme-script";
+import { LANDING_BOOT_SCRIPT } from "@/lib/landing-boot-script";
 // Public website CSS only; staff routes add globals.css (StaffProviders).
 import "./public.css";
 
@@ -66,7 +67,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: POS_THEME_BOOT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: POS_THEME_BOOT_SCRIPT + LANDING_BOOT_SCRIPT }} />
       </head>
       <body className={`${notoUrdu.variable} ${lilita.variable}`}>
         <Providers>{children}</Providers>

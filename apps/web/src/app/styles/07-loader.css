@@ -57,8 +57,10 @@
 }
 
 /* —— Landing boot loader: the full-screen LogoLoader over "/" (LandingPage) ——
-   In the server HTML, so it is the first paint. It lifts once the menu + fonts + logo are in
-   and at least 1.5s have passed (BOOT_* in LandingPage.tsx; fade = BOOT_FADE_MS). */
+   Once per browser session. In the server HTML, so it is the first paint. It lifts once the
+   menu + fonts + logo are in and at least 1.5s have passed (BOOT_* in LandingPage.tsx;
+   fade = BOOT_FADE_MS). Later reloads in the session: html[data-boot-seen] (set by
+   LANDING_BOOT_SCRIPT in <head>) hides it from the first paint. */
 .landing-boot-loader {
   transition: opacity 0.45s var(--bb-ease-out);
   /* Safety net: if the app's JS never runs, don't cover the server-rendered page forever. */
@@ -68,6 +70,10 @@
 .landing-boot-loader.is-exiting {
   opacity: 0;
   pointer-events: none;
+}
+
+html[data-boot-seen] .landing-boot-loader {
+  display: none;
 }
 
 @keyframes landing-boot-failsafe {
@@ -83,8 +89,8 @@ html.landing-booting body {
 }
 
 /* The hero's entrance (badge pop, copy rising) waits behind the loader and plays as it lifts. */
-.landing[data-boot="on"] .landing-hero-badge,
-.landing[data-boot="on"] .landing-hero-line {
+html:not([data-boot-seen]) .landing[data-boot="on"] .landing-hero-badge,
+html:not([data-boot-seen]) .landing[data-boot="on"] .landing-hero-line {
   animation-play-state: paused;
 }
 
