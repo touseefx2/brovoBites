@@ -86,6 +86,15 @@ Suggested names:
 | Staff/admin POS | `brovobites-pos-dev` | `brovobites-pos` |
 | Customer menu (landing only) | `brovobites-dev` (brovobites-dev.vercel.app) | `brovobites` (brovobites.vercel.app) |
 
+Custom domain `brovobites.com` (bought on Vercel, team `bravo-bites`, DNS on Vercel):
+
+| | DEV | LIVE |
+|---|---|---|
+| Staff/admin POS | `pos-dev.brovobites.com` | `pos.brovobites.com` |
+| Customer menu | `dev.brovobites.com` | `brovobites.com` (`www.` → 308 to it) |
+
+The customer `*.vercel.app` URLs (incl. the old `-menu` ones) 308-redirect to the custom domain. The admin/POS `*.vercel.app` URLs are left as they are, not redirected — Vercel cron jobs (owner report) don't follow redirects. Each custom host is also in Firebase Auth → Authorized domains (its own world) and in `CUSTOMER_HOSTS` (customer hosts only). `NEXT_PUBLIC_APP_URL` in each Vercel project is its custom domain.
+
 Do not name a Vercel project exactly like a Firebase project id — `scripts/set-firebase-ids.sh` would rewrite that name in the docs too.
 
 Import the Brovo Bites GitHub repo (or deploy from CLI only — CLI works without a Git link).
@@ -100,7 +109,7 @@ DEV projects get values from `apps/web/.env.development.local`, LIVE projects fr
 | `FIREBASE_ADMIN_*` | same world | same world |
 | ImageKit keys | same world | same world |
 | `NEXT_PUBLIC_APP_ENV` | `development` (DEV) / `production` (LIVE) | same |
-| `NEXT_PUBLIC_APP_URL` | your admin `*.vercel.app` | your menu `*.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | your admin domain (`https://pos.brovobites.com`) | your menu domain (`https://brovobites.com`) |
 | `NEXT_PUBLIC_CUSTOMER_MODE` | `false` / unset | **`true`** |
 | `PRIMARY_OWNER_UID` | set after create-owner | optional |
 | `SMTP_USER` / `SMTP_PASS` / `CRON_SECRET` | see Owner report below | — |
