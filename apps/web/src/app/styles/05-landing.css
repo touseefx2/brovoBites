@@ -1712,6 +1712,88 @@ html[dir="rtl"] .landing .landing-cat-header-line {
   background: linear-gradient(180deg, transparent 62%, rgba(18, 9, 6, 0.35) 100%);
 }
 
+/* Loading shimmer on the photo slots (item cards, category tiles, section thumbs): a soft
+   warm band sweeping across until the photo has loaded. It moves with `transform` only —
+   composited on the GPU, no repaint per frame (unlike the old background-position
+   shimmer above) — and is removed the moment the photo is in. */
+.landing-tile-media {
+  overflow: hidden;
+}
+
+.landing .landing-item-media::before,
+.landing .landing-tile-media::before,
+.landing .landing-cat-header-thumb::before,
+.landing .landing-skeleton-tile::before,
+.landing .landing-skeleton-media::before,
+.landing .landing-skeleton-thumb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 15%,
+    color-mix(in srgb, var(--bb-mustard-300) 10%, transparent) 38%,
+    color-mix(in srgb, var(--bb-cream-100) 20%, transparent) 50%,
+    color-mix(in srgb, var(--bb-mustard-300) 10%, transparent) 62%,
+    transparent 85%
+  );
+  transform: translateX(-100%);
+  animation: landing-photo-shimmer 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
+/* Stagger the cards a little so the grid doesn't flash in lockstep. */
+.landing .landing-item:nth-child(3n + 2) .landing-item-media::before,
+.landing .landing-tile-cell:nth-child(3n + 2) .landing-tile-media::before {
+  animation-delay: 0.15s;
+}
+
+.landing .landing-item:nth-child(3n + 3) .landing-item-media::before,
+.landing .landing-tile-cell:nth-child(3n + 3) .landing-tile-media::before {
+  animation-delay: 0.3s;
+}
+
+.landing .landing-item-media:has(.menu-media-img.is-loaded)::before,
+.landing .landing-tile-media:has(.menu-media-img.is-loaded)::before,
+.landing .landing-cat-header-thumb:has(.menu-media-img.is-loaded)::before {
+  content: none;
+}
+
+@keyframes landing-photo-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Menu skeleton (menu data not in yet): the same sweep on its photo boxes. */
+.landing-skeleton-media,
+.landing-skeleton-thumb {
+  position: relative;
+  overflow: hidden;
+}
+
+.landing .landing-skeleton-card:nth-child(4n + 2) .landing-skeleton-media::before,
+.landing .landing-tile-cell:nth-child(3n + 2) .landing-skeleton-tile::before {
+  animation-delay: 0.15s;
+}
+
+.landing .landing-skeleton-card:nth-child(4n + 3) .landing-skeleton-media::before,
+.landing .landing-tile-cell:nth-child(3n + 3) .landing-skeleton-tile::before {
+  animation-delay: 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .landing-item-media::before,
+  .landing .landing-tile-media::before,
+  .landing .landing-cat-header-thumb::before,
+  .landing .landing-skeleton-tile::before,
+  .landing .landing-skeleton-media::before,
+  .landing .landing-skeleton-thumb::before {
+    content: none;
+  }
+}
+
 .landing .landing-item.landing-reveal .landing-item-media .menu-media-img,
 .landing .landing-item-media .menu-media-img {
   transform: none;
@@ -2382,8 +2464,9 @@ html[dir="rtl"] .landing-backtop .landing-arrow-up {
   background: linear-gradient(160deg, var(--bb-brown-800) 0%, var(--bb-brown-850) 75%);
 }
 
+/* Its ::before is the loading shimmer (see "Loading shimmer"), not the photo scrim. */
 .landing .landing-skeleton-tile::before {
-  content: none;
+  z-index: 0;
 }
 
 .landing-skeleton-head {

@@ -407,6 +407,133 @@ html[lang="ur"] .admin-user-role {
   outline-offset: 2px;
 }
 
+/* ── Desktop rail: collapse / expand ──
+   html[data-admin-rail="collapsed"] (AdminShell; set before paint by ADMIN_RAIL_BOOT_SCRIPT)
+   turns the rail into icons only. Labels stay in the DOM, visually hidden, so links keep
+   their accessible names; AdminShell adds title tooltips. */
+.admin-rail {
+  transition: width 0.22s var(--bb-ease-out), padding 0.22s var(--bb-ease-out);
+}
+
+.admin-rail-toggle {
+  position: absolute;
+  z-index: 5;
+  top: 1.75rem;
+  inset-inline-end: -0.8rem;
+  display: inline-flex;
+  width: 1.6rem;
+  height: 1.6rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(240, 176, 40, 0.45);
+  background: var(--bb-brown-850);
+  color: var(--bb-mustard-500);
+  box-shadow: 0 4px 12px rgba(18, 9, 6, 0.35);
+  cursor: pointer;
+  transition:
+    background-color 0.18s var(--bb-ease-out),
+    color 0.18s var(--bb-ease-out),
+    transform 0.22s var(--bb-ease-out);
+}
+.admin-rail-toggle:hover {
+  background: var(--bb-mustard-500);
+  color: var(--bb-on-accent);
+}
+.admin-rail-toggle:focus-visible {
+  outline: 2px solid var(--bb-mustard-500);
+  outline-offset: 2px;
+}
+html[dir="rtl"] .admin-rail-toggle svg {
+  transform: scaleX(-1);
+}
+
+html[data-admin-rail="collapsed"] .admin-rail {
+  width: 5rem;
+  padding-inline: 0.75rem;
+}
+html[data-admin-rail="collapsed"] .admin-rail-toggle {
+  transform: rotate(180deg);
+}
+
+/* Visually hidden, still read out */
+html[data-admin-rail="collapsed"] .admin-rail :is(
+    .admin-side-brand-text,
+    .admin-nav-pos-label,
+    .admin-nav-label,
+    .admin-nav-group-label,
+    .admin-user-meta,
+    .admin-logout-label,
+    .lang-toggle-label
+  ) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+html[data-admin-rail="collapsed"] .admin-rail .admin-side-brand {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+html[data-admin-rail="collapsed"] .admin-rail .admin-nav-pos,
+html[dir="rtl"][data-admin-rail="collapsed"] .admin-rail .admin-nav-pos {
+  justify-content: center;
+  padding: 0.5rem;
+}
+html[data-admin-rail="collapsed"] .admin-rail .admin-nav-pos-arrow {
+  display: none;
+}
+
+/* Groups: a thin divider instead of the label */
+html[data-admin-rail="collapsed"] .admin-rail .admin-nav {
+  gap: 0.5rem;
+}
+html[data-admin-rail="collapsed"] .admin-rail .admin-nav-group + .admin-nav-group {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--bb-line-on-dark);
+}
+
+html[data-admin-rail="collapsed"] .admin-rail .admin-nav-link {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+html[data-admin-rail="collapsed"] .admin-rail .admin-user-card {
+  justify-content: center;
+  padding: 0.35rem;
+  border-color: transparent;
+  background: transparent;
+}
+
+html[data-admin-rail="collapsed"] .admin-rail .admin-side-actions {
+  grid-template-columns: minmax(0, 1fr);
+}
+html[data-admin-rail="collapsed"] .admin-rail .lang-toggle-btn {
+  justify-content: center;
+  padding-inline: 0;
+}
+html[data-admin-rail="collapsed"] .admin-rail .lang-toggle-btn > svg:last-child {
+  display: none;
+}
+html[data-admin-rail="collapsed"] .admin-rail .admin-logout-btn {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-rail,
+  .admin-rail-toggle {
+    transition: none;
+  }
+}
+
 /* Rail scrollbar: thin mustard thumb on brown */
 .admin-sidebar,
 .admin-sidebar * {
@@ -684,13 +811,15 @@ html[lang="ur"] .admin-topbar .admin-mobile-role {
 html[dir="rtl"] .dash-hero::after {
   background: linear-gradient(270deg, var(--bb-mustard-700), var(--bb-mustard-500) 40%, var(--bb-mustard-400));
 }
+/* Phone: the whole badge sits inside the card, top-end (it used to bleed off the edge and
+   looked cut); eyebrow + title keep clear of it. Wider cards centre it (container rules). */
 .dash-hero-badge {
   position: absolute;
   z-index: 0;
-  inset-inline-end: -0.9rem;
-  top: 0.9rem;
-  width: 5.5rem;
-  height: 5.5rem;
+  inset-inline-end: 1rem;
+  top: 1rem;
+  width: 4.75rem;
+  height: 4.75rem;
   transform: rotate(-10deg);
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
   pointer-events: none;
@@ -703,7 +832,7 @@ html[dir="rtl"] .dash-hero::after {
 }
 .dash-hero-eyebrow {
   margin: 0;
-  padding-inline-end: 4.5rem;
+  padding-inline-end: 5.25rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -715,6 +844,7 @@ html[dir="rtl"] .dash-hero::after {
 }
 .dash-hero-title {
   margin: 0.35rem 0 0;
+  padding-inline-end: 5.25rem;
   font-family: var(--font-brand-stack);
   font-size: clamp(2.25rem, 1.6rem + 2.4vw, 3.25rem);
   font-weight: 400;
@@ -835,7 +965,8 @@ html[lang="ur"] .dash-pill--today {
   .dash-hero-body {
     padding-inline-end: 11rem;
   }
-  .dash-hero-eyebrow {
+  .dash-hero-eyebrow,
+  .dash-hero-title {
     padding-inline-end: 0;
   }
   .dash-hero-badge {

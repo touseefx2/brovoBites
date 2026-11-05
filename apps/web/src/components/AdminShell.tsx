@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { UserRole } from "@bravobites/domain";
 import { useAuth } from "@/lib/auth-context";
 import { useLocale } from "@/i18n/locale-context";
@@ -13,6 +13,7 @@ import { NavigationProgress } from "@/components/Loading";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { MessageKey } from "@/i18n/dictionaries";
 import { checkLogout, reloadToLogin, stockChangesUploaded, syncBeforeLogout, type LogoutBlock } from "@/lib/logout-guard";
+import { ADMIN_RAIL_ATTR, ADMIN_RAIL_STORAGE_KEY } from "@/lib/admin-rail";
 
 type NavIconName =
   | "dash"
@@ -204,14 +205,19 @@ function isActiveHref(pathname: string, href: string) {
 }
 
 /** Red sticker CTA to the till — always visible above the nav. */
-function OpenPosLink({ onNavigate }: { onNavigate?: () => void }) {
+function OpenPosLink({ onNavigate, collapsed }: { onNavigate?: () => void; collapsed?: boolean }) {
   const { t } = useLocale();
   return (
-    <Link href="/pos" onClick={onNavigate} className="admin-nav-pos">
+    <Link
+      href="/pos"
+      onClick={onNavigate}
+      className="admin-nav-pos"
+      title={collapsed ? t("openPos") : undefined}
+    >
       <span className="admin-nav-pos-icon" aria-hidden>
         <NavIcon name="pos" />
       </span>
-      <span className="min-w-0 flex-1 truncate">{t("openPos")}</span>
+      <span className="admin-nav-pos-label min-w-0 flex-1 truncate">{t("openPos")}</span>
       <svg
         className="admin-nav-pos-arrow"
         width="16"
@@ -234,10 +240,12 @@ function NavLinks({
   pathname,
   onNavigate,
   idPrefix,
+  collapsed,
 }: {
   pathname: string;
   onNavigate?: () => void;
   idPrefix: string;
+  collapsed?: boolean;
 }) {
   const { t } = useLocale();
   const { profile } = useAuth();
@@ -279,11 +287,12 @@ function NavLinks({
                   onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
                   className={`admin-nav-link${active ? " is-active" : ""}`}
+                  title={collapsed ? t(l.key) : undefined}
                 >
                   <span className="admin-nav-icon" aria-hidden>
                     <NavIcon name={l.icon} />
                   </span>
-                  <span className="min-w-0 truncate">{t(l.key)}</span>
+                  <span className="admin-nav-label min-w-0 truncate">{t(l.key)}</span>
                 </Link>
               );
             })}
@@ -306,11 +315,14 @@ function SidebarBody({
   pathname,
   onNavigate,
   idPrefix,
+  collapsed = false,
 }: {
   pathname: string;
   onNavigate?: () => void;
   /** Unique per rendered copy (desktop rail / phone drawer) for aria ids. */
   idPrefix: string;
+  /** Desktop rail only: icons-only mode (labels become tooltips). */
+  collapsed?: boolean;
 }) {
   const { profile, logout, activeBranchId } = useAuth();
   const { t } = useLocale();
@@ -393,7 +405,7 @@ function SidebarBody({
         <span className="admin-side-badge">
           <BrandLogo size="sm" />
         </span>
-        <div className="min-w-0">
+        <div className="admin-side-brand-text min-w-0">
           <p className="admin-side-wordmark" id={`${idPrefix}-side-wordmark`}>
             Brovo Bites
           </p>
@@ -412,18 +424,26 @@ function SidebarBody({
         </div>
       </div>
 
-      <OpenPosLink onNavigate={onNavigate} />
+      <OpenPosLink onNavigate={onNavigate} collapsed={collapsed} />
 
       <div className="admin-side-scroll">
-        <NavLinks pathname={pathname} onNavigate={onNavigate} idPrefix={idPrefix} />
+        <NavLinks
+          pathname={pathname}
+          onNavigate={onNavigate}
+          idPrefix={idPrefix}
+          collapsed={collapsed}
+        />
       </div>
 
       <div className="admin-side-foot">
-        <div className="admin-user-card">
+        <div
+          className="admin-user-card"
+          title={collapsed ? [role, displayName, email].filter(Boolean).join(" · ") : undefined}
+        >
           <span className="admin-user-avatar" aria-hidden>
             {initials(displayName || role)}
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="admin-user-meta min-w-0 flex-1">
             <p className="admin-user-role">{role}</p>
             <p className="admin-user-name">{displayName || "—"}</p>
             {email ? (
@@ -440,6 +460,7 @@ function SidebarBody({
             className="admin-logout-btn"
             type="button"
             onClick={() => void tryLogout()}
+            title={collapsed ? t("logout") : undefined}
           >
             <svg
               className="size-4 shrink-0 rtl:-scale-x-100"
@@ -455,7 +476,7 @@ function SidebarBody({
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
-            <span>{t("logout")}</span>
+            <span className="admin-logout-label">{t("logout")}</span>
           </button>
         </div>
       </div>
@@ -498,6 +519,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { t } = useLocale();
   const { profile, activeBranchId } = useAuth();
   const [open, setOpen] = useState(false);
+  /** Desktop rail icons-only. The <head> script set the attribute before paint; read it once. */
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const [mobileBranchName, setMobileBranchName] = useState<string | null>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -506,6 +529,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  useLayoutEffect(() => {
+    setRailCollapsed(document.documentElement.getAttribute(ADMIN_RAIL_ATTR) === "collapsed");
+  }, []);
+
+  function toggleRail() {
+    const next = !railCollapsed;
+    setRailCollapsed(next);
+    const root = document.documentElement;
+    if (next) root.setAttribute(ADMIN_RAIL_ATTR, "collapsed");
+    else root.removeAttribute(ADMIN_RAIL_ATTR);
+    try {
+      if (next) localStorage.setItem(ADMIN_RAIL_STORAGE_KEY, "collapsed");
+      else localStorage.removeItem(ADMIN_RAIL_STORAGE_KEY);
+    } catch {
+      // Storage blocked: the choice just isn't remembered.
+    }
+  }
 
   useEffect(() => {
     if (!activeBranchId || profile?.role === "owner") return;
@@ -578,8 +619,30 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>
-      <aside className="admin-sidebar admin-rail hidden h-dvh shrink-0 flex-col md:flex">
-        <SidebarBody pathname={pathname} idPrefix="rail" />
+      <aside className="admin-sidebar admin-rail relative hidden h-dvh shrink-0 flex-col md:flex">
+        <SidebarBody pathname={pathname} idPrefix="rail" collapsed={railCollapsed} />
+        <button
+          type="button"
+          className="admin-rail-toggle"
+          onClick={toggleRail}
+          aria-label={t(railCollapsed ? "expandSidebar" : "collapseSidebar")}
+          aria-expanded={!railCollapsed}
+          title={t(railCollapsed ? "expandSidebar" : "collapseSidebar")}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+        </button>
       </aside>
 
       {open ? (
