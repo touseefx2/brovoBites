@@ -39,8 +39,15 @@ type AtmosphereBgProps = {
   defaultSlides?: readonly HeroSlide[];
   /** false = paint only the brand backdrop and fetch nothing yet (the landing loads photos after its intro). */
   load?: boolean;
-  /** Called once, when the first slide has loaded (the landing crossfades into it). */
+  /** Called once, when the first slide has loaded. */
   onReady?: () => void;
+  /**
+   * true = download every slide as soon as `load` is on (hidden until its turn), instead of
+   * one ahead — the landing keeps its intro up until the whole set is in the cache.
+   */
+  preloadAll?: boolean;
+  /** Called when every slide has loaded or failed (each slide list once). */
+  onAllReady?: () => void;
   /** false = hold still (no cycle, no zoom) — e.g. while the landing intro still covers it. */
   play?: boolean;
 };
@@ -72,6 +79,8 @@ export function AtmosphereBg({
   defaultSlides = FOOD_SLIDES,
   load = true,
   onReady,
+  preloadAll = false,
+  onAllReady,
   play = true,
 }: AtmosphereBgProps) {
   const activeSlides = useMemo<readonly HeroSlide[]>(
@@ -126,11 +135,13 @@ export function AtmosphereBg({
   );
   const upNext = nextUsable(index);
 
-  // Mount the current slide; once it has loaded AND the show is running, the one after
-  // it (lazy, one ahead — nothing extra downloads while an intro still covers the photos).
+  // Mount the current slide (or, with preloadAll, every slide); once it has loaded AND the
+  // show is running, the one after it (lazy, one ahead — nothing extra downloads while an intro still covers the photos).
   if (!listChanged && load && count > 0) {
     let want = addTo(mountedSet, index);
-    if (loadedSet.has(index) && play && usableCount > 1 && !reduceMotion) {
+    if (preloadAll) {
+      for (let i = 0; i < count; i++) want = addTo(want, i);
+    } else if (loadedSet.has(index) && play && usableCount > 1 && !reduceMotion) {
       want = addTo(want, upNext);
     }
     if (want !== mountedSet) setMountedSet(want);
@@ -198,6 +209,15 @@ export function AtmosphereBg({
   useEffect(() => {
     if (anyReady) onReadyRef.current?.();
   }, [anyReady]);
+
+  const onAllReadyRef = useRef(onAllReady);
+  useEffect(() => {
+    onAllReadyRef.current = onAllReady;
+  }, [onAllReady]);
+  const allSettled = !listChanged && count > 0 && loadedSet.size + failedSet.size >= count;
+  useEffect(() => {
+    if (allSettled) onAllReadyRef.current?.();
+  }, [allSettled, slidesKey]);
 
   const firstPaint = cycle === 0;
   const state = usableCount <= 0 ? "empty" : anyReady ? "ready" : load ? "loading" : "idle";
