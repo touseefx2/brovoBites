@@ -3,8 +3,16 @@ import localFont from "next/font/local";
 import { Providers } from "@/components/Providers";
 import { POS_THEME_BOOT_SCRIPT } from "@/lib/pos-theme-script";
 import { LANDING_BOOT_SCRIPT } from "@/lib/landing-boot-script";
+import { SiteAnalytics } from "@/components/SiteAnalytics";
 // Public website CSS only; staff routes add globals.css (StaffProviders).
 import "./public.css";
+
+/** Visitor analytics run on the customer menu build only, and only where the measurement
+ *  id is set (LIVE customer Vercel project). POS / admin, DEV and local track nothing. */
+const ANALYTICS_ID =
+  process.env.NEXT_PUBLIC_CUSTOMER_MODE === "true"
+    ? process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID?.trim() || undefined
+    : undefined;
 
 const notoUrdu = localFont({
   src: [
@@ -71,6 +79,7 @@ export default function RootLayout({
       </head>
       <body className={`${notoUrdu.variable} ${lilita.variable}`}>
         <Providers>{children}</Providers>
+        {ANALYTICS_ID ? <SiteAnalytics measurementId={ANALYTICS_ID} /> : null}
       </body>
     </html>
   );

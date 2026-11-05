@@ -15,9 +15,10 @@
     "backfill-images": "tsx scripts/backfill-images.ts"
   },
   "dependencies": {
-    "@ducanh2912/next-pwa": "^10.2.9",
     "@bravobites/domain": "workspace:^",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@sparticuz/chromium-min": "153.0.0",
+    "@vercel/analytics": "^1.6.1",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",
     "html2canvas": "1.4.1",
