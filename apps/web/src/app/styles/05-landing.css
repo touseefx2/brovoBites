@@ -1739,8 +1739,9 @@ html[dir="rtl"] .landing .landing-cat-header-line {
     transparent 85%
   );
   transform: translateX(-100%);
+  /* No will-change: an animated transform is composited anyway, and a standing hint would
+     keep a GPU layer per card. */
   animation: landing-photo-shimmer 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  will-change: transform;
 }
 
 /* Stagger the cards a little so the grid doesn't flash in lockstep. */
@@ -1754,9 +1755,12 @@ html[dir="rtl"] .landing .landing-cat-header-line {
   animation-delay: 0.3s;
 }
 
-.landing .landing-item-media:has(.menu-media-img.is-loaded)::before,
-.landing .landing-tile-media:has(.menu-media-img.is-loaded)::before,
-.landing .landing-cat-header-thumb:has(.menu-media-img.is-loaded)::before {
+/* No sweep once the photo is in, nor while it is still a deferred .menu-media-slot (far
+   below the fold, no <img> yet — MenuMediaImage deferOffscreen): the shimmer only runs
+   on the few photos actually downloading near the viewport. */
+.landing .landing-item-media:has(.menu-media-img.is-loaded, .menu-media-slot)::before,
+.landing .landing-tile-media:has(.menu-media-img.is-loaded, .menu-media-slot)::before,
+.landing .landing-cat-header-thumb:has(.menu-media-img.is-loaded, .menu-media-slot)::before {
   content: none;
 }
 

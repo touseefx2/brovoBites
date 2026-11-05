@@ -407,12 +407,80 @@ html[lang="ur"] .admin-user-role {
   outline-offset: 2px;
 }
 
-/* ── Desktop rail: collapse / expand ──
-   html[data-admin-rail="collapsed"] (AdminShell; set before paint by ADMIN_RAIL_BOOT_SCRIPT)
-   turns the rail into icons only. Labels stay in the DOM, visually hidden, so links keep
-   their accessible names; AdminShell adds title tooltips. */
+/* ── Desktop rail: collapsed by default, opens as a floating panel ──
+   .admin-rail-slot holds a fixed 5rem column in the layout. The rail inside it is absolutely
+   positioned, so opening it (.is-open, set by AdminShell) grows over the page instead of
+   reflowing it, on a gentle spring, while the page behind dims and blurs (.admin-rail-scrim)
+   and the labels cascade in.
+   Collapsed = icons only. Labels stay in the DOM, visually hidden, so links keep their
+   accessible names (AdminShell adds title tooltips). Brand block and group labels keep their
+   height in both states, so the icons hold still while the panel opens. */
+.admin-rail-slot {
+  width: 5rem;
+}
 .admin-rail {
-  transition: width 0.22s var(--bb-ease-out), padding 0.22s var(--bb-ease-out);
+  --rail-spring: cubic-bezier(0.34, 1.28, 0.64, 1);
+  --rail-reveal-x: -0.6rem;
+  width: 5rem;
+  padding-inline: 0.75rem;
+  transition:
+    width 0.3s var(--bb-ease-out),
+    padding 0.3s var(--bb-ease-out),
+    box-shadow 0.3s var(--bb-ease-out),
+    border-color 0.3s var(--bb-ease-out);
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  .admin-rail {
+    /* Settles with a ~2% overshoot: a soft bounce, not a wobble */
+    --rail-spring: linear(
+      0, 0.006, 0.025 2.8%, 0.101 6.1%, 0.539 18.9%, 0.721 25.3%, 0.849 31.5%,
+      0.937 38.1%, 0.968 41.8%, 0.991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001
+    );
+  }
+}
+html[dir="rtl"] .admin-rail {
+  --rail-reveal-x: 0.6rem;
+}
+.admin-rail.is-open {
+  width: 16.75rem;
+  padding-inline: 0.875rem;
+  border-inline-end-color: rgba(240, 176, 40, 0.28);
+  box-shadow:
+    28px 0 64px -16px rgba(18, 9, 6, 0.6),
+    8px 0 18px -10px rgba(18, 9, 6, 0.35);
+  transition-duration: 0.55s;
+  transition-timing-function: var(--rail-spring);
+}
+html[dir="rtl"] .admin-rail.is-open {
+  box-shadow:
+    -28px 0 64px -16px rgba(18, 9, 6, 0.6),
+    -8px 0 18px -10px rgba(18, 9, 6, 0.35);
+}
+
+/* The page behind the open rail; a click on it closes the rail */
+.admin-rail-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(23, 12, 8, 0.34);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  cursor: default;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.28s var(--bb-ease-out),
+    visibility 0s linear 0.28s;
+}
+.admin-rail-scrim.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.35s var(--bb-ease-out);
 }
 
 .admin-rail-toggle {
@@ -431,10 +499,15 @@ html[lang="ur"] .admin-user-role {
   color: var(--bb-mustard-500);
   box-shadow: 0 4px 12px rgba(18, 9, 6, 0.35);
   cursor: pointer;
+  /* Collapsed: chevron points into the page ("open") */
+  transform: rotate(180deg);
   transition:
     background-color 0.18s var(--bb-ease-out),
     color 0.18s var(--bb-ease-out),
-    transform 0.22s var(--bb-ease-out);
+    transform 0.45s var(--rail-spring);
+}
+.admin-rail.is-open .admin-rail-toggle {
+  transform: none;
 }
 .admin-rail-toggle:hover {
   background: var(--bb-mustard-500);
@@ -448,20 +521,10 @@ html[dir="rtl"] .admin-rail-toggle svg {
   transform: scaleX(-1);
 }
 
-html[data-admin-rail="collapsed"] .admin-rail {
-  width: 5rem;
-  padding-inline: 0.75rem;
-}
-html[data-admin-rail="collapsed"] .admin-rail-toggle {
-  transform: rotate(180deg);
-}
-
 /* Visually hidden, still read out */
-html[data-admin-rail="collapsed"] .admin-rail :is(
-    .admin-side-brand-text,
+.admin-rail:not(.is-open) :is(
     .admin-nav-pos-label,
     .admin-nav-label,
-    .admin-nav-group-label,
     .admin-user-meta,
     .admin-logout-label,
     .lang-toggle-label
@@ -477,60 +540,124 @@ html[data-admin-rail="collapsed"] .admin-rail :is(
   border: 0;
 }
 
-html[data-admin-rail="collapsed"] .admin-rail .admin-side-brand {
+/* Brand text: zero width but full height, so nothing below it moves on open */
+.admin-rail:not(.is-open) .admin-side-brand {
+  gap: 0;
   justify-content: center;
   padding-inline: 0;
 }
+.admin-rail:not(.is-open) .admin-side-brand-text {
+  width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+}
 
-html[data-admin-rail="collapsed"] .admin-rail .admin-nav-pos,
-html[dir="rtl"][data-admin-rail="collapsed"] .admin-rail .admin-nav-pos {
+.admin-rail:not(.is-open) .admin-nav-pos,
+html[dir="rtl"] .admin-rail:not(.is-open) .admin-nav-pos {
   justify-content: center;
   padding: 0.5rem;
 }
-html[data-admin-rail="collapsed"] .admin-rail .admin-nav-pos-arrow {
+.admin-rail:not(.is-open) .admin-nav-pos-arrow {
   display: none;
 }
 
-/* Groups: a thin divider instead of the label */
-html[data-admin-rail="collapsed"] .admin-rail .admin-nav {
-  gap: 0.5rem;
+/* Group labels: a short divider in the label's own box (same height either way) */
+.admin-rail:not(.is-open) .admin-nav-group-label {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  color: transparent;
+  user-select: none;
 }
-html[data-admin-rail="collapsed"] .admin-rail .admin-nav-group + .admin-nav-group {
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--bb-line-on-dark);
+.admin-rail:not(.is-open) .admin-nav-group-label::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.85rem;
+  /* Midway between the two groups: the label's 0.3rem + 2px below it vs 0.75rem above */
+  top: calc(50% - 0.16rem);
+  height: 1px;
+  background: var(--bb-line-on-dark);
 }
 
-html[data-admin-rail="collapsed"] .admin-rail .admin-nav-link {
+.admin-rail:not(.is-open) .admin-nav-link {
   justify-content: center;
   padding-inline: 0;
 }
 
-html[data-admin-rail="collapsed"] .admin-rail .admin-user-card {
+.admin-rail:not(.is-open) .admin-user-card {
   justify-content: center;
   padding: 0.35rem;
   border-color: transparent;
   background: transparent;
 }
 
-html[data-admin-rail="collapsed"] .admin-rail .admin-side-actions {
+.admin-rail:not(.is-open) .admin-side-actions {
   grid-template-columns: minmax(0, 1fr);
 }
-html[data-admin-rail="collapsed"] .admin-rail .lang-toggle-btn {
+.admin-rail:not(.is-open) .lang-toggle-btn {
   justify-content: center;
   padding-inline: 0;
 }
-html[data-admin-rail="collapsed"] .admin-rail .lang-toggle-btn > svg:last-child {
+.admin-rail:not(.is-open) .lang-toggle-btn > svg:last-child {
   display: none;
 }
-html[data-admin-rail="collapsed"] .admin-rail .admin-logout-btn {
+.admin-rail:not(.is-open) .admin-logout-btn {
   justify-content: center;
   padding-inline: 0;
 }
 
+/* Open: text slides + un-blurs in, one row after another (--rail-i set per row in AdminShell) */
+@keyframes admin-rail-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(var(--rail-reveal-x));
+    filter: blur(4px);
+  }
+}
+.admin-rail.is-open :is(
+    .admin-side-brand-text,
+    .admin-nav-pos-label,
+    .admin-nav-group-label,
+    .admin-nav-label,
+    .admin-side-foot > *
+  ) {
+  animation: admin-rail-reveal 0.45s var(--bb-ease-out) calc(70ms + var(--rail-i, 0) * 22ms) backwards;
+}
+.admin-rail .admin-nav-pos-label {
+  --rail-i: 1;
+}
+/* The wordmark doesn't truncate: start it once the panel is wide enough to hold it */
+.admin-rail .admin-side-brand-text {
+  --rail-i: 3;
+}
+.admin-rail .admin-side-foot > :first-child {
+  --rail-i: 5;
+}
+.admin-rail .admin-side-foot > :last-child {
+  --rail-i: 7;
+}
+.admin-rail.is-open .admin-nav-pos-arrow {
+  animation: admin-fade-in 0.3s var(--bb-ease-out) 0.22s backwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .admin-rail,
-  .admin-rail-toggle {
+  .admin-rail.is-open,
+  .admin-rail-toggle,
+  .admin-rail-scrim,
+  .admin-rail-scrim.is-open {
     transition: none;
+  }
+  .admin-rail.is-open :is(
+      .admin-side-brand-text,
+      .admin-nav-pos-label,
+      .admin-nav-pos-arrow,
+      .admin-nav-group-label,
+      .admin-nav-label,
+      .admin-side-foot > *
+    ) {
+    animation: none;
   }
 }
 

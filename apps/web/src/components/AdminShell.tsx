@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import type { UserRole } from "@bravobites/domain";
 import { useAuth } from "@/lib/auth-context";
 import { useLocale } from "@/i18n/locale-context";
@@ -13,7 +13,6 @@ import { NavigationProgress } from "@/components/Loading";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { MessageKey } from "@/i18n/dictionaries";
 import { checkLogout, reloadToLogin, stockChangesUploaded, syncBeforeLogout, type LogoutBlock } from "@/lib/logout-guard";
-import { ADMIN_RAIL_ATTR, ADMIN_RAIL_STORAGE_KEY } from "@/lib/admin-rail";
 
 type NavIconName =
   | "dash"
@@ -260,6 +259,10 @@ function NavLinks({
       ?.scrollIntoView({ block: "nearest" });
   }, [pathname]);
 
+  // Order of each label in the rail's open cascade (brand = 0, Open POS = 1).
+  let revealIndex = 2;
+  const reveal = () => ({ "--rail-i": revealIndex++ }) as React.CSSProperties;
+
   return (
     <nav ref={navRef} className="admin-nav">
       {GROUPS.map((g) => {
@@ -274,7 +277,7 @@ function NavLinks({
             aria-labelledby={g.label ? labelId : undefined}
           >
             {g.label ? (
-              <p id={labelId} className="admin-nav-group-label">
+              <p id={labelId} className="admin-nav-group-label" style={reveal()}>
                 {t(g.label)}
               </p>
             ) : null}
@@ -292,7 +295,9 @@ function NavLinks({
                   <span className="admin-nav-icon" aria-hidden>
                     <NavIcon name={l.icon} />
                   </span>
-                  <span className="admin-nav-label min-w-0 truncate">{t(l.key)}</span>
+                  <span className="admin-nav-label min-w-0 truncate" style={reveal()}>
+                    {t(l.key)}
+                  </span>
                 </Link>
               );
             })}
@@ -519,8 +524,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { t } = useLocale();
   const { profile, activeBranchId } = useAuth();
   const [open, setOpen] = useState(false);
-  /** Desktop rail icons-only. The <head> script set the attribute before paint; read it once. */
-  const [railCollapsed, setRailCollapsed] = useState(false);
+  /** Desktop rail: icons only until opened; then it floats over the page (never remembered). */
+  const [railOpen, setRailOpen] = useState(false);
   const [mobileBranchName, setMobileBranchName] = useState<string | null>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -528,24 +533,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setOpen(false);
+    setRailOpen(false);
   }, [pathname]);
 
-  useLayoutEffect(() => {
-    setRailCollapsed(document.documentElement.getAttribute(ADMIN_RAIL_ATTR) === "collapsed");
-  }, []);
+  useEffect(() => {
+    if (!railOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRailOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [railOpen]);
 
-  function toggleRail() {
-    const next = !railCollapsed;
-    setRailCollapsed(next);
-    const root = document.documentElement;
-    if (next) root.setAttribute(ADMIN_RAIL_ATTR, "collapsed");
-    else root.removeAttribute(ADMIN_RAIL_ATTR);
-    try {
-      if (next) localStorage.setItem(ADMIN_RAIL_STORAGE_KEY, "collapsed");
-      else localStorage.removeItem(ADMIN_RAIL_STORAGE_KEY);
-    } catch {
-      // Storage blocked: the choice just isn't remembered.
-    }
+  /** Focus left the open rail for the page (Tab past its end, etc.): fold it away. */
+  function closeRailOnFocusOut(e: React.FocusEvent<HTMLDivElement>) {
+    const next = e.relatedTarget;
+    if (railOpen && next instanceof Node && !e.currentTarget.contains(next)) setRailOpen(false);
   }
 
   useEffect(() => {
@@ -619,31 +622,53 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>
-      <aside className="admin-sidebar admin-rail relative hidden h-dvh shrink-0 flex-col md:flex">
-        <SidebarBody pathname={pathname} idPrefix="rail" collapsed={railCollapsed} />
-        <button
-          type="button"
-          className="admin-rail-toggle"
-          onClick={toggleRail}
-          aria-label={t(railCollapsed ? "expandSidebar" : "collapseSidebar")}
-          aria-expanded={!railCollapsed}
-          title={t(railCollapsed ? "expandSidebar" : "collapseSidebar")}
+      <div
+        className="admin-rail-slot relative z-40 hidden h-dvh shrink-0 md:block"
+        onBlur={closeRailOnFocusOut}
+      >
+        <aside
+          id="admin-rail"
+          className={`admin-sidebar admin-rail absolute inset-y-0 start-0 flex flex-col${railOpen ? " is-open" : ""}`}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
+          <SidebarBody
+            pathname={pathname}
+            idPrefix="rail"
+            collapsed={!railOpen}
+            onNavigate={() => setRailOpen(false)}
+          />
+          <button
+            type="button"
+            className="admin-rail-toggle"
+            onClick={() => setRailOpen((v) => !v)}
+            aria-label={t(railOpen ? "collapseSidebar" : "expandSidebar")}
+            aria-expanded={railOpen}
+            aria-controls="admin-rail"
+            title={t(railOpen ? "collapseSidebar" : "expandSidebar")}
           >
-            <path d="M15 6l-6 6 6 6" />
-          </svg>
-        </button>
-      </aside>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </button>
+        </aside>
+      </div>
+      <button
+        type="button"
+        className={`admin-rail-scrim hidden md:block${railOpen ? " is-open" : ""}`}
+        aria-label={t("collapseSidebar")}
+        aria-hidden={!railOpen}
+        tabIndex={-1}
+        onClick={() => setRailOpen(false)}
+      />
 
       {open ? (
         <div
