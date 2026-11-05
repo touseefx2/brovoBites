@@ -153,7 +153,7 @@ function BillCard({
   const textItems = !bill && itemsText ? itemsText.split(/,\s+/) : [];
   const typeKey = bill?.orderType === "dine-in" ? "dineIn" : bill?.orderType === "takeaway" ? "takeaway" : bill?.orderType === "delivery" ? "delivery" : null;
   return (
-    <div className="min-w-0 rounded-xl border border-[#e8dfcf] bg-white p-3">
+    <div className="min-w-0 rounded-xl border border-[#e7d0b8] bg-white p-3">
       <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">{title}</p>
       <ul className="mt-1.5 space-y-0.5 text-[13px]">
         {bill
@@ -259,7 +259,7 @@ function ExpenseCompare({ before, after }: { before?: ActivityExpenseSnapshot; a
     { key: "lgDate", b: before?.date || "—", a: after?.date || "—" },
   ];
   return (
-    <div className="overflow-hidden rounded-xl border border-[#e8dfcf] bg-white">
+    <div className="overflow-hidden rounded-xl border border-[#e7d0b8] bg-white">
       <table className="w-full text-[13px]">
         <thead className="bg-stone-50 text-[11px] uppercase tracking-wide text-stone-500">
           <tr>

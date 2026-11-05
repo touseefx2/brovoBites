@@ -40,6 +40,8 @@ export function ConfirmDialog({
   const confirmRef = useRef<HTMLButtonElement>(null);
   const dismiss = onDismiss ?? onCancel;
   const featured = success || error;
+  /** Destructive question (not the big success/error card): warning mark beside the title. */
+  const dangerHead = danger && !featured;
 
   useEffect(() => {
     if (!open) return;
@@ -55,7 +57,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-stone-900/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] backdrop-blur-sm"
+      className="dialog-scrim fixed inset-0 z-[80] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]"
       role="presentation"
       onClick={() => {
         if (!busy) dismiss();
@@ -65,7 +67,7 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`panel w-full p-5 shadow-lg sm:p-6 ${featured ? "max-w-md" : "max-w-sm"}`}
+        className={`panel dialog-card w-full p-5 sm:p-6 ${featured ? "max-w-md" : "max-w-sm"}`}
         onClick={(e) => e.stopPropagation()}
       >
         {success ? (
@@ -104,23 +106,46 @@ export function ConfirmDialog({
             </svg>
           </div>
         ) : null}
-        <h3
-          id={titleId}
-          className={`font-bold text-[var(--ink)] ${
-            featured ? "text-center text-xl sm:text-2xl" : "text-lg"
-          }`}
-        >
-          {title}
-        </h3>
-        <p
-          className={`mt-2 whitespace-pre-line leading-relaxed text-[var(--muted)] ${
-            featured
-              ? "text-center text-base sm:text-[1.05rem] sm:leading-relaxed"
-              : "text-sm"
-          }`}
-        >
-          {message}
-        </p>
+        <div className={dangerHead ? "flex items-start gap-3.5" : ""}>
+          {dangerHead ? (
+            <span
+              className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600"
+              aria-hidden
+            >
+              <svg
+                className="size-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 9v4M12 17h.01" />
+                <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+              </svg>
+            </span>
+          ) : null}
+          <div className="min-w-0 flex-1">
+            <h3
+              id={titleId}
+              className={`font-bold text-[var(--ink)] ${
+                featured ? "text-center text-xl sm:text-2xl" : "text-lg"
+              }`}
+            >
+              {title}
+            </h3>
+            <p
+              className={`mt-2 whitespace-pre-line leading-relaxed text-[var(--muted)] ${
+                featured
+                  ? "text-center text-base sm:text-[1.05rem] sm:leading-relaxed"
+                  : "text-sm"
+              }`}
+            >
+              {message}
+            </p>
+          </div>
+        </div>
         <div className="mt-5 flex flex-col-reverse gap-2 sm:mt-6 sm:flex-row sm:justify-end sm:gap-3">
           {!hideCancel ? (
             <button
@@ -136,7 +161,7 @@ export function ConfirmDialog({
           <button
             ref={confirmRef}
             type="button"
-            className={`btn min-h-11 w-full sm:w-auto ${danger || error ? "border-red-600 bg-red-600 text-white hover:bg-red-700" : ""} ${featured ? "sm:min-h-12 sm:px-6 text-[15px]" : ""}`}
+            className={`btn min-h-11 w-full sm:w-auto ${danger || error ? "btn-danger" : ""} ${featured ? "sm:min-h-12 sm:px-6 text-[15px]" : ""}`}
             disabled={busy}
             onClick={onConfirm}
           >

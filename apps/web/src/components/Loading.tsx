@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { DEFAULT_LOCAL_LOGO } from "@/components/Brand";
+import { useLocale } from "@/i18n/locale-context";
 
 /** Thin top bar while admin routes change — so clicks feel responsive. */
 export function NavigationProgress() {
@@ -56,11 +58,23 @@ export function NavigationProgress() {
   );
 }
 
-export function PageSpinner({ label }: { label?: string }) {
+/** Mini logo loader: the BB badge inside the brand ring. The ring keeps the `.spinner` class (e2e waits for it to go). */
+export function BrandSpinner({ className = "" }: { className?: string }) {
   return (
-    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-[var(--muted)]">
-      <span className="spinner" aria-hidden />
-      {label ? <p className="text-sm">{label}</p> : null}
+    <span className={`brand-spinner ${className}`.trim()} aria-hidden>
+      <span className="spinner" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={DEFAULT_LOCAL_LOGO} alt="" width={44} height={44} className="brand-spinner-badge" />
+    </span>
+  );
+}
+
+export function PageSpinner({ label }: { label?: string }) {
+  const { t } = useLocale();
+  return (
+    <div className="page-spinner" role="status" aria-live="polite">
+      <BrandSpinner />
+      {label ? <p className="m-0">{label}</p> : <span className="sr-only">{t("loading")}</span>}
     </div>
   );
 }

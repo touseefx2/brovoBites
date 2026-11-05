@@ -1,5 +1,5 @@
 ---
-description: How to deploy Bravo Bites to DEV vs LIVE (ship = Firestore + both Vercel domains)
+description: How to deploy Brovo Bites to DEV vs LIVE (ship = Firestore + both Vercel domains)
 alwaysApply: true
 ---
 
@@ -7,7 +7,7 @@ alwaysApply: true
 
 Git push does **not** deploy. Tokens live in `deploy/targets.local.env` (gitignored).
 
-This repo is **Bravo Bites only**. It deploys to Bravo Bites' own Firebase projects, Bravo Bites' Vercel account(s) and Bravo Bites' ImageKit — never to any other shop's accounts. If `.firebaserc`, an env file or a Vercel token/org points anywhere else, **stop and ask** — do not deploy, read or write there.
+This repo is **Brovo Bites only**. It deploys to Brovo Bites' own Firebase projects, Brovo Bites' Vercel account(s) and Brovo Bites' ImageKit — never to any other shop's accounts. If `.firebaserc`, an env file or a Vercel token/org points anywhere else, **stop and ask** — do not deploy, read or write there.
 
 ## What the user says → what to run
 
@@ -26,9 +26,9 @@ This repo is **Bravo Bites only**. It deploys to Bravo Bites' own Firebase proje
 | | DEV | LIVE |
 |---|-----|------|
 | Command | `pnpm ship:dev` | `pnpm ship:live` |
-| Firebase | `bravobites-dev` | `bravobites-live` |
-| ImageKit | Bravo Bites DEV keys | Bravo Bites LIVE keys |
-| Vercel projects | admin + menu (Bravo Bites DEV Vercel) | admin + menu (Bravo Bites LIVE Vercel) |
+| Firebase | `brovodev` | `borovo-ffc56` |
+| ImageKit | Brovo Bites DEV keys | Brovo Bites LIVE keys |
+| Vercel projects | admin + menu (Brovo Bites DEV Vercel) | admin + menu (Brovo Bites LIVE Vercel) |
 | Env on Vercel | `.env.development.local` | `.env.production.local` |
 
 Firebase ids come from `.firebaserc` (aliases `dev` / `live`, default = dev). A fresh clone has placeholder ids; the real ones are set once with `bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>`. Before any deploy, confirm the project id printed by the script matches the world the user asked for.
@@ -37,4 +37,4 @@ Firebase ids come from `.firebaserc` (aliases `dev` / `live`, default = dev). A 
 
 Never commit `deploy/targets.local.env`. Never put live Firebase keys in `.env.local` / `.env.development.local`.
 
-**Data safety:** Deploying code/rules is fine. **Never copy DEV Firestore documents into LIVE** — see `never-dev-data-to-live.mdc`. LIVE (`bravobites-live`) is Bravo Bites' real shop.
+**Data safety:** Deploying code/rules is fine. **Never copy DEV Firestore documents into LIVE** — see `never-dev-data-to-live.mdc`. LIVE (`borovo-ffc56`) is Brovo Bites' real shop.

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useLocale } from "@/i18n/locale-context";
+import { BrandSpinner } from "@/components/Loading";
 import {
   notifyActionFailed,
   runGuardedAction,
@@ -77,10 +78,8 @@ export function ActionProvider({ children }: { children: ReactNode }) {
       {busy ? (
         <div className="action-overlay" role="status" aria-live="polite">
           <div className="action-overlay-card">
-            <span className="spinner" aria-hidden />
-            <p className="text-sm font-semibold text-[var(--ink)]">
-              {label ?? t("pleaseWait")}
-            </p>
+            <BrandSpinner />
+            <p className="action-overlay-title">{label ?? t("pleaseWait")}</p>
           </div>
         </div>
       ) : null}

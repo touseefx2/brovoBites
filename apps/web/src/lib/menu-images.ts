@@ -1,171 +1,202 @@
-/** Local menu images — unique HD assets per category/product. */
+/**
+ * Bundled menu photos for Brovo Bites (free-license real food photography,
+ * see public/menu/brovo/CREDITS.md). Real dish photos the owner uploads in
+ * Admin → Menu (ImageKit) always win over these.
+ */
 
-const BASE = "/menu";
-const CAT = `${BASE}/categories`;
+const BASE = "/menu/brovo";
 const ITEM = `${BASE}/items`;
+const CAT = `${BASE}/categories`;
+
+const HERO = `${BASE}/hero`;
+
+/** Food-only atmosphere slides (2400×1600, dark & moody) — login / branch picker backdrop. */
+export const HERO_SLIDES = [
+  `${HERO}/hero-1.jpg`,
+  `${HERO}/hero-2.jpg`,
+  `${HERO}/hero-3.jpg`,
+  `${HERO}/hero-4.jpg`,
+] as const;
+
+/**
+ * One hero photo with optional art direction: `src` is the wide crop (2400×1600, shown
+ * from 768px up), `tall` the portrait crop phones download instead (1200×1600). Without
+ * `tall` every screen gets `src` (object-fit: cover, centred).
+ */
+export type HeroSlide = {
+  src: string;
+  tall?: string;
+};
+
+/**
+ * The food shots with their phone crops (hero-N-tall.jpg, 1200×1600, framed on the dish;
+ * hero-4-tall is the flat-lay turned 180° so the burger sits above the hero copy).
+ */
+export const FOOD_HERO_SLIDES: readonly HeroSlide[] = HERO_SLIDES.map((src) => ({
+  src,
+  tall: src.replace(/\.jpg$/, "-tall.jpg"),
+}));
+
+/**
+ * Lifestyle shots (free Unsplash License), each a `<name>-wide.jpg` 2400×1600 + `<name>-tall.jpg`
+ * 1200×1600 pair: a woman biting a burger (people-1, Allan Lainez), friends sharing burgers
+ * and fries (friends-1, Cailin Grant-Jansen), a wrap at a friends' table (wrap-1, Eugene
+ * Chystiakov), a family laughing over nuggets (family-1, Tyson; wide crop mirrored).
+ */
+const LIFESTYLE_HERO = ["people-1", "friends-1", "wrap-1", "family-1"] as const;
+
+/** Website hero: lifestyle and food shots, alternating (people-1, hero-1, friends-1, hero-2, …). */
+export const LANDING_HERO_SLIDES: readonly HeroSlide[] = FOOD_HERO_SLIDES.flatMap((food, i) => [
+  { src: `${HERO}/${LIFESTYLE_HERO[i]}-wide.jpg`, tall: `${HERO}/${LIFESTYLE_HERO[i]}-tall.jpg` },
+  food,
+]);
 
 export const MENU_IMAGE = {
-  hero: `${BASE}/hero.jpg`,
-  sajji: `${CAT}/sajji-rice.jpg`,
-  rice: `${ITEM}/only-rice.jpg`,
-  pizza: `${CAT}/pizza.jpg`,
-  pizzaVeg: `${ITEM}/vegetable-pizza.jpg`,
-  burger: `${CAT}/burgers.jpg`,
-  sandwich: `${CAT}/sandwiches.jpg`,
-  springRolls: `${CAT}/spring-rolls.jpg`,
-  pasta: `${CAT}/pasta.jpg`,
-  fries: `${ITEM}/fries.jpg`,
-  loadedFries: `${ITEM}/loaded-fries.jpg`,
-  wings: `${ITEM}/fried-wings.jpg`,
+  zinger: `${ITEM}/zinger-burger.jpg`,
+  pattyBurger: `${ITEM}/patty-burger.jpg`,
+  beefBurger: `${ITEM}/beef-burger.jpg`,
+  beefDouble: `${ITEM}/beef-double-patty.jpg`,
+  wrap: `${ITEM}/grilled-wrap.jpg`,
+  wings: `${ITEM}/wings.jpg`,
+  bbqWings: `${ITEM}/bbq-wings.jpg`,
+  buffaloWings: `${ITEM}/buffalo-wings.jpg`,
   nuggets: `${ITEM}/nuggets.jpg`,
-  tempura: `${ITEM}/chicken-tempura.jpg`,
-  drink: `${ITEM}/soft-drink.jpg`,
-  water: `${ITEM}/mineral-water.jpg`,
-  mint: `${ITEM}/mint-margarita.jpg`,
-  combo: `${CAT}/combo-deals.jpg`,
+  injectedNuggets: `${ITEM}/injected-nuggets.jpg`,
+  fries: `${ITEM}/large-fries.jpg`,
+  loadedFries: `${ITEM}/loaded-fries.jpg`,
+  friesBucket: `${ITEM}/fries-bucket.jpg`,
+  russianSalad: `${ITEM}/russian-salad.jpg`,
+  appleCabbageSalad: `${ITEM}/apple-cabbage-salad.jpg`,
+  macaroniSalad: `${ITEM}/macaroni-salad.jpg`,
+  dipBbq: `${ITEM}/dip-smoky-bbq.jpg`,
+  dipRanch: `${ITEM}/dip-creamy-ranch.jpg`,
+  dipSpicyMayo: `${ITEM}/dip-spicy-mayo.jpg`,
+  dipChilliGarlic: `${ITEM}/dip-chilli-garlic.jpg`,
+  dipCreamyGarlic: `${ITEM}/dip-creamy-garlic.jpg`,
+  dipBuffalo: `${ITEM}/dip-spicy-buffalo.jpg`,
+  cheese: `${ITEM}/extra-cheese.jpg`,
+  masala: `${ITEM}/masala-sprinkle.jpg`,
+  cola: `${ITEM}/cola-next.jpg`,
+  lemonLime: `${ITEM}/fizzup.jpg`,
+  catBurgers: `${CAT}/burgers-wraps.jpg`,
+  catWings: `${CAT}/wings-nuggets.jpg`,
+  catFries: `${CAT}/fries.jpg`,
+  catSalads: `${CAT}/salads.jpg`,
+  catDips: `${CAT}/dip-sauces.jpg`,
+  catExtras: `${CAT}/extras.jpg`,
+  catDrinks: `${CAT}/drinks.jpg`,
+  /** Unknown dish — brand badge until a real photo is uploaded */
+  brand: "/logo.png",
 } as const;
 
-/** Exact product display name → unique image path */
+/** Exact product display name → image path */
 const PRODUCT_IMAGE_BY_NAME: Record<string, string> = {
-  "Sajji with Rice": `${ITEM}/sajji-with-rice.jpg`,
-  "Sajji without Rice": `${ITEM}/sajji-without-rice.jpg`,
-  "Only Rice": `${ITEM}/only-rice.jpg`,
-  "Chicken Tikka": `${ITEM}/chicken-tikka-pizza.jpg`,
-  "Chicken Fajita": `${ITEM}/chicken-fajita-pizza.jpg`,
-  "Chicken Hot & Spicy": `${ITEM}/chicken-hot-spicy-pizza.jpg`,
-  "Chicken Supreme": `${ITEM}/chicken-supreme-pizza.jpg`,
-  "Bihari Kebab": `${ITEM}/bihari-kebab-pizza.jpg`,
-  "Kebab Stuffed": `${ITEM}/kebab-stuffed-pizza.jpg`,
-  "Vegetable Pizza": `${ITEM}/vegetable-pizza.jpg`,
-  "Crown Crust Pizza": `${ITEM}/crown-crust-pizza.jpg`,
-  "Special SD": `${ITEM}/special-sd-pizza.jpg`,
-  "BBQ Pizza": `${ITEM}/bbq-pizza.jpg`,
-  "Chicken Club": `${ITEM}/chicken-club.jpg`,
-  "Mexican Sandwich": `${ITEM}/mexican-sandwich.jpg`,
-  "Special Sandwich": `${ITEM}/special-sandwich.jpg`,
-  "Classic Zinger": `${ITEM}/classic-zinger.jpg`,
-  "Cheese Zinger": `${ITEM}/cheese-zinger.jpg`,
-  "Double Zinger": `${ITEM}/double-zinger.jpg`,
-  "Double Zinger with Cheese": `${ITEM}/double-zinger-cheese.jpg`,
-  "Chicken Tikka Spring Roll": `${ITEM}/chicken-tikka-spring-roll.jpg`,
-  "Kebab Spring Roll": `${ITEM}/kebab-spring-roll.jpg`,
-  "Special Spring Roll": `${ITEM}/special-spring-roll.jpg`,
-  "Crunchy Pasta": `${ITEM}/crunchy-pasta.jpg`,
-  "SDF Special Pasta": `${ITEM}/sdf-special-pasta.jpg`,
-  Nuggets: `${ITEM}/nuggets.jpg`,
-  Fries: `${ITEM}/fries.jpg`,
-  "Loaded Fries": `${ITEM}/loaded-fries.jpg`,
-  "Fried Wings": `${ITEM}/fried-wings.jpg`,
-  "Chicken Tempura": `${ITEM}/chicken-tempura.jpg`,
-  "Soft Drink": `${ITEM}/soft-drink.jpg`,
-  "Soft Drink 340ml": `${ITEM}/soft-drink.jpg`,
-  "Mineral Water 500ml": `${ITEM}/mineral-water.jpg`,
-  "Mint Margarita": `${ITEM}/mint-margarita.jpg`,
-  "Extra Mayo": `${ITEM}/extra-mayo.jpg`,
-  Roti: `${ITEM}/roti.jpg`,
-  Naan: `${ITEM}/naan.jpg`,
-  "1. Solo Zinger Deal": `${ITEM}/solo-zinger-deal.jpg`,
-  "2. Solo Pizza Deal": `${ITEM}/solo-pizza-deal.jpg`,
-  "3. Solo Sandwich Deal": `${ITEM}/solo-sandwich-deal.jpg`,
-  "4. Duo Zinger Deal": `${ITEM}/duo-zinger-deal.jpg`,
-  "5. Duo Pizza Deal": `${ITEM}/duo-pizza-deal.jpg`,
-  "6. Trio Wings & Rolls Deal": `${ITEM}/trio-wings-rolls-deal.jpg`,
-  "7. Small Family Deal": `${ITEM}/small-family-deal.jpg`,
-  "8. Medium Family Deal": `${ITEM}/medium-family-deal.jpg`,
-  "9. Large Family Deal": `${ITEM}/large-family-deal.jpg`,
-  "10. Mega Family Deal": `${ITEM}/mega-family-deal.jpg`,
+  "Zinger Burger": MENU_IMAGE.zinger,
+  "Patty Burger": MENU_IMAGE.pattyBurger,
+  "Beef Burger": MENU_IMAGE.beefBurger,
+  "Beef Double Patty": MENU_IMAGE.beefDouble,
+  "Grilled Wrap": MENU_IMAGE.wrap,
+  "Wings (6 pcs)": MENU_IMAGE.wings,
+  "BBQ Wings (6 pcs)": MENU_IMAGE.bbqWings,
+  "Buffalo Wings (6 pcs)": MENU_IMAGE.buffaloWings,
+  "Nuggets (6 pcs)": MENU_IMAGE.nuggets,
+  "Injected Nuggets (6 pcs)": MENU_IMAGE.injectedNuggets,
+  "Large Fries": MENU_IMAGE.fries,
+  "Loaded Fries (Large)": MENU_IMAGE.loadedFries,
+  "Fries Bucket": MENU_IMAGE.friesBucket,
+  "Russian Salad": MENU_IMAGE.russianSalad,
+  "Apple Cabbage Salad": MENU_IMAGE.appleCabbageSalad,
+  "Macaroni Salad": MENU_IMAGE.macaroniSalad,
+  "Smoky BBQ Dip": MENU_IMAGE.dipBbq,
+  "Creamy Ranch Dip": MENU_IMAGE.dipRanch,
+  "Spicy Mayo Dip": MENU_IMAGE.dipSpicyMayo,
+  "Chilli Garlic Dip": MENU_IMAGE.dipChilliGarlic,
+  "Creamy Garlic Dip": MENU_IMAGE.dipCreamyGarlic,
+  "Spicy Buffalo Dip": MENU_IMAGE.dipBuffalo,
+  "Extra Cheese": MENU_IMAGE.cheese,
+  "Masala Sprinkle": MENU_IMAGE.masala,
+  "Cola Next 350ml": MENU_IMAGE.cola,
+  "Fizzup 350ml": MENU_IMAGE.lemonLime,
 };
 
 const CATEGORY_IMAGE_BY_NAME: Record<string, string> = {
-  "Sajji Rice": `${CAT}/sajji-rice.jpg`,
-  Pizza: `${CAT}/pizza.jpg`,
-  Sandwiches: `${CAT}/sandwiches.jpg`,
-  Burgers: `${CAT}/burgers.jpg`,
-  "Spring Rolls": `${CAT}/spring-rolls.jpg`,
-  Pasta: `${CAT}/pasta.jpg`,
-  Sides: `${CAT}/sides.jpg`,
-  Beverages: `${CAT}/beverages.jpg`,
-  "Combo Deals": `${CAT}/combo-deals.jpg`,
+  "Burgers & Wraps": MENU_IMAGE.catBurgers,
+  "Wings & Nuggets": MENU_IMAGE.catWings,
+  Fries: MENU_IMAGE.catFries,
+  Salads: MENU_IMAGE.catSalads,
+  "Dip Sauces": MENU_IMAGE.catDips,
+  Extras: MENU_IMAGE.catExtras,
+  Drinks: MENU_IMAGE.catDrinks,
 };
 
-/** Map product display name → unique image path */
+/** Map product display name (+ category) → placeholder image path */
 export function placeholderImageForProduct(name: string, categoryName?: string): string {
   const exact = PRODUCT_IMAGE_BY_NAME[name.trim()];
   if (exact) return exact;
 
-  const n = name.toLowerCase();
-  const cat = (categoryName ?? "").toLowerCase();
-
   const catExact = CATEGORY_IMAGE_BY_NAME[name.trim()];
   if (catExact) return catExact;
 
-  if (n.includes("without rice") || (n.includes("sajji") && n.includes("without"))) {
-    return `${ITEM}/sajji-without-rice.jpg`;
+  const n = name.toLowerCase();
+  const cat = (categoryName ?? "").toLowerCase();
+
+  if (n.includes("beef") && n.includes("double")) return MENU_IMAGE.beefDouble;
+  if (n.includes("beef")) return MENU_IMAGE.beefBurger;
+  if (n.includes("zinger")) return MENU_IMAGE.zinger;
+  if (n.includes("burger") || n.includes("patty")) return MENU_IMAGE.pattyBurger;
+  if (n.includes("wrap") || cat.includes("wrap")) return MENU_IMAGE.wrap;
+
+  if (n.includes("bbq wing")) return MENU_IMAGE.bbqWings;
+  if (n.includes("buffalo wing") || n.includes("hot wing")) return MENU_IMAGE.buffaloWings;
+  if (n.includes("wing")) return MENU_IMAGE.wings;
+  if (n.includes("injected")) return MENU_IMAGE.injectedNuggets;
+  if (n.includes("nugget")) return MENU_IMAGE.nuggets;
+
+  if (n.includes("loaded")) return MENU_IMAGE.loadedFries;
+  if (n.includes("bucket")) return MENU_IMAGE.friesBucket;
+  if (n.includes("fries") || cat.includes("fries")) return MENU_IMAGE.fries;
+
+  if (n.includes("russian")) return MENU_IMAGE.russianSalad;
+  if (n.includes("macaroni")) return MENU_IMAGE.macaroniSalad;
+  if (n.includes("cabbage") || n.includes("coleslaw")) return MENU_IMAGE.appleCabbageSalad;
+  if (n.includes("salad") || cat.includes("salad")) return MENU_IMAGE.catSalads;
+
+  if (n.includes("ranch")) return MENU_IMAGE.dipRanch;
+  if (n.includes("buffalo")) return MENU_IMAGE.dipBuffalo;
+  if (n.includes("chilli") || n.includes("chili")) return MENU_IMAGE.dipChilliGarlic;
+  if (n.includes("garlic")) return MENU_IMAGE.dipCreamyGarlic;
+  if (n.includes("mayo")) return MENU_IMAGE.dipSpicyMayo;
+  if (n.includes("bbq") && (n.includes("dip") || n.includes("sauce"))) return MENU_IMAGE.dipBbq;
+  if (cat.includes("dip") || n.includes("sauce") || n.includes("dip")) return MENU_IMAGE.catDips;
+  if (n.includes("cheese")) return MENU_IMAGE.cheese;
+  if (n.includes("masala") || n.includes("spice")) return MENU_IMAGE.masala;
+  if (n.includes("fizz") || n.includes("lemon") || n.includes("sprite") || n.includes("7up")) {
+    return MENU_IMAGE.lemonLime;
   }
-  if (n.includes("only rice") || n === "only rice") return `${ITEM}/only-rice.jpg`;
-  if (n.includes("sajji") || cat.includes("sajji")) return `${ITEM}/sajji-with-rice.jpg`;
-
-  if (n.includes("vegetable") || n.includes("veg")) return `${ITEM}/vegetable-pizza.jpg`;
-  if (n.includes("tikka") && n.includes("pizza")) return `${ITEM}/chicken-tikka-pizza.jpg`;
-  if (n.includes("fajita")) return `${ITEM}/chicken-fajita-pizza.jpg`;
-  if (n.includes("hot") && n.includes("spicy")) return `${ITEM}/chicken-hot-spicy-pizza.jpg`;
-  if (n.includes("supreme")) return `${ITEM}/chicken-supreme-pizza.jpg`;
-  if (n.includes("bihari")) return `${ITEM}/bihari-kebab-pizza.jpg`;
-  if (n.includes("stuffed")) return `${ITEM}/kebab-stuffed-pizza.jpg`;
-  if (n.includes("crown")) return `${ITEM}/crown-crust-pizza.jpg`;
-  if (n.includes("special sd") || n === "special sd") return `${ITEM}/special-sd-pizza.jpg`;
-  if (n.includes("bbq")) return `${ITEM}/bbq-pizza.jpg`;
-  if (n.includes("pizza") || cat.includes("pizza")) return MENU_IMAGE.pizza;
-
-  if (n.includes("mexican")) return `${ITEM}/mexican-sandwich.jpg`;
-  if (n.includes("club")) return `${ITEM}/chicken-club.jpg`;
-  if (n.includes("sandwich") || cat.includes("sandwich")) return MENU_IMAGE.sandwich;
-
-  if (n.includes("double") && n.includes("cheese")) return `${ITEM}/double-zinger-cheese.jpg`;
-  if (n.includes("double")) return `${ITEM}/double-zinger.jpg`;
-  if (n.includes("cheese") && n.includes("zinger")) return `${ITEM}/cheese-zinger.jpg`;
-  if (n.includes("zinger") || n.includes("burger") || cat.includes("burger")) {
-    return `${ITEM}/classic-zinger.jpg`;
+  if (n.includes("cola")) return MENU_IMAGE.cola;
+  if (
+    cat.includes("drink") ||
+    cat.includes("beverage") ||
+    n.includes("drink") ||
+    /\d+\s?ml\b/.test(n)
+  ) {
+    return MENU_IMAGE.catDrinks;
   }
+  if (cat.includes("burger")) return MENU_IMAGE.pattyBurger;
 
-  if (n.includes("tikka") && n.includes("roll")) return `${ITEM}/chicken-tikka-spring-roll.jpg`;
-  if (n.includes("kebab") && n.includes("roll")) return `${ITEM}/kebab-spring-roll.jpg`;
-  if (n.includes("spring roll") || n.includes("roll") || cat.includes("roll")) {
-    return `${ITEM}/special-spring-roll.jpg`;
-  }
+  return MENU_IMAGE.brand;
+}
 
-  if (n.includes("crunchy")) return `${ITEM}/crunchy-pasta.jpg`;
-  if (n.includes("pasta") || cat.includes("pasta")) return `${ITEM}/sdf-special-pasta.jpg`;
-
-  if (n.includes("loaded")) return `${ITEM}/loaded-fries.jpg`;
-  if (n.includes("fries")) return `${ITEM}/fries.jpg`;
-  if (n.includes("wing")) return `${ITEM}/fried-wings.jpg`;
-  if (n.includes("nugget")) return `${ITEM}/nuggets.jpg`;
-  if (n.includes("tempura")) return `${ITEM}/chicken-tempura.jpg`;
-  if (cat.includes("side")) return `${ITEM}/fries.jpg`;
-
-  if (n.includes("water")) return `${ITEM}/mineral-water.jpg`;
-  if (n.includes("mint") || n.includes("margarita")) return `${ITEM}/mint-margarita.jpg`;
-  if (n.includes("mayo")) return `${ITEM}/extra-mayo.jpg`;
-  if (n.includes("drink") || n.includes("soft") || cat.includes("beverage")) {
-    return `${ITEM}/soft-drink.jpg`;
-  }
-
-  if (n.includes("solo zinger")) return `${ITEM}/solo-zinger-deal.jpg`;
-  if (n.includes("solo pizza")) return `${ITEM}/solo-pizza-deal.jpg`;
-  if (n.includes("solo sandwich")) return `${ITEM}/solo-sandwich-deal.jpg`;
-  if (n.includes("duo zinger")) return `${ITEM}/duo-zinger-deal.jpg`;
-  if (n.includes("duo pizza")) return `${ITEM}/duo-pizza-deal.jpg`;
-  if (n.includes("trio") || n.includes("wings & rolls")) return `${ITEM}/trio-wings-rolls-deal.jpg`;
-  if (n.includes("small family")) return `${ITEM}/small-family-deal.jpg`;
-  if (n.includes("medium family")) return `${ITEM}/medium-family-deal.jpg`;
-  if (n.includes("large family")) return `${ITEM}/large-family-deal.jpg`;
-  if (n.includes("mega family")) return `${ITEM}/mega-family-deal.jpg`;
-  if (n.includes("deal") || cat.includes("deal") || cat.includes("combo")) {
-    return MENU_IMAGE.combo;
-  }
-
-  return MENU_IMAGE.combo;
+/**
+ * Bundled placeholder photos (paths under /menu/ or the logo, written by the
+ * seed) belong to the code, not the data: the current mapping above always
+ * wins for them. So shipping new / renamed photos needs no Firestore write,
+ * and an old path can never 404. Photos the owner uploads (https://… on
+ * ImageKit) always win over the mapping.
+ */
+export function isBundledPlaceholder(url: string | undefined | null): boolean {
+  const u = (url ?? "").trim();
+  return u.startsWith("/menu/") || u === "/logo.png";
 }
 
 export function resolveCategoryImage(
@@ -173,7 +204,7 @@ export function resolveCategoryImage(
   categoryName: string,
 ): string {
   const url = (imageUrl ?? "").trim();
-  if (url) return url;
+  if (url && !isBundledPlaceholder(url)) return url;
   return (
     CATEGORY_IMAGE_BY_NAME[categoryName.trim()] ??
     placeholderImageForProduct(categoryName, categoryName)
@@ -186,6 +217,6 @@ export function resolveProductImage(
   categoryName?: string,
 ): string {
   const url = (imageUrl ?? "").trim();
-  if (url) return url;
+  if (url && !isBundledPlaceholder(url)) return url;
   return placeholderImageForProduct(name, categoryName);
 }

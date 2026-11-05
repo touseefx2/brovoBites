@@ -158,14 +158,14 @@ export default function EditStaffPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+          <p className="admin-page-eyebrow">
             {editingPrimarySelf
               ? t("editProfile")
               : isOwnerTarget
                 ? t("editOwner")
                 : t("editStaff")}
           </p>
-          <h1 className="text-xl font-bold text-[var(--ink)] sm:text-2xl">
+          <h1 className="admin-page-title">
             {displayName || user.email}
           </h1>
           <p className="mt-1 text-xs text-[var(--muted)]" dir="ltr">

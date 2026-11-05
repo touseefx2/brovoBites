@@ -307,26 +307,26 @@ export const LOG_DETAIL_SLIP_CSS = `
 
 /** A4 styles for logDetailHtml (same colours as the screen's details panel). */
 export const LOG_DETAIL_CSS = `
-  .ld { margin-top: 1.5mm; padding: 2mm 2.5mm; background: #faf7f2; border-radius: 5px; font-size: 10.5px; color: #44403c; }
+  .ld { margin-top: 1.5mm; padding: 2mm 2.5mm; background: #fff4e8; border-radius: 5px; font-size: 10.5px; color: #44403c; }
   .ld p { margin: 0; }
   .ld > :not(:first-child) { margin-top: 1.4mm; }
   .ld .m { white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .ld .b { font-weight: 700; color: #1c1917; }
-  .ld .dim { color: #78716c; }
+  .ld .b { font-weight: 700; color: #2a140e; }
+  .ld .dim { color: #7a5a4c; }
   .ld .sm { font-size: 9.5px; }
   .ld .struck { text-decoration: line-through; text-decoration-color: #d6d3d1; }
   .ld .neg { color: #b91c1c; font-weight: 700; }
   .ld .pos { color: #047857; font-weight: 700; }
   .ld .refund { color: #c2410c; }
-  .ld .arr { color: #a8a29e; padding: 0 0.6mm; }
-  .ld .cap { font-size: 8.5px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #78716c; }
+  .ld .arr { color: #b39a8a; padding: 0 0.6mm; }
+  .ld .cap { font-size: 8.5px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: #7a5a4c; }
   .ld .pill { display: inline-block; margin-inline-start: 1mm; padding: 0 1.8mm; border-radius: 99px; font-size: 9px; font-weight: 800; }
   .ld .pill-neg { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
   .ld .pill-pos { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
   .ld-tot { font-size: 11px; }
   .ld-chg li { display: flex; align-items: flex-start; gap: 1.5mm; padding: 0.4mm 0; }
   .ld-chg .ld-line { flex: 1; min-width: 0; }
-  .ld-chg b { color: #1c1917; }
+  .ld-chg b { color: #2a140e; }
   .mk { flex-shrink: 0; min-width: 4.2mm; text-align: center; border-radius: 3px; font-size: 8.5px; font-weight: 800; padding: 0 0.6mm; }
   .mk-add { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
   .mk-rem { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
@@ -334,18 +334,18 @@ export const LOG_DETAIL_CSS = `
   .mk-fld { background: #f5f5f4; color: #57534e; border: 1px solid #e7e5e4; }
   .bills { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; break-inside: avoid; }
   .bills.one { grid-template-columns: minmax(0, 60%); }
-  .bill { background: #fff; border: 1px solid #e8dfcf; border-radius: 5px; padding: 1.8mm 2.2mm; min-width: 0; }
+  .bill { background: #fff; border: 1px solid #e7d0b8; border-radius: 5px; padding: 1.8mm 2.2mm; min-width: 0; }
   .bill ul { margin-top: 0.8mm; }
   .bill li { display: flex; justify-content: space-between; gap: 2mm; padding: 0 0.8mm; border-radius: 2px; }
   .bill li.hl-before { background: #fef2f2; font-weight: 700; }
   .bill li.hl-after { background: #ecfdf5; font-weight: 700; }
   .bill-foot { margin-top: 1.2mm; padding-top: 1.2mm; border-top: 1px solid #f5f5f4; font-size: 9.5px; color: #57534e; }
   .bill-foot div { display: flex; justify-content: space-between; gap: 2mm; }
-  .bill-foot .tot { font-size: 10.5px; font-weight: 800; color: #1c1917; padding-top: 0.4mm; }
+  .bill-foot .tot { font-size: 10.5px; font-weight: 800; color: #2a140e; padding-top: 0.4mm; }
   .bill-foot p { margin-top: 0.6mm; font-size: 9px; }
-  .ld-cmp { background: #fff; border: 1px solid #e8dfcf; font-size: 10px; }
+  .ld-cmp { background: #fff; border: 1px solid #e7d0b8; font-size: 10px; }
   .ld-cmp th, .ld-cmp td { text-align: start; padding: 0.8mm 2mm; }
-  .ld-cmp tbody th { font-weight: 600; color: #78716c; }
+  .ld-cmp tbody th { font-weight: 600; color: #7a5a4c; }
   .ld-cmp tr.chg { background: #fffbeb; }
   /* Urdu: Naskh reads much smaller than Latin at the same size. */
   [dir="rtl"] :is(.ld, .bill) { font-size: 13px; line-height: 1.7; }

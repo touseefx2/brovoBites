@@ -72,8 +72,8 @@ export default function BranchesPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[var(--ink)] sm:text-2xl">{t("branches")}</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t("newShopHint")}</p>
+          <h1 className="admin-page-title">{t("branches")}</h1>
+          <p className="admin-page-sub">{t("newShopHint")}</p>
         </div>
         <Link href="/admin/branches/new" className="btn btn-sm">
           {t("addNewBranch")}

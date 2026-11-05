@@ -576,12 +576,12 @@ export default function CashDrawerPage() {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <div className="mb-4 sm:mb-5">
-        <h1 className="text-xl font-bold sm:text-2xl">{t("cashDrawer")}</h1>
-        <p className="text-sm text-[var(--muted)]">{t("cashDrawerHint")}</p>
+        <h1 className="admin-page-title">{t("cashDrawer")}</h1>
+        <p className="admin-page-sub">{t("cashDrawerHint")}</p>
       </div>
 
       {/* Simple guide */}
-      <section className="mb-4 rounded-2xl border border-[rgba(184,134,11,0.22)] bg-[#faf7f2] p-4 sm:p-5">
+      <section className="mb-4 rounded-2xl border border-[rgba(197,138,14,0.22)] bg-[#fff4e8] p-4 sm:p-5">
         <h2 className="text-sm font-bold text-[var(--ink)]">{t("cashDrawerGuideTitle")}</h2>
         <p className="mt-1.5 text-sm text-[var(--muted)] leading-relaxed">
           {t("cashDrawerGuideWhat")}

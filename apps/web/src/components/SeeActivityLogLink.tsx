@@ -20,7 +20,7 @@ export function SeeActivityLogLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-white px-3.5 py-3 text-start shadow-sm transition hover:border-[var(--gold)]/40 hover:bg-[#faf8f5] sm:px-4 ${className}`}
+      className={`inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-white px-3.5 py-3 text-start shadow-sm transition hover:border-[var(--gold)]/40 hover:bg-[#fff7ee] sm:px-4 ${className}`}
     >
       <span className="min-w-0">
         <span className="block text-sm font-bold text-[var(--ink)]">
@@ -31,7 +31,7 @@ export function SeeActivityLogLink({
         </span>
       </span>
       <span
-        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f3eee6] text-[var(--gold-deep)] ring-1 ring-[rgba(184,134,11,0.2)]"
+        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f6e6d4] text-[var(--gold-deep)] ring-1 ring-[rgba(197,138,14,0.2)]"
         aria-hidden
       >
         <svg

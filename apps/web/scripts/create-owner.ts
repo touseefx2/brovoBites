@@ -2,13 +2,13 @@
  * Create (or update) the main owner Auth user + Firestore profile.
  * Does NOT seed menu/branch/products — use `pnpm seed` for that (separately, with care).
  *
- * DEV (default — bravobites-dev via .env.development.local):
+ * DEV (default — brovodev via .env.development.local):
  *   pnpm create-owner -- --email=you@mail.com --password='YourPass123' --name='Owner'
  *
- * LIVE (bravobites-live via .env.production.local) — MUST pass --confirm=bravobites-live:
+ * LIVE (borovo-ffc56 via .env.production.local) — MUST pass --confirm=borovo-ffc56:
  *   SEED_ENV=production pnpm create-owner -- \
  *     --email=you@mail.com --password='YourPass123' --name='Owner' \
- *     --confirm=bravobites-live --primary
+ *     --confirm=borovo-ffc56 --primary
  *
  * Safety: production refuses to run unless --confirm matches FIREBASE_ADMIN_PROJECT_ID.
  */
@@ -74,11 +74,11 @@ async function main() {
         `SEED_ENV=production but projectId looks like dev ("${projectId}"). Aborting.`,
       );
     }
-  } else if (!/-dev$|^demo-/.test(projectId) && !hasFlag("force-dev-on-live-keys")) {
+  } else if (!/dev$|^demo-/.test(projectId) && !hasFlag("force-dev-on-live-keys")) {
     throw new Error(
       [
-        `You are on SEED_ENV=development but FIREBASE_ADMIN_PROJECT_ID is "${projectId}" (not a -dev project).`,
-        "Check apps/web/.env.development.local — it must point at bravobites-dev.",
+        `You are on SEED_ENV=development but FIREBASE_ADMIN_PROJECT_ID is "${projectId}" (not a DEV project — id must end in "dev").`,
+        "Check apps/web/.env.development.local — it must point at brovodev.",
         "If intentional, pass --force-dev-on-live-keys (not recommended).",
       ].join("\n"),
     );

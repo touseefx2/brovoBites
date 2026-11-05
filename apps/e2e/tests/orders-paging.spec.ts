@@ -28,7 +28,7 @@ test("orders: All time shows the newest 300, Load older orders brings the rest",
         {
           clientId: id,
           branchId: "main",
-          branchName: "Bravo Bites — Main",
+          branchName: "Brovo Bites — Main",
           orderNumber: 8_000_000 + i,
           orderType: "takeaway",
           customerName: id,

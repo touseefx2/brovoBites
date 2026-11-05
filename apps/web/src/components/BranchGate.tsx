@@ -6,10 +6,41 @@ import { useAuth } from "@/lib/auth-context";
 import { useLocale } from "@/i18n/locale-context";
 import { mapFirebaseError } from "@/lib/errors";
 import { fetchBranches } from "@/lib/firestore";
-import { BrandLogo, BrandTitle } from "@/components/Brand";
+import { BrandLogo } from "@/components/Brand";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { AtmosphereBg } from "@/components/AtmosphereBg";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+
+/**
+ * Dark brand header of the staff sign-in card (login page + branch picker):
+ * language switch, BB badge, Lilita wordmark, and the cheese drip into the form.
+ */
+export function AuthPanelHero() {
+  return (
+    <div className="login-panel-hero">
+      <div className="login-panel-lang">
+        <LanguageToggle />
+      </div>
+      <div className="login-panel-brand">
+        <BrandLogo size="md" className="login-brand-logo" />
+        {/* The logo lockup stays Latin in both languages (POS, admin and loader match). */}
+        <h1 className="login-wordmark" lang="en" dir="ltr">
+          Brovo Bites
+        </h1>
+      </div>
+    </div>
+  );
+}
+
+/** Full-screen dark backdrop: hero photo slideshow + brand scrim. */
+export function AuthBackdrop() {
+  return (
+    <div className="login-page-bg" aria-hidden>
+      <AtmosphereBg />
+      <div className="login-page-scrim" />
+    </div>
+  );
+}
 
 export function BranchGate({ children }: { children: ReactNode }) {
   const { profile, activeBranchId } = useAuth();
@@ -75,85 +106,87 @@ function BranchPicker() {
 
   return (
     <main className="login-page relative flex min-h-svh justify-center overflow-y-auto overscroll-y-contain">
-      <div className="login-page-bg" aria-hidden>
-        <AtmosphereBg />
-        <div className="login-page-scrim" />
-      </div>
+      <AuthBackdrop />
 
       <div className="login-panel panel w-full max-w-md">
-        <div className="login-panel-lang">
-          <LanguageToggle />
-        </div>
+        <AuthPanelHero />
 
-        <div className="login-panel-brand">
-          <BrandLogo size="md" className="login-brand-logo" />
-          <BrandTitle />
-        </div>
-
-        <div className="login-panel-head">
-          <h2 className="login-panel-title">{t("selectYourBranch")}</h2>
-          <p className="login-panel-hint">{t("selectBranchHint")}</p>
-        </div>
-
-        {authError ? <div className="toast-error mb-2 text-start sm:mb-3">{authError}</div> : null}
-        {error && !authError ? <div className="toast-error mb-2 text-start sm:mb-3">{error}</div> : null}
-
-        {loading ? (
-          <p className="text-sm text-[var(--muted)]">{t("loading")}</p>
-        ) : noBranches ? (
-          <div className="space-y-3">
-            <button
-              className="btn btn-ghost w-full"
-              type="button"
-              onClick={() => setConfirmLogout(true)}
-              disabled={loggingOut}
-            >
-              {t("logout")}
-            </button>
+        <div className="login-panel-body">
+          <div className="login-drip" aria-hidden />
+          <div className="login-panel-head">
+            <h2 className="login-panel-title">{t("selectYourBranch")}</h2>
+            <p className="login-panel-hint">{t("selectBranchHint")}</p>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              {branches.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => setSelected(b.id)}
-                  className={`min-h-[3rem] rounded-xl border-2 px-4 py-3 text-start text-sm font-semibold transition ${
-                    selected === b.id
-                      ? "border-[var(--gold-deep)] bg-[var(--gold)]/20 text-[var(--ink)] shadow-sm"
-                      : "border-[var(--border)] bg-white/80 text-[var(--ink)] hover:border-[var(--gold)]"
-                  }`}
-                >
-                  {b.name}
-                  {b.address ? (
-                    <span className="mt-0.5 block text-xs font-normal text-[var(--muted)]">
-                      {b.address}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
+
+          {authError ? <div className="toast-error login-alert">{authError}</div> : null}
+          {error && !authError ? <div className="toast-error login-alert">{error}</div> : null}
+
+          {loading ? (
+            <p className="login-panel-status" role="status">
+              {t("loading")}
+            </p>
+          ) : noBranches ? (
+            <div className="login-actions">
+              <button
+                className="btn btn-ghost login-ghost"
+                type="button"
+                onClick={() => setConfirmLogout(true)}
+                disabled={loggingOut}
+              >
+                {t("logout")}
+              </button>
             </div>
+          ) : (
+            <div className="login-actions">
+              <div className="login-branch-list">
+                {branches.map((b) => {
+                  const isSelected = selected === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setSelected(b.id)}
+                      aria-pressed={isSelected}
+                      className={`login-branch-option ${isSelected ? "is-selected" : ""}`}
+                    >
+                      <span className="login-branch-check" aria-hidden>
+                        {isSelected ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12l5 5L20 7" />
+                          </svg>
+                        ) : null}
+                      </span>
+                      <span className="login-branch-text">
+                        <span className="login-branch-name">{b.name}</span>
+                        {b.address ? (
+                          <span className="login-branch-address">{b.address}</span>
+                        ) : null}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-            <button
-              className="btn w-full py-3"
-              type="button"
-              disabled={!selected}
-              onClick={onConfirm}
-            >
-              {t("confirmBranch")}
-            </button>
+              <button
+                className="btn login-submit"
+                type="button"
+                disabled={!selected}
+                onClick={onConfirm}
+              >
+                {t("confirmBranch")}
+              </button>
 
-            <button
-              className="btn btn-ghost w-full"
-              type="button"
-              onClick={() => setConfirmLogout(true)}
-              disabled={loggingOut}
-            >
-              {t("logout")}
-            </button>
-          </div>
-        )}
+              <button
+                className="btn btn-ghost login-ghost"
+                type="button"
+                onClick={() => setConfirmLogout(true)}
+                disabled={loggingOut}
+              >
+                {t("logout")}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <ConfirmDialog

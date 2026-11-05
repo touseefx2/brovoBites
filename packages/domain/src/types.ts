@@ -196,7 +196,7 @@ export interface ShopSettings {
   phone: string;
   currency: string;
   slogan: string;
-  /** Landing page eyebrow text (e.g. "Sajji · Rice · Pizza · Burger") */
+  /** Landing page eyebrow text (e.g. "Burgers · Wings · Fries · Wraps") */
   eyebrow: string;
   /** Uploaded logo URL for branding */
   logoUrl: string;
@@ -237,13 +237,13 @@ export interface ShopSettings {
 }
 
 export const DEFAULT_SETTINGS: ShopSettings = {
-  shopName: "Bravo Bites",
+  shopName: "Brovo Bites",
   phone: "",
   currency: "PKR",
   slogan: "Authentic Taste, Royal Experience",
-  eyebrow: "Sajji · Rice · Pizza · Burger",
+  eyebrow: "Burgers · Wings · Fries · Wraps",
   logoUrl: "",
-  copyrightName: "Bravo Bites",
+  copyrightName: "Brovo Bites",
   heroSlides: [],
   whatsappNumber: "",
   googleReviewUrl: "",

@@ -500,7 +500,7 @@ function receiptCss(widthMm: number): string {
        None of this reaches the printer. */
     @media screen {
       html {
-        background: #efebe4;
+        background: #efe2d3;
         padding: 0 ${PREVIEW_GUTTER_PX}px;
         overflow: hidden;
       }
@@ -510,7 +510,7 @@ function receiptCss(widthMm: number): string {
       }
       .receipt {
         background: #fff;
-        box-shadow: 0 1px 2px rgba(28, 25, 23, 0.16), 0 6px 18px rgba(28, 25, 23, 0.08);
+        box-shadow: 0 1px 2px rgba(42, 20, 14, 0.16), 0 6px 18px rgba(42, 20, 14, 0.08);
       }
       .receipt + .receipt {
         position: relative;
@@ -530,7 +530,7 @@ function receiptCss(widthMm: number): string {
         left: 50%;
         transform: translateX(-50%);
         padding: 0 6px;
-        background: #efebe4;
+        background: #efe2d3;
         color: #44403c;
         font-size: 14px;
         line-height: 20px;

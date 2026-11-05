@@ -6,9 +6,9 @@
  * Dry-run:
  *   pnpm copy-menu -- --dry-run
  * Write:
- *   pnpm copy-menu -- --confirm=bravobites-live
- *   pnpm copy-menu -- --confirm=bravobites-live --replace
- *   pnpm copy-menu -- --confirm=bravobites-live --with-branches
+ *   pnpm copy-menu -- --confirm=borovo-ffc56
+ *   pnpm copy-menu -- --confirm=borovo-ffc56 --replace
+ *   pnpm copy-menu -- --confirm=borovo-ffc56 --with-branches
  */
 import { resolve } from "path";
 import { cert, deleteApp, initializeApp, type App } from "firebase-admin/app";
@@ -168,11 +168,11 @@ async function main() {
   console.log(`  mode: ${dryRun ? "DRY-RUN" : replace ? "REPLACE+COPY" : "COPY (merge overwrite by id)"}`);
   console.log(line);
 
-  if (dev.projectId !== "bravobites-dev") {
-    throw new Error(`Expected DEV project bravobites-dev, got ${dev.projectId}`);
+  if (dev.projectId !== "brovodev") {
+    throw new Error(`Expected DEV project brovodev, got ${dev.projectId}`);
   }
-  if (live.projectId !== "bravobites-live") {
-    throw new Error(`Expected LIVE project bravobites-live, got ${live.projectId}`);
+  if (live.projectId !== "borovo-ffc56") {
+    throw new Error(`Expected LIVE project borovo-ffc56, got ${live.projectId}`);
   }
 
   console.log("\nCounts BEFORE:");
@@ -183,7 +183,7 @@ async function main() {
   }
 
   if (dryRun) {
-    console.log("\nDry-run only — no writes. Re-run with --confirm=bravobites-live [--replace]");
+    console.log("\nDry-run only — no writes. Re-run with --confirm=borovo-ffc56 [--replace]");
     await deleteApp(dev.app);
     await deleteApp(live.app);
     return;

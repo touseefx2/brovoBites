@@ -35,7 +35,7 @@ test("staff's own order and expense from yesterday are locked for staff; owner c
       {
         clientId: orderId,
         branchId: "main",
-        branchName: "Bravo Bites — Main",
+        branchName: "Brovo Bites — Main",
         orderNumber: 9_000_000 + Math.floor(Math.random() * 900_000),
         orderType: "takeaway",
         customerName: orderId,

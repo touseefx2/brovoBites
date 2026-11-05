@@ -11,8 +11,14 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  // Staff: every screen opened by client-side navigation (and its chunks) is
+  // cached for offline use. The customer menu is one page: nothing to cache
+  // ahead, and no hidden second download of "/" (start-url cache) on a
+  // shopper's first visit — the "pages-nav" runtime cache below keeps "/".
+  cacheOnFrontEndNav: !isCustomerBuild,
+  aggressiveFrontEndNavCaching: !isCustomerBuild,
+  cacheStartUrl: !isCustomerBuild,
+  dynamicStartUrl: !isCustomerBuild,
   // Default true reloads the page whenever the network returns — on a POS that
   // wipes a half-built cart / open checkout. The app already re-syncs and
   // refreshes images & catalog itself on reconnect.
@@ -21,6 +27,13 @@ const withPWA = withPWAInit({
   // "PC clock is wrong" banner and wrong shop time while offline).
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
+    // Customer build: precache nothing. By default the worker downloads every
+    // chunk of the build on a shopper's first visit (~1.3 MB gzip: Firebase
+    // Auth, Firestore, POS queue, admin screens, PDF / chart libraries) — data
+    // a phone pays for and bandwidth the hero photos need. Repeat visits are
+    // served by next-pwa's runtime caches (JS, CSS, fonts, images, "/").
+    // Staff build: the full precache — the POS must open offline.
+    ...(isCustomerBuild ? { exclude: [/./] } : {}),
     // A new deploy must never take over a running POS by itself: it would
     // delete the old build's cached chunks under an open cart. The new worker
     // waits until the page finds a quiet moment and reloads into it (no cart,
@@ -76,12 +89,20 @@ const withPWA = withPWAInit({
       },
     ],
   },
-  fallbacks: {
-    document: "/~offline",
-  },
+  // Staff build only: /~offline is a client page whose JS the customer worker no
+  // longer precaches (exclude above), so there it would show Next's error screen.
+  // Shoppers offline get the browser's own offline page instead.
+  // `false` (not undefined) is the only value that stops next-pwa from picking
+  // up app/~offline by itself; its typings don't list it, hence the cast.
+  fallbacks: isCustomerBuild
+    ? (false as unknown as { document?: string })
+    : { document: "/~offline" },
 });
 
 const nextConfig: NextConfig = {
+  // Default ".next". A separate dir lets a local production build / perf check
+  // or the e2e dev server run next to `pnpm dev` without sharing its cache.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Dev runs on Turbopack, which ignores next-pwa's webpack hook (PWA is off
   // in dev anyway). Declaring it silences the "Webpack is configured" warning;
   // it needs a real value (an empty object doesn't count), so pin the root
@@ -90,7 +111,22 @@ const nextConfig: NextConfig = {
   // Server-only: the daily owner-report email (Chromium prints its PDF).
   serverExternalPackages: ["firebase-admin", "puppeteer-core", "@sparticuz/chromium-min", "nodemailer"],
   transpilePackages: ["@bravobites/domain"],
+  webpack(config) {
+    // The domain package is plain functions and constants, but its barrel
+    // (src/index.ts) has no "sideEffects" flag, so every page bundled all of
+    // it — inventory and shop-day code on the public website. Flagged here,
+    // a page only gets the modules it imports from.
+    config.module.rules.push({
+      test: /[\\/]packages[\\/]domain[\\/]src[\\/][^\\/]+\.ts$/,
+      sideEffects: false,
+    });
+    return config;
+  },
   images: {
+    formats: ["image/avif", "image/webp"],
+    // Every `quality` used with next/image (75 = the default when none is
+    // given). Production refuses any other value with a 400.
+    qualities: [60, 70, 75, 80, 82, 84, 85, 90],
     remotePatterns: [
       {
         protocol: "https",

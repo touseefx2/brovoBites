@@ -99,7 +99,7 @@ export function BranchForm({
       mode === "edit" ? form.id : slugify(form.name) || `branch-${Date.now()}`;
 
     const result = await runAction(
-      (_ctx) =>
+      () =>
         upsertBranch({
           id,
           name: form.name.trim(),
@@ -128,13 +128,14 @@ export function BranchForm({
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+        <div className="min-w-0">
+          <p className="admin-page-eyebrow">
             {mode === "edit" ? t("editingBranch") : t("addNewBranch")}
           </p>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">
+          <h1 className="admin-page-title break-words">
             {mode === "edit" ? form.name || t("editBranch") : t("addBranch")}
           </h1>
+          {mode === "create" ? <p className="admin-page-sub">{t("newShopHint")}</p> : null}
         </div>
         <Link href="/admin/branches" className="btn btn-ghost btn-sm">
           {t("backToBranches")}
@@ -174,11 +175,9 @@ export function BranchForm({
           />
         </label>
 
-        <div className="md:col-span-2 rounded-xl border border-dashed border-[var(--border)] bg-[#faf7f2] p-3">
+        <div className="md:col-span-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bb-cream-100)] p-3">
           <p className="mb-2 text-sm font-semibold text-[var(--ink)]">{t("location")}</p>
-          <p className="mb-3 text-xs text-[var(--muted)]" dir="ltr">
-            {t("latLongHint")}
-          </p>
+          <p className="mb-3 text-xs text-[var(--muted)]">{t("latLongHint")}</p>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--muted)]">
               {t("latitude")}
@@ -218,11 +217,11 @@ export function BranchForm({
           )}
         </div>
 
-        <div className="md:col-span-2 flex flex-wrap gap-2">
+        <div className="md:col-span-2 flex flex-wrap items-center gap-2 pt-1">
           <button className="btn" type="submit" disabled={actionBusy}>
             {actionBusy ? t("saving") : mode === "edit" ? t("saveBranch") : t("addBranch")}
           </button>
-          <Link href="/admin/branches" className="btn btn-ghost btn-sm self-center">
+          <Link href="/admin/branches" className="btn btn-ghost">
             {t("cancel")}
           </Link>
         </div>

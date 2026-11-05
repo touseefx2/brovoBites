@@ -1,13 +1,13 @@
-# Deployment Guide — Bravo Bites: Dev vs Live (safe)
+# Deployment Guide — Brovo Bites: Dev vs Live (safe)
 
 Git push **does not** deploy. You choose **dev** or **live** with `pnpm ship:*` / `pnpm deploy:*`.
 
-Bravo Bites has its **own** Firebase projects, Vercel account(s) and ImageKit account(s). Nothing here is shared with any other shop or project.
+Brovo Bites has its **own** Firebase projects, Vercel account(s) and ImageKit account(s). Nothing here is shared with any other shop or project.
 
 | World | Firebase project | ImageKit | Vercel | Local env file |
 |---|---|---|---|---|
-| **DEV** | `bravobites-dev` | Bravo Bites DEV ImageKit keys | Bravo Bites DEV Vercel account (2 projects) | `.env.development.local` (+ `.env.local`) |
-| **LIVE** | `bravobites-live` | Bravo Bites LIVE ImageKit keys | Bravo Bites LIVE Vercel account (2 projects) | `.env.production.local` |
+| **DEV** | `brovodev` | Brovo Bites DEV ImageKit keys | Brovo Bites DEV Vercel account (2 projects) | `.env.development.local` (+ `.env.local`) |
+| **LIVE** | `borovo-ffc56` | Brovo Bites LIVE ImageKit keys | Brovo Bites LIVE Vercel account (2 projects) | `.env.production.local` |
 
 **Firebase project ids:** a fresh clone ships with placeholder ids (they live in `.firebaserc`, the deploy scripts, the safety guards in `apps/web/scripts` and these docs). After you create the two Firebase projects, set the real ids once:
 
@@ -15,13 +15,13 @@ Bravo Bites has its **own** Firebase projects, Vercel account(s) and ImageKit ac
 bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>
 ```
 
-DEV id **must** end in `-dev`; LIVE id must not. The script refuses the same id for both.
+DEV id **must** end in `dev` (e.g. `brovodev`); LIVE id must not. The script refuses the same id for both.
 
 **Rule:** never put live Firebase keys in `.env.local` / `.env.development.local`. Local `pnpm dev` must always hit **dev**.
 
 ---
 
-## One-time setup (Bravo Bites' own accounts)
+## One-time setup (Brovo Bites' own accounts)
 
 ### 1) Firebase — 2 projects (DEV + LIVE)
 
@@ -29,7 +29,7 @@ DEV id **must** end in `-dev`; LIVE id must not. The script refuses the same id 
 
 | | DEV | LIVE |
 |---|---|---|
-| Project id (example) | `bravobites-dev` | `bravobites-live` |
+| Project id (example) | `brovodev` | `borovo-ffc56` |
 | Use | tests, seed, safe mistakes | real shop, real orders/money |
 
 In **each** project:
@@ -45,7 +45,7 @@ If Firebase gave other ids than the placeholders, run `scripts/set-firebase-ids.
 
 ### 2) ImageKit — menu images (free)
 
-[imagekit.io](https://imagekit.io) → sign up with the Bravo Bites account → **Developer options**:
+[imagekit.io](https://imagekit.io) → sign up with the Brovo Bites account → **Developer options**:
 
 | ImageKit value | Env variable |
 |---|---|
@@ -57,7 +57,7 @@ Best: one ImageKit account for DEV and a separate one for LIVE (like Firebase). 
 
 ### 3) Vercel — create 2 projects per world
 
-Bravo Bites LIVE Vercel account is required. DEV can be a second Bravo Bites Vercel account, or the **same** account with 2 more projects (then the same token + org id go in both the DEV and LIVE slots of `deploy/targets.local.env`).
+Brovo Bites LIVE Vercel account is required. DEV can be a second Brovo Bites Vercel account, or the **same** account with 2 more projects (then the same token + org id go in both the DEV and LIVE slots of `deploy/targets.local.env`).
 
 Settings for every project:
 
@@ -74,12 +74,12 @@ Suggested names:
 
 | | DEV | LIVE |
 |---|---|---|
-| Staff/admin POS | `bravobites-pos-dev` | `bravobites-pos` |
-| Customer menu (landing only) | `bravobites-menu-dev` | `bravobites-menu` |
+| Staff/admin POS | `brovobites-pos-dev` | `brovobites-pos` |
+| Customer menu (landing only) | `brovobites-menu-dev` | `brovobites-menu` |
 
 Do not name a Vercel project exactly like a Firebase project id — `scripts/set-firebase-ids.sh` would rewrite that name in the docs too.
 
-Import the Bravo Bites GitHub repo (or deploy from CLI only — CLI works without a Git link).
+Import the Brovo Bites GitHub repo (or deploy from CLI only — CLI works without a Git link).
 
 ### 4) Paste env vars into each Vercel project
 
@@ -106,7 +106,7 @@ Update `NEXT_PUBLIC_APP_URL` in `.env.production.local` once you know the live U
 cp deploy/targets.example.env deploy/targets.local.env
 ```
 
-For **each** Bravo Bites Vercel account (DEV + LIVE):
+For **each** Brovo Bites Vercel account (DEV + LIVE):
 
 1. [Create token](https://vercel.com/account/tokens) → paste into `DEV_VERCEL_TOKEN` / `LIVE_VERCEL_TOKEN` (or use `scripts/save-vercel-token.sh`, below)
 2. Project → Settings → General → **Project ID**
@@ -119,28 +119,28 @@ DEV_VERCEL_TOKEN=...
 DEV_VERCEL_ORG_ID=team_xxx
 DEV_VERCEL_PROJECT_ID_ADMIN=prj_dev_admin
 DEV_VERCEL_PROJECT_ID_CUSTOMER=prj_dev_menu
-DEV_FIREBASE_PROJECT=bravobites-dev
+DEV_FIREBASE_PROJECT=brovodev
 
 LIVE_VERCEL_TOKEN=...
 LIVE_VERCEL_ORG_ID=team_yyy
 LIVE_VERCEL_PROJECT_ID_ADMIN=prj_live_admin
 LIVE_VERCEL_PROJECT_ID_CUSTOMER=prj_live_menu
-LIVE_FIREBASE_PROJECT=bravobites-live
+LIVE_FIREBASE_PROJECT=borovo-ffc56
 ```
 
 Two tokens = no logout dance between accounts.
 
 ### 6) Firebase Auth authorized domains (both projects)
 
-Firebase Console → `bravobites-dev` → Authentication → Settings → Authorized domains → add both DEV `*.vercel.app` hosts.  
-Firebase Console → `bravobites-live` → same → add both LIVE `*.vercel.app` hosts (+ custom domain later).
+Firebase Console → `brovodev` → Authentication → Settings → Authorized domains → add both DEV `*.vercel.app` hosts.  
+Firebase Console → `borovo-ffc56` → same → add both LIVE `*.vercel.app` hosts (+ custom domain later).
 
 ### 7) Deploy Firestore rules + indexes to the right project
 
 ```bash
-npx firebase-tools login                     # Google account that owns the Bravo Bites Firebase projects
-npx firebase-tools deploy --only firestore:rules,firestore:indexes --project dev    # bravobites-dev
-npx firebase-tools deploy --only firestore:rules,firestore:indexes --project live   # bravobites-live
+npx firebase-tools login                     # Google account that owns the Brovo Bites Firebase projects
+npx firebase-tools deploy --only firestore:rules,firestore:indexes --project dev    # brovodev
+npx firebase-tools deploy --only firestore:rules,firestore:indexes --project live   # borovo-ffc56
 ```
 
 Aliases `dev` / `live` come from `.firebaserc` (default = dev). `pnpm ship:dev` / `pnpm ship:live` do this for you.
@@ -169,7 +169,7 @@ project:
 
 Gmail app password: sign in to that Gmail → [myaccount.google.com/security](https://myaccount.google.com/security) →
 turn on **2-Step Verification** → [App passwords](https://myaccount.google.com/apppasswords) → create one
-(name it "Bravo Bites POS") → copy the 16 letters into `SMTP_PASS` (Secret).
+(name it "Brovo Bites POS") → copy the 16 letters into `SMTP_PASS` (Secret).
 
 Also check **Settings → Build and Deployment → Node.js Version = 22.x or 24.x**
 (the server PDF needs Node 22+), and **Settings → Functions → Fluid Compute = On**
@@ -230,10 +230,10 @@ CONFIRM_LIVE=1 pnpm deploy:live:customer
 ### Save tokens (one-time per account)
 
 ```bash
-vercel login --future -Q .tools/vercel-dev-auth     # Bravo Bites DEV Vercel account
+vercel login --future -Q .tools/vercel-dev-auth     # Brovo Bites DEV Vercel account
 bash scripts/save-vercel-token.sh dev  .tools/vercel-dev-auth
 
-vercel login --future -Q .tools/vercel-live-auth    # Bravo Bites LIVE Vercel account
+vercel login --future -Q .tools/vercel-live-auth    # Brovo Bites LIVE Vercel account
 bash scripts/save-vercel-token.sh live .tools/vercel-live-auth
 ```
 
@@ -246,8 +246,8 @@ The auth folder is required: the script never reads the machine-wide `vercel log
 Tokens land in `deploy/targets.local.env` (gitignored). After that, deploy never needs logout/login.
 
 Vercel project **env vars** stay on the dashboard (deploy does not upload them):
-- DEV projects → Firebase `bravobites-dev` + DEV ImageKit (from `.env.development.local`)
-- LIVE projects → Firebase `bravobites-live` + LIVE ImageKit (from `.env.production.local`)
+- DEV projects → Firebase `brovodev` + DEV ImageKit (from `.env.development.local`)
+- LIVE projects → Firebase `borovo-ffc56` + LIVE ImageKit (from `.env.production.local`)
 
 Non-interactive live (CI / agent):
 
@@ -266,14 +266,14 @@ SEED_ENV=production pnpm create-owner -- \
   --email='YOUR_REAL_EMAIL@example.com' \
   --password='ChooseAStrongPassword' \
   --name='Owner' \
-  --confirm=bravobites-live \
+  --confirm=borovo-ffc56 \
   --primary
 ```
 
 What it does:
 1. Loads **only** `apps/web/.env.production.local`
-2. Prints Firebase project id — must be `bravobites-live`
-3. Refuses without `--confirm=bravobites-live`
+2. Prints Firebase project id — must be `borovo-ffc56`
+3. Refuses without `--confirm=borovo-ffc56`
 4. Creates/updates Auth user + `users/{uid}` with `role: owner` + `isPrimaryOwner`
 
 Then copy printed `PRIMARY_OWNER_UID=...` into Vercel + `.env.production.local` and redeploy live.
@@ -288,7 +288,7 @@ pnpm create-owner -- \
   --primary
 ```
 
-Uses `.env.development.local` → `bravobites-dev`.
+Uses `.env.development.local` → `brovodev`.
 
 ---
 
@@ -297,12 +297,12 @@ Uses `.env.development.local` → `bravobites-dev`.
 | Command | DB |
 |---|---|
 | `pnpm seed -- ...` | **DEV** only |
-| `SEED_ENV=production pnpm seed -- ... --confirm=bravobites-live` | **LIVE** (menu + branch) |
+| `SEED_ENV=production pnpm seed -- ... --confirm=borovo-ffc56` | **LIVE** (menu + branch) |
 
-Production seed **requires** `--confirm=bravobites-live`.  
+Production seed **requires** `--confirm=borovo-ffc56`.  
 If live already has real menu/orders, **do not** re-seed — it can duplicate categories/products.
 
-The seed menu is only a starter menu — Bravo Bites' real menu is not in the code yet. Don't seed LIVE until it is (or add the menu by hand on the LIVE admin).
+The seed menu is only a starter menu — Brovo Bites' real menu is not in the code yet. Don't seed LIVE until it is (or add the menu by hand on the LIVE admin).
 
 Owner-only → always prefer `pnpm create-owner`.
 
@@ -312,7 +312,7 @@ Owner-only → always prefer `pnpm create-owner`.
 
 `apps/web/src/middleware.ts` uses `CUSTOMER_HOSTS` in `apps/web/src/lib/customer-mode.ts` **or** `NEXT_PUBLIC_CUSTOMER_MODE=true` on the customer Vercel project (preferred).
 
-`CUSTOMER_HOSTS` ships with placeholder hosts (`bravobites-customer.vercel.app`, `menu.your-domain.com`). When you create the live menu URL, either:
+`CUSTOMER_HOSTS` ships with placeholder hosts (`brovobites-customer.vercel.app`, `menu.your-domain.com`). When you create the live menu URL, either:
 - set `NEXT_PUBLIC_CUSTOMER_MODE=true` on that Vercel project, **or**
 - put the real hostname in `CUSTOMER_HOSTS` and redeploy.
 
@@ -320,11 +320,11 @@ Owner-only → always prefer `pnpm create-owner`.
 
 ## Sanity checklist before any LIVE write
 
-1. Banner / script prints `bravobites-live` (not `bravobites-dev`)  
+1. Banner / script prints `borovo-ffc56` (not `brovodev`)  
 2. `SEED_ENV=production` only when you mean live  
-3. Vercel project env shows live `NEXT_PUBLIC_FIREBASE_PROJECT_ID=bravobites-live`  
-4. You typed `LIVE` / `--confirm=bravobites-live`  
-5. Deploy banner shows the Bravo Bites LIVE Vercel Org + Project  
+3. Vercel project env shows live `NEXT_PUBLIC_FIREBASE_PROJECT_ID=borovo-ffc56`  
+4. You typed `LIVE` / `--confirm=borovo-ffc56`  
+5. Deploy banner shows the Brovo Bites LIVE Vercel Org + Project  
 
 ---
 
@@ -335,15 +335,15 @@ Owner-only → always prefer `pnpm create-owner`.
 - Script prints Org + Project before deploy — verify them  
 
 ### create-owner / seed says LIVE blocked
-- You forgot `--confirm=bravobites-live`  
+- You forgot `--confirm=borovo-ffc56`  
 - Or `SEED_ENV` unset (defaults to development)  
 
 ### Firebase says project not found
 - Project ids are still the placeholders → run `bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>`  
-- Or `firebase-tools login` is on a Google account that does not own the Bravo Bites projects  
+- Or `firebase-tools login` is on a Google account that does not own the Brovo Bites projects  
 
 ### Login fails on live site
-- Auth user exists in **bravobites-live** (not dev)  
+- Auth user exists in **borovo-ffc56** (not dev)  
 - `users/{uid}` doc exists with `role: owner`, `isActive: true`  
 - Authorized domains include the Vercel host  
 

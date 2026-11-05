@@ -8,7 +8,7 @@
  *
  * LIVE (writes menu to production — dangerous if already live):
  *   SEED_ENV=production pnpm seed -- \
- *     --ownerUid=<UID> --ownerEmail=... --ownerName=... --confirm=bravobites-live
+ *     --ownerUid=<UID> --ownerEmail=... --ownerName=... --confirm=borovo-ffc56
  */
 import { config } from "dotenv";
 import { resolve } from "path";
@@ -18,9 +18,10 @@ import { assertShopFirebaseProject } from "../src/lib/firebase/allowed-projects"
 import { DEFAULT_SETTINGS } from "@bravobites/domain";
 import {
   SEED_BRANCH,
-  SEED_CATEGORIES,
-  SEED_PRODUCTS,
+  SEED_CATEGORIES as SHOP_CATEGORIES,
+  SEED_PRODUCTS as SHOP_PRODUCTS,
 } from "../src/lib/seed-data";
+import { E2E_SEED_CATEGORIES, E2E_SEED_PRODUCTS } from "./fixtures/e2e-menu";
 
 const webRoot = resolve(__dirname, "..");
 const seedEnv =
@@ -41,10 +42,15 @@ function privateKey() {
 
 async function main() {
   const projectId = String(process.env.FIREBASE_ADMIN_PROJECT_ID || "").trim();
+  // Local emulator (e2e tests) gets the fixed test menu; DEV / LIVE get the real Brovo Bites menu.
+  const isEmulator = /^demo-/.test(projectId);
+  const SEED_CATEGORIES = isEmulator ? E2E_SEED_CATEGORIES : SHOP_CATEGORIES;
+  const SEED_PRODUCTS = isEmulator ? E2E_SEED_PRODUCTS : SHOP_PRODUCTS;
   const line = "=".repeat(60);
   console.log(line);
   console.log(`  SEED MENU+BRANCH  |  .env.${seedEnv}.local`);
   console.log(`  Firebase project: ${projectId || "(MISSING)"}`);
+  console.log(`  Menu: ${isEmulator ? "e2e test fixture (emulator)" : "Brovo Bites shop menu"}`);
   console.log(line);
 
   if (!projectId) {
@@ -62,9 +68,9 @@ async function main() {
         ].join("\n"),
       );
     }
-  } else if (!/-dev$|^demo-/.test(projectId)) {
+  } else if (!/dev$|^demo-/.test(projectId)) {
     throw new Error(
-      `SEED_ENV=development but project "${projectId}" is not a DEV (-dev) project. Fix .env.development.local.`,
+      `SEED_ENV=development but project "${projectId}" is not a DEV (…dev) project. Fix .env.development.local.`,
     );
   }
 

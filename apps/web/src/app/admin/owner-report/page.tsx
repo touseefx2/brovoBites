@@ -289,8 +289,8 @@ export default function OwnerReportPage() {
     <div className="mx-auto w-full max-w-6xl">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-2 sm:mb-5">
         <div>
-          <h1 className="text-xl font-bold sm:text-2xl">{t("ownerReport")}</h1>
-          <p className="text-sm text-[var(--muted)]">{t("ownerReportHint")}</p>
+          <h1 className="admin-page-title">{t("ownerReport")}</h1>
+          <p className="admin-page-sub">{t("ownerReportHint")}</p>
         </div>
         {report ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
@@ -383,7 +383,7 @@ export default function OwnerReportPage() {
           />
         ) : bigPeriod ? (
           <section
-            className="rounded-2xl border border-[#e8dfcf] bg-white p-5 shadow-sm"
+            className="rounded-2xl border border-[#e7d0b8] bg-white p-5 shadow-sm"
             data-testid="owner-big-period"
           >
             <h2 className="text-lg font-bold text-[var(--ink)]">

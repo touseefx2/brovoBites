@@ -24,7 +24,7 @@ function order(id: string, dayKey: string, total: number, status: "completed" | 
     {
       clientId: id,
       branchId: "main",
-      branchName: "Bravo Bites — Main",
+      branchName: "Brovo Bites — Main",
       orderNumber: 9_000_000 + Math.floor(Math.random() * 900_000),
       orderType: "takeaway",
       customerName: id,

@@ -12,10 +12,7 @@
     "create-owner": "tsx scripts/create-owner.ts",
     "copy-menu": "tsx scripts/copy-menu-dev-to-live.ts",
     "seed:e2e": "tsx scripts/seed-e2e.ts",
-    "backfill-images": "tsx scripts/backfill-images.ts",
-    "set-menu-images": "tsx scripts/set-menu-images.ts",
-    "add-roti-naan": "tsx scripts/add-roti-naan.ts",
-    "upsert-soft-drink": "tsx scripts/upsert-soft-drink.ts"
+    "backfill-images": "tsx scripts/backfill-images.ts"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

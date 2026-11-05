@@ -1,8 +1,8 @@
-# Bravo Bites POS System
+# Brovo Bites POS System
 
-Production **Point of Sale + Admin** system for **Bravo Bites**, a multi-branch restaurant.
+Production **Point of Sale + Admin** system for **Brovo Bites**, a multi-branch restaurant.
 
-> **Firebase project ids:** `bravobites-dev` (DEV) and `bravobites-live` (LIVE) used throughout this repo are placeholders.
+> **Firebase project ids:** `brovodev` (DEV) and `borovo-ffc56` (LIVE) used throughout this repo are placeholders.
 > Once your Firebase projects exist, run `bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>` to swap them in.
 
 ## Tech Stack
@@ -219,7 +219,7 @@ pnpm install
 
 # Create the env files (never committed):
 #   apps/web/.env.development.local  (+ the same values in apps/web/.env.local)
-# Fill them with your bravobites-dev Firebase + ImageKit keys (see docs/ENV-SETUP.md)
+# Fill them with your brovodev Firebase + ImageKit keys (see docs/ENV-SETUP.md)
 
 pnpm --filter web dev
 # Open http://localhost:3001
@@ -227,7 +227,7 @@ pnpm --filter web dev
 
 ### First-time setup (DEV)
 ```bash
-# Safest: create Auth + owner profile in bravobites-dev
+# Safest: create Auth + owner profile in brovodev
 pnpm create-owner -- --email=you@email.com --password='DevPass123' --name=Owner --primary
 # Login at localhost:3001/login
 
@@ -239,7 +239,7 @@ pnpm seed -- --ownerUid=PASTE_UID --ownerEmail=you@email.com --ownerName=Owner
 ```bash
 SEED_ENV=production pnpm create-owner -- \
   --email=you@email.com --password='StrongPass' --name=Owner \
-  --confirm=bravobites-live --primary
+  --confirm=borovo-ffc56 --primary
 ```
 See [DEPLOYMENT.md](DEPLOYMENT.md).
 

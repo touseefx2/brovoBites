@@ -14,9 +14,18 @@ node_modules
 .pnpm-store
 .next
 apps/web/.next
+apps/web/.next-*
 .turbo
 apps/web/.turbo
 apps/e2e/test-results
 apps/e2e/playwright-report
+apps/e2e/.email-outbox
 .git
 .tools
+
+# Local secrets — never upload. Vercel project env vars are the source of truth.
+.env*.local
+**/.env*.local
+deploy/targets.local.env
+*-firebase-adminsdk-*.json
+firestore-debug.log

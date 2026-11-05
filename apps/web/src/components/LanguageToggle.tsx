@@ -117,7 +117,7 @@ export function LanguageToggle({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`lang-toggle-btn inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-3 text-sm font-medium leading-none text-[var(--ink)] shadow-sm transition hover:border-[var(--gold)] hover:bg-[#faf7f2] ${
+        className={`lang-toggle-btn inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border-strong)] bg-white px-3 text-sm font-semibold leading-none text-[var(--ink)] shadow-sm transition hover:border-[var(--gold)] hover:bg-[#fff4e8] ${
           fullWidth ? "w-full" : ""
         }`}
         title={t("switchLang")}
@@ -140,7 +140,7 @@ export function LanguageToggle({
         <ul
           role="listbox"
           dir="ltr"
-          className={`absolute z-50 overflow-visible ${iconOnly ? "min-w-[9rem]" : "min-w-full"} rounded-xl border border-[var(--border)] bg-white p-1 shadow-[0_12px_40px_-12px_rgba(40,30,20,0.35)] ring-1 ring-black/5 ${
+          className={`absolute z-50 overflow-visible ${iconOnly ? "min-w-[9rem]" : "min-w-full"} rounded-xl border border-[var(--border)] bg-white p-1 shadow-[0_12px_40px_-12px_rgba(42,20,14,0.35)] ring-1 ring-black/5 ${
             menuPlacement === "up"
               ? "bottom-full start-0 mb-1.5"
               : "top-full start-0 mt-1.5"
@@ -154,10 +154,10 @@ export function LanguageToggle({
                   type="button"
                   role="option"
                   aria-selected={selected}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm transition ${
+                  className={`lang-toggle-option flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm transition ${
                     selected
                       ? "bg-[var(--gold)]/20 font-semibold text-[var(--gold-deep)]"
-                      : "font-medium text-[var(--ink)] hover:bg-[#faf7f2]"
+                      : "font-medium text-[var(--ink)] hover:bg-[#fff4e8]"
                   }`}
                   onClick={() => pick(opt.id)}
                 >

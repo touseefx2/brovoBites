@@ -11,6 +11,7 @@ import { getImageUploadProvider, uploadProductImage, deleteUploadedImage } from 
 import { mapFirebaseError } from "@/lib/errors";
 import { useAction } from "@/components/ActionProvider";
 import { ImageUploadField } from "@/components/ImageUpload";
+import { isBundledPlaceholder } from "@/lib/menu-images";
 
 function newId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -168,7 +169,7 @@ export function ProductForm({
     }
 
     const result = await runAction(
-      async (_ctx) => {
+      async () => {
         const oldImageUrl = initial.imageUrl;
         let imageUrl = form.imageUrl;
         if (pendingImage) {
@@ -233,11 +234,11 @@ export function ProductForm({
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+        <div className="min-w-0">
+          <p className="admin-page-eyebrow">
             {mode === "edit" ? t("editProduct") : t("addMenuItem")}
           </p>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">
+          <h1 className="admin-page-title break-words">
             {mode === "edit" ? form.name || t("editProduct") : t("addProduct")}
           </h1>
         </div>
@@ -302,7 +303,7 @@ export function ProductForm({
           <ImageUploadField
             label={t("productImage")}
             hint={t("productImageHint")}
-            remoteUrl={form.imageUrl}
+            remoteUrl={isBundledPlaceholder(form.imageUrl) ? "" : form.imageUrl}
             pendingFile={pendingImage}
             disabled={actionBusy}
             onPendingFile={setPendingImage}
@@ -348,7 +349,7 @@ export function ProductForm({
           ) : null}
 
           {form.type === "sized" ? (
-            <div className="md:col-span-2 space-y-2 rounded-xl border border-dashed border-[var(--border)] bg-[#faf7f2] p-3">
+            <div className="md:col-span-2 space-y-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bb-cream-100)] p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-[var(--ink)]">{t("variations")}</p>
                 <button
@@ -401,6 +402,7 @@ export function ProductForm({
                         variations: f.variations.filter((_, i) => i !== idx),
                       }))
                     }
+                    aria-label={t("remove")}
                   >
                     ×
                   </button>
@@ -410,15 +412,15 @@ export function ProductForm({
           ) : null}
 
           {form.type === "bundle" ? (
-            <div className="md:col-span-2 space-y-2 rounded-xl border border-dashed border-[var(--border)] bg-[#faf7f2] p-3">
+            <div className="md:col-span-2 space-y-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bb-cream-100)] p-3">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-[var(--ink)]">{t("dealContents")}</p>
-                  <p className="text-[11px] text-[var(--muted)]">{t("dealContentsHint")}</p>
+                  <p className="text-xs text-[var(--muted)]">{t("dealContentsHint")}</p>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm min-h-11 shrink-0 sm:min-h-0"
+                  className="btn btn-ghost btn-sm shrink-0"
                   onClick={() =>
                     setForm((f) => ({
                       ...f,
@@ -474,13 +476,14 @@ export function ProductForm({
                   />
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm min-h-11 sm:min-h-0"
+                    className="btn btn-ghost btn-sm"
                     onClick={() =>
                       setForm((f) => ({
                         ...f,
                         dealItems: f.dealItems.filter((_, i) => i !== idx),
                       }))
                     }
+                    aria-label={t("remove")}
                   >
                     ×
                   </button>
@@ -489,11 +492,11 @@ export function ProductForm({
             </div>
           ) : null}
 
-          <div className="md:col-span-2 flex flex-wrap gap-2 pt-1">
+          <div className="md:col-span-2 flex flex-wrap items-center gap-2 pt-1">
             <button className="btn" type="submit" disabled={actionBusy}>
               {actionBusy ? t("saving") : t("save")}
             </button>
-            <Link href={menuHref} className="btn btn-ghost btn-sm self-center">
+            <Link href={menuHref} className="btn btn-ghost">
               {t("cancel")}
             </Link>
           </div>

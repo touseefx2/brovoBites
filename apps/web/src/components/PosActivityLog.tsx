@@ -45,7 +45,7 @@ export function PosLogsLink({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-white px-3.5 py-2.5 text-start transition hover:border-[var(--gold)]/40 hover:bg-[#faf8f5] ${className}`}
+      className={`pos-logs-link flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 text-start transition ${className}`}
     >
       <span className="min-w-0">
         <span className="block text-sm font-bold text-[var(--ink)]">
@@ -60,7 +60,7 @@ export function PosLogsLink({
         </span>
       </span>
       <span
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[#f3eee6] text-[var(--gold-deep)] ring-1 ring-[rgba(184,134,11,0.2)]"
+        className="pos-logs-icon inline-flex size-8 shrink-0 items-center justify-center rounded-full"
         aria-hidden
       >
         <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -221,7 +221,7 @@ export function PosActivityLog({
   ];
 
   const selectClass =
-    "h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-xs font-semibold text-stone-700 outline-none transition focus:border-[var(--gold)]";
+    "h-9 rounded-xl border border-[var(--border)] bg-white px-3 text-xs font-semibold text-stone-700 outline-none transition focus:border-[var(--gold)] pointer-coarse:h-11 pointer-coarse:text-base";
 
   return (
     <div
@@ -237,21 +237,21 @@ export function PosActivityLog({
         onClick={onClose}
       />
       <div
-        className="relative z-10 flex h-full w-full max-w-[1280px] flex-col overflow-hidden bg-[#f4f0e8] shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:rounded-3xl"
+        className="pos-sheet-body relative z-10 flex h-full w-full max-w-[1280px] flex-col overflow-hidden shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:rounded-3xl"
         style={locale === "ur" ? undefined : NUM}
       >
         <header className="shrink-0">
-          <div className="relative overflow-hidden bg-gradient-to-br from-[#1c1714] via-[#241c16] to-[#2e2318] px-5 pb-5 pt-5 text-white sm:px-8">
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#1f100b] via-[#28140d] to-[#33190f] px-5 pb-5 pt-5 text-white sm:px-8">
             <div
-              className="pointer-events-none absolute -end-20 -top-24 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(212,168,67,0.25),transparent_65%)]"
+              className="pointer-events-none absolute -end-20 -top-24 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(240,176,40,0.25),transparent_65%)]"
               aria-hidden
             />
             <div className="relative flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#d4a843]">
+                <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#f0b028]">
                   {t("activityLog")}
                 </p>
-                <h2 className="mt-1 text-2xl font-bold tracking-tight">
+                <h2 className="pos-dialog-title mt-1 text-[1.625rem]">
                   {entityType === "order" ? t("posLogsTitleOrder") : entityType === "inventory" ? t("posLogsTitleInventory") : t("posLogsTitleExpense")}
                 </h2>
                 <p className="mt-1 truncate text-xs text-white/60">
@@ -261,7 +261,7 @@ export function PosActivityLog({
               </div>
               <button
                 type="button"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/10 transition hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a843]"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/10 transition hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0b028] pointer-coarse:size-11"
                 onClick={onClose}
                 aria-label={t("close")}
                 title={t("close")}
@@ -272,7 +272,7 @@ export function PosActivityLog({
               </button>
             </div>
           </div>
-          <div className="border-b border-[#e8dfcf] bg-white px-5 pb-3 pt-1 sm:px-8">
+          <div className="border-b border-[#e7d0b8] bg-white px-5 pb-3 pt-1 sm:px-8">
 
           {/* Date */}
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -282,7 +282,7 @@ export function PosActivityLog({
                 type="button"
                 onClick={() => setPreset(p.id)}
                 aria-pressed={preset === p.id}
-                className={`h-8 rounded-full border px-3 text-xs font-semibold transition ${
+                className={`h-8 rounded-full border px-3 text-xs font-semibold transition pointer-coarse:h-11 ${
                   preset === p.id
                     ? "border-[var(--ink)] bg-[var(--ink)] text-white"
                     : "border-[var(--border)] bg-white text-stone-600 hover:border-stone-300 hover:text-[var(--ink)]"
@@ -303,7 +303,7 @@ export function PosActivityLog({
                 }
               }}
               onClick={(e) => openDatePicker(e.currentTarget)}
-              className={`h-8 rounded-full border bg-white px-3 text-xs font-semibold outline-none transition focus:border-[var(--gold)] ${
+              className={`h-8 rounded-full border bg-white px-3 text-xs font-semibold outline-none transition focus:border-[var(--gold)] pointer-coarse:h-11 pointer-coarse:text-base ${
                 preset === "custom" ? "border-[var(--ink)] text-[var(--ink)]" : "border-[var(--border)] text-stone-600"
               }`}
               style={NUM}
@@ -354,7 +354,7 @@ export function PosActivityLog({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("searchActivity")}
-                className="h-9 w-full rounded-xl border border-[var(--border)] bg-white ps-8 pe-3 text-xs text-[var(--ink)] outline-none transition placeholder:text-stone-400 focus:border-[var(--gold)]"
+                className="h-9 w-full rounded-xl border border-[var(--border)] bg-white ps-8 pe-3 text-xs text-[var(--ink)] outline-none transition placeholder:text-stone-400 focus:border-[var(--gold)] pointer-coarse:h-11 pointer-coarse:text-base"
                 autoComplete="off"
               />
             </label>
@@ -405,7 +405,7 @@ export function PosActivityLog({
             </p>
           ) : null}
 
-          <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(28,25,23,0.04)]">
+          <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(42,20,14,0.04)]">
             <ActivityLogList logs={filtered} entityType={entityType} pendingIds={pendingIds} />
           </section>
         </div>

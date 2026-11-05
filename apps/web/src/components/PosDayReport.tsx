@@ -164,7 +164,7 @@ function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition ${
+      className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition pointer-coarse:h-11 ${
         active
           ? "border-[var(--ink)] bg-[var(--ink)] text-white"
           : "border-[var(--border)] bg-white text-stone-600 hover:border-stone-300 hover:text-[var(--ink)]"
@@ -200,7 +200,7 @@ function Segmented<T extends string | number>({
           type="button"
           onClick={() => onChange(o.id)}
           aria-pressed={value === o.id}
-          className={`rounded-lg px-3 py-1.5 transition ${
+          className={`rounded-lg px-3 py-1.5 transition pointer-coarse:min-h-11 ${
             value === o.id ? "bg-white text-[var(--ink)] shadow-sm" : "text-stone-600 hover:text-stone-800"
           }`}
         >
@@ -212,7 +212,7 @@ function Segmented<T extends string | number>({
 }
 
 const CARD =
-  "rounded-2xl border border-[#e8dfcf] bg-white shadow-[0_1px_2px_rgba(28,25,23,0.04),0_12px_28px_-18px_rgba(28,25,23,0.25)]";
+  "rounded-2xl border border-[#e7d0b8] bg-white shadow-[0_1px_2px_rgba(42,20,14,0.04),0_12px_28px_-18px_rgba(42,20,14,0.25)]";
 
 function Card({
   title,
@@ -230,10 +230,10 @@ function Card({
   return (
     <section className={`${CARD} ${className}`}>
       {title ? (
-        <div className="flex items-center justify-between gap-3 border-b border-[#f0e9dc] px-5 py-3.5">
+        <div className="flex items-center justify-between gap-3 border-b border-[#f0dcc6] px-5 py-3.5">
           <h3 className="flex items-center gap-2.5 text-[15px] font-bold text-[var(--ink)]">
             {icon ? (
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f6efe0] text-[var(--gold-deep)]">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#fdeccb] text-[var(--gold-deep)]">
                 {icon}
               </span>
             ) : null}
@@ -301,7 +301,7 @@ function ItemThumb({ src, name, size = 40 }: { src?: string; name: string; size?
     />
   ) : (
     <span
-      className="flex shrink-0 items-center justify-center rounded-xl bg-[#f6efe0] text-sm font-bold text-[var(--gold-deep)]"
+      className="flex shrink-0 items-center justify-center rounded-xl bg-[#fdeccb] text-sm font-bold text-[var(--gold-deep)]"
       style={{ width: size, height: size }}
       aria-hidden
     >
@@ -314,7 +314,7 @@ function ItemThumb({ src, name, size = 40 }: { src?: string; name: string; size?
 function Rank({ n }: { n: number }) {
   const medal =
     n === 1
-      ? "bg-gradient-to-b from-[#f3d27a] to-[#c9a227] text-[#3d2c06] shadow-[0_2px_6px_-2px_rgba(201,162,39,0.8)]"
+      ? "bg-gradient-to-b from-[#f5c650] to-[#e0a21f] text-[#3d2306] shadow-[0_2px_6px_-2px_rgba(224,162,31,0.8)]"
       : n === 2
         ? "bg-gradient-to-b from-[#eef0f2] to-[#b9bfc6] text-[#2f3438]"
         : n === 3
@@ -334,8 +334,8 @@ function Rank({ n }: { n: number }) {
 function Bar({ ratio }: { ratio: number }) {
   const w = Math.max(0, Math.min(1, ratio)) * 100;
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#f3ecdf]" aria-hidden>
-      <div className="h-full rounded-full bg-gradient-to-r from-[#e4c15a] to-[#b8860b]" style={{ width: `${w}%` }} />
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#f2e0cc]" aria-hidden>
+      <div className="h-full rounded-full bg-gradient-to-r from-[#f0b028] to-[#c58a0e]" style={{ width: `${w}%` }} />
     </div>
   );
 }
@@ -400,12 +400,12 @@ function BridgeList({ lines }: { lines: BridgeLine[] }) {
           return (
             <div
               key={r.label}
-              className="relative mt-2 flex items-center justify-between gap-3 overflow-hidden rounded-xl bg-[#1c1917] px-4 py-3.5 text-white"
+              className="relative mt-2 flex items-center justify-between gap-3 overflow-hidden rounded-xl bg-[#2a140e] px-4 py-3.5 text-white"
             >
-              <span className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#b8860b] via-[#e4c15a] to-[#c9a227]" aria-hidden />
+              <span className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[#c58a0e] via-[#f0b028] to-[#e0a21f]" aria-hidden />
               <dt className="text-sm font-semibold">{r.label}</dt>
               <dd
-                className={`text-lg font-bold tracking-[-0.01em] ${r.value < 0 ? "text-red-300" : "text-[#f3d27a]"}`}
+                className={`text-lg font-bold tracking-[-0.01em] ${r.value < 0 ? "text-red-300" : "text-[#f5c650]"}`}
                 style={NUM}
                 dir="ltr"
               >
@@ -418,7 +418,7 @@ function BridgeList({ lines }: { lines: BridgeLine[] }) {
           return (
             <div
               key={r.label}
-              className="my-1.5 flex items-center justify-between gap-3 rounded-xl bg-[#fbf8f2] px-4 py-2.5 text-sm font-bold text-[var(--ink)] ring-1 ring-inset ring-[#f0e9dc]"
+              className="my-1.5 flex items-center justify-between gap-3 rounded-xl bg-[#fff6ea] px-4 py-2.5 text-sm font-bold text-[var(--ink)] ring-1 ring-inset ring-[#f0dcc6]"
             >
               <dt>{r.label}</dt>
               <dd className="tabular-nums" style={NUM} dir="ltr">{bridgeAmount(r)}</dd>
@@ -748,18 +748,18 @@ export function PosDayReport({
         onClick={onClose}
       />
       <div
-        className="relative z-10 flex h-full w-full max-w-[1680px] flex-col overflow-hidden bg-[#f4f0e8] shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:rounded-3xl"
+        className="pos-sheet-body relative z-10 flex h-full w-full max-w-[1680px] flex-col overflow-hidden shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:rounded-3xl"
         style={locale === "ur" ? undefined : NUM}
       >
         {/* Header — dark espresso band with gold accents */}
-        <header className="relative shrink-0 overflow-hidden bg-gradient-to-br from-[#1c1714] via-[#241c16] to-[#2e2318] text-white">
+        <header className="relative shrink-0 overflow-hidden bg-gradient-to-br from-[#1f100b] via-[#28140d] to-[#33190f] text-white">
           <div
-            className="pointer-events-none absolute -end-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(212,168,67,0.28),transparent_65%)]"
+            className="pointer-events-none absolute -end-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(240,176,40,0.28),transparent_65%)]"
             aria-hidden
           />
           <div className="relative flex flex-wrap items-start justify-between gap-3 px-5 pt-4 sm:px-8 sm:pt-5">
-            <div className="min-w-0">
-              <p className="truncate text-[11px] font-bold uppercase tracking-[0.22em] text-[#d4a843]">
+            <div className="min-w-0 max-sm:pe-12">
+              <p className="truncate text-[11px] font-bold uppercase tracking-[0.22em] text-[#f0b028]">
                 {t("dayEndReport")}
                 {branchName ? (
                   <span className="font-medium normal-case tracking-normal text-white/55"> · {branchName}</span>
@@ -767,17 +767,17 @@ export function PosDayReport({
               </p>
               {/* Day title + TODAY + shop-hours pill on one line (wraps on small screens). */}
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <h2 className="truncate text-xl font-bold tracking-tight sm:text-2xl" style={NUM}>
+                <h2 className="pos-dialog-title truncate text-[1.375rem] sm:text-[1.75rem]">
                   {dayTitle(dayKey)}
                 </h2>
                 {dayMode !== "custom" ? (
-                  <span className="inline-flex min-h-7 items-center rounded-full bg-[#e4c15a] px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#14110e] shadow-[0_0_0_1px_rgba(228,193,90,0.45)]">
+                  <span className="inline-flex min-h-7 items-center rounded-full bg-[#f0b028] px-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[#190d09] shadow-[0_0_0_1px_rgba(240,176,40,0.45)]">
                     {dayMode === "today" ? t("today") : t("dateYesterday")}
                   </span>
                 ) : null}
                 {/* Shop hours (open → close); sales after close still count in this day. */}
                 <span
-                  className="inline-flex min-h-7 cursor-help items-center rounded-full border border-[rgba(228,193,90,0.35)] bg-white/5 px-2.5 text-[11px] font-semibold text-[#e4c15a]"
+                  className="inline-flex min-h-7 cursor-help items-center rounded-full border border-[rgba(240,176,40,0.35)] bg-white/5 px-2.5 text-[11px] font-semibold text-[#f0b028]"
                   style={NUM}
                   dir="ltr"
                   title={t("businessDayHint").replace("{end}", shortTime(to))}
@@ -787,15 +787,15 @@ export function PosDayReport({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-xl bg-white/10 p-1 text-xs font-semibold ring-1 ring-white/10">
+              <div className="inline-flex rounded-xl bg-white/10 p-0.5 text-xs font-semibold ring-1 ring-white/10">
                 {(["today", "yesterday"] as const).map((m) => (
                   <button
                     key={m}
                     type="button"
                     aria-pressed={dayMode === m}
                     onClick={() => setPickedKey(m === "today" ? null : yesterdayKey)}
-                    className={`rounded-lg px-3.5 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a843] ${
-                      dayMode === m ? "bg-white text-[#1c1714] shadow dark:bg-[#f3ede4]" : "text-white/70 hover:text-white"
+                    className={`inline-flex min-h-10 min-w-11 items-center justify-center rounded-lg px-3.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0b028] pointer-coarse:min-h-11 ${
+                      dayMode === m ? "bg-white text-[#1f100b] shadow dark:bg-[#f3e3d2]" : "text-white/70 hover:text-white"
                     }`}
                   >
                     {m === "today" ? t("dateToday") : t("dateYesterday")}
@@ -811,8 +811,8 @@ export function PosDayReport({
                   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) setPickedKey(v === todayKey ? null : v);
                 }}
                 onClick={(e) => openDatePicker(e.currentTarget)}
-                className={`h-9 rounded-xl px-3 text-xs font-semibold outline-none ring-1 transition [color-scheme:dark] focus:ring-[#d4a843] ${
-                  dayMode === "custom" ? "bg-white/15 text-white ring-[#d4a843]/70" : "bg-white/10 text-white/80 ring-white/10"
+                className={`h-11 rounded-xl px-3 text-xs font-semibold outline-none ring-1 transition [color-scheme:dark] focus:ring-[#f0b028] pointer-coarse:h-12 pointer-coarse:text-base ${
+                  dayMode === "custom" ? "bg-white/15 text-white ring-[#f0b028]/70" : "bg-white/10 text-white/80 ring-white/10"
                 }`}
                 style={NUM}
                 dir="ltr"
@@ -822,8 +822,8 @@ export function PosDayReport({
                 <select
                   value={staff}
                   onChange={(e) => setStaff(e.target.value)}
-                  className={`h-9 max-w-[14rem] rounded-xl px-3 text-xs font-semibold capitalize outline-none ring-1 transition [color-scheme:dark] focus:ring-[#d4a843] [&>option]:bg-[#1c1814] [&>option]:text-[#f5efe6] ${
-                    staff !== "all" ? "bg-white/15 text-white ring-[#d4a843]/70" : "bg-white/10 text-white/80 ring-white/10"
+                  className={`h-11 max-w-[14rem] rounded-xl px-3 text-xs font-semibold capitalize outline-none pointer-coarse:h-12 pointer-coarse:text-base ring-1 transition [color-scheme:dark] focus:ring-[#f0b028] [&>option]:bg-[#1e0f0a] [&>option]:text-[#fff4e8] ${
+                    staff !== "all" ? "bg-white/15 text-white ring-[#f0b028]/70" : "bg-white/10 text-white/80 ring-white/10"
                   }`}
                   aria-label={t("staff")}
                 >
@@ -839,7 +839,7 @@ export function PosDayReport({
               {localClearable ? (
                 <button
                   type="button"
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-white/30 transition hover:bg-white/10 hover:text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a843]"
+                  className="flex size-11 items-center justify-center rounded-full text-white/30 transition pointer-coarse:size-12 hover:bg-white/10 hover:text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0b028]"
                   onClick={() => setLocalOpen(true)}
                   aria-label={t("localDataButton")}
                   title={t("localDataButton")}
@@ -853,7 +853,7 @@ export function PosDayReport({
               ) : null}
               <button
                 type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/10 transition hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a843]"
+                className="flex size-11 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/10 transition hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0b028] max-sm:absolute max-sm:end-3 max-sm:top-3"
                 onClick={onClose}
                 aria-label={t("close")}
                 title={t("close")}
@@ -880,20 +880,20 @@ export function PosDayReport({
                     role="tab"
                     aria-selected={active}
                     onClick={() => setTab(tb.id)}
-                    className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a843] ${
+                    className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0b028] ${
                       active
-                        ? "bg-white text-[#1c1714] shadow-[0_6px_18px_-8px_rgba(0,0,0,0.6)] dark:bg-[#f3ede4]"
+                        ? "bg-white text-[#1f100b] shadow-[0_6px_18px_-8px_rgba(0,0,0,0.6)] dark:bg-[#f3e3d2]"
                         : "text-white/70 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    <span className={active ? "text-[var(--gold-deep)] dark:text-[#8a6508]" : "text-[#d4a843]/80"}>
+                    <span className={active ? "text-[var(--gold-deep)] dark:text-[#a3271d]" : "text-[#f0b028]/80"}>
                       <Icon name={TAB_ICON[tb.id]} size={15} />
                     </span>
                     {tb.label}
                     {tb.count != null ? (
                       <span
                         className={`min-w-[20px] rounded-md px-1.5 text-center text-[11px] font-bold leading-5 ${
-                          active ? "bg-[#1c1714] text-white" : "bg-white/10 text-white/75"
+                          active ? "bg-[#1f100b] text-white" : "bg-white/10 text-white/75"
                         }`}
                         style={NUM}
                       >
@@ -919,26 +919,31 @@ export function PosDayReport({
               </span>
               {/* Whole-PC sync state — compact */}
               {pcPending == null ? null : pcPending > 0 ? (
+                /* 44px tap area around the compact chip */
                 <button
                   type="button"
                   onClick={() => setSyncOpen(true)}
-                  className={`inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold ${pcFailed > 0 ? "text-rose-300" : "text-orange-300"} ring-1 ring-white/10 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a843]`}
+                  className="group inline-flex min-h-11 items-center px-1 focus:outline-none"
                   title={t("syncStatusTitle")}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-full ${pcFailed > 0 ? "bg-rose-500" : "bg-orange-400"}`} aria-hidden />
-                  <span style={NUM}>{pcPending}</span> {t("reportSyncShort")}
+                  <span className={`inline-flex min-h-6 items-center gap-1 rounded-full bg-white/[0.06] px-2.5 text-[11px] font-semibold ${pcFailed > 0 ? "text-rose-300" : "text-orange-300"} ring-1 ring-white/10 transition group-hover:bg-white/15 group-focus-visible:ring-2 group-focus-visible:ring-[var(--bb-mustard-500)]`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${pcFailed > 0 ? "bg-rose-500" : "bg-orange-400"}`} aria-hidden />
+                    <span style={NUM}>{pcPending}</span> {t("reportSyncShort")}
+                  </span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => setSyncOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-emerald-300 ring-1 ring-white/10 transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4a843]"
+                  className="group inline-flex min-h-11 items-center px-1 focus:outline-none"
                   title={t("syncStatusTitle")}
                 >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  {t("reportSynced")}
+                  <span className="inline-flex min-h-6 items-center gap-1 rounded-full bg-white/[0.06] px-2.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-white/10 transition group-hover:bg-white/15 group-focus-visible:ring-2 group-focus-visible:ring-[var(--bb-mustard-500)]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    {t("reportSynced")}
+                  </span>
                 </button>
               )}
             </div>
@@ -1093,18 +1098,17 @@ function SummaryTab({
         <div className="grid lg:grid-cols-[1.6fr_1fr]">
           <div className="relative overflow-hidden p-6 sm:p-8">
             <span
-              className="pointer-events-none absolute -start-24 -top-28 h-72 w-72 rounded-full bg-[#f3d27a]/25 blur-3xl"
+              className="pointer-events-none absolute -start-24 -top-28 h-72 w-72 rounded-full bg-[#f5c650]/25 blur-3xl"
               aria-hidden
             />
             <div className="relative">
               <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-stone-500">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--gold)] shadow-[0_0_0_3px_rgba(184,134,11,0.15)]" aria-hidden />
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--gold)] shadow-[0_0_0_3px_rgba(197,138,14,0.15)]" aria-hidden />
                 {t("netSales")}
                 <span className="font-medium normal-case tracking-normal text-stone-400">· {t("reportNetSalesSub")}</span>
               </p>
               <p
-                className="mt-3 text-[52px] font-bold leading-none tracking-[-0.035em] text-[var(--ink)] sm:text-[64px]"
-                style={NUM}
+                className="pos-kpi mt-3 text-[52px] leading-none text-[var(--ink)] sm:text-[64px]"
                 dir="ltr"
               >
                 {formatPkr(netSales)}
@@ -1117,9 +1121,9 @@ function SummaryTab({
                 ].map((k) => (
                   <div
                     key={k.icon}
-                    className="flex min-w-0 items-center gap-2.5 rounded-xl border border-[#efe6d6] bg-white/80 px-3 py-2.5 backdrop-blur-sm"
+                    className="flex min-w-0 items-center gap-2.5 rounded-xl border border-[#efdcc6] bg-white/80 px-3 py-2.5 backdrop-blur-sm"
                   >
-                    <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f6efe0] text-[var(--gold-deep)] sm:flex">
+                    <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#fdeccb] text-[var(--gold-deep)] sm:flex">
                       <Icon name={k.icon} size={15} />
                     </span>
                     <div className="min-w-0">
@@ -1135,14 +1139,14 @@ function SummaryTab({
           </div>
 
           {/* Net after expenses — dark panel, gold hairline (brand signature) */}
-          <div className="relative flex flex-col justify-center gap-4 overflow-hidden bg-[#1c1917] p-6 text-white sm:p-8">
-            <span className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#b8860b] via-[#e4c15a] to-[#c9a227]" aria-hidden />
+          <div className="relative flex flex-col justify-center gap-4 overflow-hidden bg-[#2a140e] p-6 text-white sm:p-8">
+            <span className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#c58a0e] via-[#f0b028] to-[#e0a21f]" aria-hidden />
             <span
-              className="pointer-events-none absolute -end-20 -top-20 h-56 w-56 rounded-full bg-[#c9a227]/20 blur-3xl"
+              className="pointer-events-none absolute -end-20 -top-20 h-56 w-56 rounded-full bg-[#e0a21f]/20 blur-3xl"
               aria-hidden
             />
             <div className="relative flex items-center justify-between gap-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#e4c15a]">{t("reportNetInHand")}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#f0b028]">{t("reportNetInHand")}</p>
               {netSales > 0 ? (
                 <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-stone-200" style={NUM}>
                   <span dir="ltr">{keptPct}%</span> {t("reportKept")}
@@ -1150,8 +1154,7 @@ function SummaryTab({
               ) : null}
             </div>
             <p
-              className={`relative text-[40px] font-bold leading-none tracking-[-0.03em] ${netInHand < 0 ? "text-red-300" : "text-white"}`}
-              style={NUM}
+              className={`pos-kpi relative text-[40px] leading-none ${netInHand < 0 ? "text-red-300" : "text-white"}`}
               dir="ltr"
             >
               {netInHand < 0 ? "−" : ""}
@@ -1162,7 +1165,7 @@ function SummaryTab({
               {netSales > 0 ? (
                 <>
                   <div
-                    className="h-full rounded-s-full bg-gradient-to-r from-[#c9a227] to-[#f3d27a] transition-[width] duration-500"
+                    className="h-full rounded-s-full bg-gradient-to-r from-[#e0a21f] to-[#f5c650] transition-[width] duration-500"
                     style={{ width: `${keptPct}%` }}
                   />
                   <div className="h-full rounded-e-full bg-rose-400/80 transition-[width] duration-500" style={{ width: `${spentPct}%` }} />
@@ -1172,7 +1175,7 @@ function SummaryTab({
             <div className="relative space-y-2 text-sm" style={NUM}>
               <div className="flex items-center justify-between gap-3 text-stone-300">
                 <span className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#e4c15a]" aria-hidden />
+                  <span className="h-2 w-2 rounded-full bg-[#f0b028]" aria-hidden />
                   {t("netSales")}
                 </span>
                 <span className="font-semibold text-white" dir="ltr">{formatPkr(netSales)}</span>
@@ -1189,7 +1192,7 @@ function SummaryTab({
         </div>
 
         {/* Day's adjustments — always shown, zero values muted */}
-        <dl className="grid grid-cols-2 border-t border-[#f0e9dc] bg-[#fdfbf7] sm:grid-cols-3 xl:grid-cols-6">
+        <dl className="grid grid-cols-2 border-t border-[#f0dcc6] bg-[#fffaf3] sm:grid-cols-3 xl:grid-cols-6">
           {adjustments.map((m, i) => {
             const zero = m.value === 0;
             const tone = zero
@@ -1200,11 +1203,11 @@ function SummaryTab({
                   ? "bg-emerald-50 text-emerald-700"
                   : m.icon === "cancel"
                     ? "bg-stone-100 text-stone-600"
-                    : "bg-[#f6efe0] text-[var(--gold-deep)]";
+                    : "bg-[#fdeccb] text-[var(--gold-deep)]";
             return (
               <div
                 key={m.label}
-                className={`px-5 py-4 transition-colors hover:bg-white ${i > 0 ? "border-s border-[#f0e9dc]" : ""} max-xl:border-b max-xl:border-[#f0e9dc]`}
+                className={`px-5 py-4 transition-colors hover:bg-white ${i > 0 ? "border-s border-[#f0dcc6]" : ""} max-xl:border-b max-xl:border-[#f0dcc6]`}
               >
                 <dt className="flex items-center gap-2 text-xs font-medium text-stone-500">
                   <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${tone}`}>
@@ -1426,11 +1429,11 @@ function ItemsTab({
                   <p className="text-xs font-medium text-stone-500">{t("reportItemsSold")}</p>
                   <p className="mt-1 text-2xl font-bold tracking-tight text-[var(--ink)]" style={NUM}>{qty}</p>
                 </div>
-                <div className="border-s border-[#f0e9dc] px-5 py-4">
+                <div className="border-s border-[#f0dcc6] px-5 py-4">
                   <p className="text-xs font-medium text-stone-500">{t("reportItemRevenue")}</p>
                   <p className="mt-1 text-2xl font-bold tracking-tight text-[var(--ink)]" style={NUM} dir="ltr">{formatPkr(totalRevenue)}</p>
                 </div>
-                <div className="flex items-center gap-3 border-t border-[#f0e9dc] px-5 py-4 lg:border-s lg:border-t-0">
+                <div className="flex items-center gap-3 border-t border-[#f0dcc6] px-5 py-4 lg:border-s lg:border-t-0">
                   <ItemThumb src={itemImage?.(top.productId, top.productName)} name={top.productName} size={44} />
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-stone-500">{t("reportBestSeller")}</p>
@@ -1438,7 +1441,7 @@ function ItemsTab({
                     <p className="text-xs text-stone-500" style={NUM}>×{top.qty}</p>
                   </div>
                 </div>
-                <div className="border-s border-t border-[#f0e9dc] px-5 py-4 lg:border-t-0">
+                <div className="border-s border-t border-[#f0dcc6] px-5 py-4 lg:border-t-0">
                   <p className="text-xs font-medium text-stone-500">{t("reportProducts")}</p>
                   <p className="mt-1 text-2xl font-bold tracking-tight text-[var(--ink)]" style={NUM}>{items.length}</p>
                 </div>
@@ -1454,7 +1457,7 @@ function ItemsTab({
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="border-b border-[#f0e9dc] bg-[#fbf8f2] text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">
+              <thead className="border-b border-[#f0dcc6] bg-[#fff6ea] text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">
                 <tr>
                   <th className="w-12 px-4 py-3 text-start">#</th>
                   <th className="px-2 py-3 text-start">{t("itemName")}</th>
@@ -1464,9 +1467,9 @@ function ItemsTab({
                   <th className="hidden px-5 py-3 text-end sm:table-cell">{t("reportShare")}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#f3ede2]">
+              <tbody className="divide-y divide-[#f3e2cf]">
                 {shown.map((it, i) => (
-                  <tr key={it.key} className="transition hover:bg-[#fbf8f2]">
+                  <tr key={it.key} className="transition hover:bg-[#fff6ea]">
                     <td className="px-4 py-3"><Rank n={i + 1} /></td>
                     <td className="px-2 py-3">
                       <div className="flex items-center gap-3">
@@ -1487,14 +1490,14 @@ function ItemsTab({
                     <td className="px-3 py-3 text-end text-base font-bold tabular-nums text-[var(--ink)]" style={NUM}>{it.qty}</td>
                     <td className="px-3 py-3 text-end font-medium tabular-nums text-[var(--ink)]" style={NUM} dir="ltr">{formatPkr(it.revenue)}</td>
                     <td className="hidden px-5 py-3 text-end sm:table-cell">
-                      <span className="rounded-full bg-[#f6efe0] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--gold-deep)]" style={NUM}>
+                      <span className="rounded-full bg-[#fdeccb] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--gold-deep)]" style={NUM}>
                         {pct(it.revenue, totalRevenue)}%
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="border-t border-[var(--border)] bg-[#faf7f2] font-bold text-[var(--ink)]">
+              <tfoot className="border-t border-[var(--border)] bg-[#fff4e8] font-bold text-[var(--ink)]">
                 <tr>
                   <td className="px-4 py-3" />
                   <td className="px-2 py-3">
@@ -1604,7 +1607,7 @@ function OrderRow({
   return (
     <tr
       onClick={onClick}
-      className={`cursor-pointer align-top transition hover:bg-[#fbf8f2] ${cancelled ? "opacity-60" : ""}`}
+      className={`cursor-pointer align-top transition hover:bg-[#fff6ea] ${cancelled ? "opacity-60" : ""}`}
     >
       <td className="px-5 py-3.5">
         <span className="inline-flex items-center gap-2 font-bold text-[var(--ink)]" style={NUM}>
@@ -1805,7 +1808,7 @@ function OrdersTab({
           <div className={`${CARD} hidden overflow-hidden md:block`}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#f0e9dc] bg-[#fbf8f2] text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">
+                <tr className="border-b border-[#f0dcc6] bg-[#fff6ea] text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">
                   <th className="px-5 py-3 text-start">{t("order")}</th>
                   <th className="px-3 py-3 text-start">{t("itemsCount")}</th>
                   <th className="px-3 py-3 text-start">{t("customerName")}</th>
@@ -1814,7 +1817,7 @@ function OrdersTab({
                   <th className="px-5 py-3 text-end">{t("total")}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#f3ede2]">
+              <tbody className="divide-y divide-[#f3e2cf]">
                 {shown.map((o) => (
                   <OrderRow
                     key={o.id}

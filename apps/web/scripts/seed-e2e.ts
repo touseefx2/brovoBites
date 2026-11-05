@@ -48,9 +48,9 @@ async function upsertAuthUser(email: string, displayName: string) {
 
 async function main() {
   // Test owner with a known password — must never exist on the real shop:
-  // only a DEV project (…-dev) or a local demo emulator project (demo-…).
+  // only a DEV project (…dev) or a local demo emulator project (demo-…).
   const projectId = String(process.env.FIREBASE_ADMIN_PROJECT_ID || "").trim();
-  if (!/-dev$|^demo-/.test(projectId)) {
+  if (!/dev$|^demo-/.test(projectId)) {
     throw new Error(`seed:e2e refuses to run on "${projectId || "(missing project)"}" — DEV only.`);
   }
 

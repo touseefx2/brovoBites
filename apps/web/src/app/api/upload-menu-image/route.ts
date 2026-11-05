@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const fileName = `${id}.${safeExt(file)}`;
     const folder =
-      process.env.IMAGEKIT_FOLDER?.trim() || `bravobites/menu/${pathPrefix || "misc"}`;
+      process.env.IMAGEKIT_FOLDER?.trim() || `brovobites/menu/${pathPrefix || "misc"}`;
 
     const body = new FormData();
     body.append("file", file);

@@ -15,6 +15,7 @@ import { fetchSettings, saveSettings } from "@/lib/firestore";
 import { uploadLogoImage, uploadHeroSlide, deleteUploadedImage, MAX_HERO_SLIDES } from "@/lib/storage";
 import { ImageUploadField } from "@/components/ImageUpload";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { BrandSpinner } from "@/components/Loading";
 import { ReportEmailSettings } from "@/components/ReportEmailSettings";
 import { printReceipt, receiptLabels } from "@/lib/print-receipt";
 import { reviewUrlOf } from "@/lib/review-request";
@@ -30,12 +31,12 @@ type SlideEntry = { type: "remote"; url: string } | { type: "pending"; file: Fil
 
 function SectionCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-[var(--border)] bg-[#faf8f5] px-5 py-3.5">
-        <h2 className="text-sm font-bold text-[var(--ink)] uppercase tracking-wide">{title}</h2>
-        {description && <p className="mt-0.5 text-xs text-[var(--muted)]">{description}</p>}
+    <div className="admin-section-card">
+      <div className="admin-section-head">
+        <h2 className="admin-section-title">{title}</h2>
+        {description && <p className="admin-section-hint">{description}</p>}
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-4 sm:p-5">{children}</div>
     </div>
   );
 }
@@ -203,9 +204,9 @@ export default function LandingPageSettings() {
   /** One sample customer copy on the selected roll — prints before saving, to check the printer setup. */
   function handleTestPrint() {
     const items = toOrderItems([
-      { key: "1", productId: "t1", productName: "Chicken Sajji", variationLabel: "Half", unitPrice: 1450, qty: 2, note: "extra spicy" },
-      { key: "2", productId: "t2", productName: "Zinger Burger", unitPrice: 690, qty: 3 },
-      { key: "3", productId: "t3", productName: "Soft Drink 1.5L", unitPrice: 250, qty: 10 },
+      { key: "1", productId: "t1", productName: "Beef Double Patty", unitPrice: 950, qty: 2, note: "extra spicy" },
+      { key: "2", productId: "t2", productName: "Zinger Burger", unitPrice: 400, qty: 3 },
+      { key: "3", productId: "t3", productName: "Cola Next 350ml", unitPrice: 80, qty: 10 },
     ]);
     const subtotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
     const ok = printReceipt({
@@ -332,13 +333,13 @@ export default function LandingPageSettings() {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+          <p className="admin-page-eyebrow">
             {t("landingPage")}
           </p>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">{t("landingPage")}</h1>
+          <h1 className="admin-page-title">{t("landingPage")}</h1>
         </div>
-        <div className="flex items-center justify-center py-16">
-          <span className="spinner" aria-hidden />
+        <div className="flex items-center justify-center py-16" role="status" aria-live="polite">
+          <BrandSpinner />
           <span className="sr-only">{t("loading")}</span>
         </div>
       </div>
@@ -349,11 +350,11 @@ export default function LandingPageSettings() {
     <div className="mx-auto max-w-2xl space-y-5 pb-8">
       {/* Header */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+        <p className="admin-page-eyebrow">
           {t("landingPage")}
         </p>
-        <h1 className="text-2xl font-bold text-[var(--ink)]">{t("landingPage")}</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">{t("landingPageHint")}</p>
+        <h1 className="admin-page-title">{t("landingPage")}</h1>
+        <p className="admin-page-sub">{t("landingPageHint")}</p>
       </div>
 
       <ReportEmailSettings hours={reportHours} />
@@ -522,7 +523,7 @@ export default function LandingPageSettings() {
             <p className="text-xs text-[var(--muted)]">{t("receiptTestPrintHint")}</p>
           </div>
 
-          <details className="mt-4 rounded-xl border border-[var(--border)] bg-[#faf8f5] px-4 py-3">
+          <details className="mt-4 rounded-xl border border-[var(--border)] bg-[#fff7ee] px-4 py-3">
             <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">
               {t("receiptSetupTitle")}
             </summary>
@@ -710,7 +711,7 @@ export default function LandingPageSettings() {
           <div className="mt-4 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
             <button
               type="button"
-              className="min-h-11 rounded-xl border border-[var(--border)] bg-[#faf8f5] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[#f0ebe3] disabled:opacity-50"
+              className="min-h-11 rounded-xl border border-[var(--border)] bg-[#fff7ee] px-4 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[#f3e3d1] disabled:opacity-50"
               disabled={
                 saving ||
                 (businessDayStart === DEFAULT_SETTINGS.businessDayStart &&
@@ -791,7 +792,7 @@ export default function LandingPageSettings() {
               {remoteSlides.length > 0 && (
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm text-red-600 hover:bg-red-50"
+                  className="btn btn-ghost btn-sm btn-danger-ghost"
                   disabled={saving || deleting}
                   onClick={() => setDeleteAll(true)}
                 >
@@ -842,7 +843,7 @@ export default function LandingPageSettings() {
         )}
 
         {/* ── Save ── */}
-        <div className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white px-5 py-4 shadow-sm">
+        <div className="admin-save-bar flex flex-wrap items-center gap-3 px-4 py-3.5 sm:px-5">
           <button
             type="submit"
             className="btn btn-primary"
@@ -862,9 +863,9 @@ export default function LandingPageSettings() {
       {saving && (
         <div className="action-overlay" role="status" aria-live="polite">
           <div className="action-overlay-card">
-            <span className="spinner" aria-hidden />
-            <p className="text-sm font-semibold text-[var(--ink)]">{t("saving")}</p>
-            <p className="text-xs text-[var(--muted)]">Uploading images & saving settings...</p>
+            <BrandSpinner />
+            <p className="action-overlay-title">{t("saving")}</p>
+            <p className="action-overlay-sub">{t("savingImagesHint")}</p>
           </div>
         </div>
       )}

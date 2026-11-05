@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "bravobites-dev",
-    "dev": "bravobites-dev",
-    "live": "bravobites-live"
+    "default": "brovodev",
+    "dev": "brovodev",
+    "live": "borovo-ffc56"
   }
 }

@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Providers } from "@/components/Providers";
 import { POS_THEME_BOOT_SCRIPT } from "@/lib/pos-theme-script";
-import "./globals.css";
+// Public website CSS only; staff routes add globals.css (StaffProviders).
+import "./public.css";
 
 const notoUrdu = localFont({
   src: [
@@ -14,6 +15,9 @@ const notoUrdu = localFont({
   ],
   variable: "--font-ur",
   display: "swap",
+  // Not preloaded: unicode-range already limits it to Urdu text, so the
+  // browser fetches it only on pages that show Urdu (92KB off English pages).
+  preload: false,
   adjustFontFallback: false,
   declarations: [
     // Urdu script only — English, digits, emails fall through to the system font.
@@ -24,15 +28,25 @@ const notoUrdu = localFont({
   ],
 });
 
+const lilita = localFont({
+  src: [{ path: "../../public/fonts/lilita-one-latin.woff2", weight: "400", style: "normal" }],
+  variable: "--font-brand",
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+
 export const metadata: Metadata = {
-  title: "Bravo Bites",
-  description: "Authentic Taste, Royal Experience — Sajji, Pizza, Burgers & Combo Deals",
+  title: "Brovo Bites",
+  description: "Authentic Taste, Royal Experience — Zinger & Beef Burgers, Wings, Nuggets, Loaded Fries & Wraps",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Bravo Bites",
+    // Dark bar with light status icons (suits the dark-brown brand). Not "black-translucent":
+    // that draws the page under the status bar and the light POS/admin headers would hide the icons.
+    statusBarStyle: "black",
+    title: "Brovo Bites",
   },
+  applicationName: "Brovo Bites",
 };
 
 export const viewport: Viewport = {
@@ -40,6 +54,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
+  /* Browser / PWA chrome = logo background (DESIGN.md --bb-brown-900) */
+  themeColor: "#190d09",
 };
 
 export default function RootLayout({
@@ -52,7 +68,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: POS_THEME_BOOT_SCRIPT }} />
       </head>
-      <body className={notoUrdu.variable}>
+      <body className={`${notoUrdu.variable} ${lilita.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

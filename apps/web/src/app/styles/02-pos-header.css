@@ -1,0 +1,372 @@
+/* POS app bar (brand, clock, toolbar, user). Split out of globals.css (original lines 352-606); order matters — see globals.css. */
+/* ═══════════════════════════════════════════════════════════════════════
+   POS app bar — Brovo Bites brown chrome in BOTH themes (like the admin rail):
+   badge · Lilita wordmark · clock · actions · prefs · user.
+   Text on it is cream / mustard (docs/DESIGN.md §1 contrast rules).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* POS page background: flat cream-50 (light). Dark lives in 08-pos-theme.css. */
+.pos-shell.app-shell-bg {
+  background: var(--bb-cream-50);
+}
+
+.pos-header {
+  position: relative;
+  z-index: 20;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+  background:
+    radial-gradient(ellipse 42% 160% at 0% 0%, rgba(215, 54, 43, 0.22), transparent 62%),
+    linear-gradient(180deg, var(--bb-brown-800) 0%, var(--bb-brown-900) 100%);
+  border-bottom: 3px solid var(--bb-mustard-500);
+  box-shadow: 0 2px 10px rgba(42, 20, 14, 0.18);
+  color: var(--bb-cream-100);
+  color-scheme: dark;
+}
+/* RTL: glow follows the brand side */
+html[dir="rtl"] .pos-header {
+  background:
+    radial-gradient(ellipse 42% 160% at 100% 0%, rgba(215, 54, 43, 0.22), transparent 62%),
+    linear-gradient(180deg, var(--bb-brown-800) 0%, var(--bb-brown-900) 100%);
+}
+.pos-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-height: 60px;
+  padding: 0.5rem 0.75rem;
+}
+@media (min-width: 640px) {
+  .pos-bar {
+    min-height: 64px;
+    padding-inline: 1rem;
+  }
+}
+/* Phone: brand shrinks so prefs + logout stay on the first row */
+@media (max-width: 639px) {
+  .pos-brand {
+    flex: 1 1 0;
+  }
+  .pos-bar .pos-clock {
+    flex: 0 0 auto;
+  }
+  .pos-bar .pos-user-avatar {
+    display: none;
+  }
+}
+
+/* Logo badge: soft mustard ring so it pops off the brown (.brand-mark itself is clip-path'd) */
+.pos-brand-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(240, 176, 40, 0.6), 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+.pos-brand-badge .brand-mark {
+  box-shadow: none;
+}
+
+/* Wordmark — Lilita One + the logo's hard red stamp shadow */
+.pos-brand-name {
+  margin: 0;
+  font-family: var(--font-brand-stack);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-cream-100);
+  text-shadow: 0.07em 0.07em 0 var(--bb-red-800);
+}
+@media (max-width: 379px) {
+  .pos-brand-name {
+    font-size: 1.125rem;
+  }
+}
+.pos-branch {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 18rem;
+  margin-top: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--bb-muted-on-dark);
+}
+.pos-branch svg {
+  flex-shrink: 0;
+  color: var(--bb-mustard-500);
+}
+.pos-branch-missing {
+  color: #fca5a5; /* danger, readable on brown (9:1) */
+}
+.pos-branch-select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.pos-branch-select option {
+  background: var(--bb-brown-850);
+  color: var(--bb-cream-100);
+}
+.pos-branch-select:focus-visible {
+  outline: 2px solid var(--bb-mustard-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Clock — sits right after the brand (thin divider), two lines like it.
+   The wrapper doubles as the flexible spacer that pushes actions right. */
+.pos-clock {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.pos-clock-chip {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 0.55rem;
+  line-height: 1.2;
+}
+@media (min-width: 640px) {
+  .pos-clock-chip {
+    margin-inline-start: 0.25rem;
+    padding-inline-start: 1rem;
+    border-inline-start: 1px solid var(--bb-line-on-dark);
+  }
+}
+.pos-clock-chip svg {
+  grid-row: span 2;
+  flex-shrink: 0;
+  color: var(--bb-mustard-500);
+}
+/* Time on every width; the date joins underneath once there is room */
+.pos-clock-date {
+  display: none;
+}
+@media (min-width: 640px) {
+  .pos-clock-date {
+    display: block;
+    grid-column: 2;
+  }
+}
+@media (max-width: 1279px) {
+  .pos-branch {
+    max-width: 12rem;
+  }
+}
+/* Narrow phones: the wordmark wins over the clock (the phone shows the time anyway) */
+@media (max-width: 479px) {
+  .pos-bar .pos-clock {
+    display: none;
+  }
+}
+.pos-clock-time {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--bb-cream-100);
+}
+.pos-clock-date {
+  margin-top: 1px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--bb-muted-on-dark);
+}
+
+/* Tax / delivery — quiet text, only where there is room */
+.pos-rates {
+  display: none;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--bb-muted-on-dark);
+  white-space: nowrap;
+}
+.pos-rates b {
+  font-weight: 700;
+  color: var(--bb-mustard-400);
+}
+@media (min-width: 1536px) {
+  .pos-rates {
+    display: flex;
+  }
+}
+
+/* Actions — ghost tabs on the brown bar (cream label, mustard icon) */
+.pos-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+@media (max-width: 1279px) {
+  /* Second row (phones → small laptops): a scrolling strip of pill buttons, full width */
+  .pos-toolbar {
+    order: 10;
+    gap: 0.4rem;
+    margin-inline: -0.75rem;
+    width: calc(100% + 1.5rem);
+    padding-inline: 0.75rem;
+    padding-block: 0.15rem 0.1rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pos-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+@media (min-width: 640px) and (max-width: 1279px) {
+  .pos-toolbar {
+    margin-inline: -1rem;
+    width: calc(100% + 2rem);
+    padding-inline: 1rem;
+  }
+}
+.pos-tool {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: rgba(255, 244, 232, 0.92);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+@media (max-width: 1279px) {
+  .pos-tool {
+    border-color: var(--bb-line-on-dark);
+    border-radius: var(--bb-radius-pill);
+    background: rgba(255, 244, 232, 0.05);
+    padding-inline: 0.85rem;
+  }
+}
+/* Mouse-driven desktops only: touch tablets keep the 44px target. */
+@media (min-width: 1280px) and (pointer: fine) {
+  .pos-tool {
+    min-height: 40px;
+  }
+}
+.pos-tool svg {
+  color: var(--bb-mustard-500);
+  flex-shrink: 0;
+}
+.pos-tool:hover {
+  background: rgba(240, 176, 40, 0.12);
+  border-color: rgba(240, 176, 40, 0.3);
+  color: #fff;
+}
+.pos-tool:active {
+  background: rgba(240, 176, 40, 0.18);
+}
+.pos-tool:focus-visible {
+  outline: 3px solid var(--bb-mustard-500);
+  outline-offset: 1px;
+}
+
+.pos-bar-sep {
+  display: none;
+  width: 1px;
+  height: 1.75rem;
+  flex-shrink: 0;
+  background: var(--bb-line-on-dark);
+}
+@media (min-width: 640px) {
+  .pos-bar-sep {
+    display: block;
+  }
+}
+
+/* Signed-in user — avatar, name · role, email */
+.pos-user {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pos-user-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--bb-red-500);
+  box-shadow: 0 0 0 2px var(--bb-mustard-500), 0 2px 0 3px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-brand-stack);
+  font-size: 1.0625rem;
+  font-weight: 400;
+  line-height: 1;
+  color: #fff;
+}
+.pos-user-text {
+  display: none;
+  max-width: 11rem;
+}
+@media (min-width: 1440px) {
+  .pos-user-text {
+    display: block;
+  }
+}
+.pos-user-name {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--bb-cream-100);
+}
+.pos-user-role {
+  display: inline-block;
+  margin-inline-start: 0.375rem;
+  padding: 0 0.4rem;
+  border-radius: var(--bb-radius-pill);
+  background: rgba(240, 176, 40, 0.16);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--bb-mustard-400);
+  vertical-align: 1px;
+}
+.pos-user-email {
+  margin: 1px 0 0;
+  font-size: 0.6875rem;
+  color: var(--bb-muted-on-dark);
+}
+
+/* Mobile sticky cart bar + sheet */
+.pos-cart-bar {
+  border-top: 1px solid var(--bb-cream-300);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -6px 20px rgba(42, 20, 14, 0.08);
+  padding-top: 0.6rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  padding-inline: max(0.75rem, env(safe-area-inset-left, 0px))
+    max(0.75rem, env(safe-area-inset-right, 0px));
+}
+
+.pos-cart-sheet {
+  background: #fff;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

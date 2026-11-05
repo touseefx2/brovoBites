@@ -54,8 +54,8 @@ export default function InventoryPage() {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-5">
-        <h1 className="text-xl font-bold sm:text-2xl">{t("inventory")}</h1>
-        <p className="mt-0.5 max-w-2xl text-sm text-[var(--muted)]">
+        <h1 className="admin-page-title">{t("inventory")}</h1>
+        <p className="admin-page-sub max-w-2xl">
           {isOwner ? t("inventoryHint") : t("inventoryHintStaff")}
         </p>
       </div>

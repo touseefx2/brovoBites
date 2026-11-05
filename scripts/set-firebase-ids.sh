@@ -11,7 +11,7 @@
 #
 #   bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>
 #
-# Rules: DEV id must end in "-dev" (DEV emails are tagged by that suffix and the
+# Rules: DEV id must end in "dev" (e.g. bravobites-dev, brovodev) (DEV emails are tagged by that suffix and the
 # dev-only scripts check it); LIVE id must not contain "dev" (create-owner
 # refuses LIVE ids that look like dev).
 set -euo pipefail
@@ -27,11 +27,11 @@ re='^[a-z][a-z0-9-]{4,28}[a-z0-9]$'
 [[ "$DEV_ID" =~ $re ]] || die "Not a valid Firebase project id: $DEV_ID"
 [[ "$LIVE_ID" =~ $re ]] || die "Not a valid Firebase project id: $LIVE_ID"
 [[ "$DEV_ID" != "$LIVE_ID" ]] || die "DEV and LIVE must be two different Firebase projects."
-[[ "$DEV_ID" == *-dev ]] || die "DEV project id must end in -dev (got: $DEV_ID)."
+[[ "$DEV_ID" == *dev ]] || die "DEV project id must end in dev (got: $DEV_ID)."
 [[ "$LIVE_ID" != *dev* ]] || die "LIVE project id must not contain 'dev' (got: $LIVE_ID)."
 # This codebase was cloned from another shop's POS — never point it back there.
 case "$DEV_ID $LIVE_ID" in
-  *sajji*|*darbar*) die "Refusing: those look like another shop's Firebase projects. Use Bravo Bites' own ids." ;;
+  *sajji*|*darbar*) die "Refusing: those look like another shop's Firebase projects. Use Brovo Bites' own ids." ;;
 esac
 
 FOUND=0

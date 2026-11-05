@@ -186,7 +186,7 @@ export function InventoryPanel({
               onClick={() => setFilter(active && tile.key !== "all" ? "all" : tile.key)}
               className={`min-h-[4.5rem] rounded-2xl border px-4 py-3 text-start transition ${
                 active
-                  ? "border-[var(--gold)] bg-[#fffaf0] dark:bg-[rgba(228,193,90,0.12)] shadow-[0_0_0_3px_rgba(184,134,11,0.14)]"
+                  ? "border-[var(--gold)] bg-[#fffaf2] dark:bg-[rgba(240,176,40,0.12)] shadow-[0_0_0_3px_rgba(197,138,14,0.14)]"
                   : "border-[var(--border)] bg-white hover:border-[var(--gold)]/40"
               }`}
             >
@@ -234,7 +234,7 @@ export function InventoryPanel({
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--border)] bg-white px-6 py-10 text-center">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f3eee6] text-[var(--gold-deep)]">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f6e6d4] text-[var(--gold-deep)]">
             <Icon d={ICONS.box} size={22} />
           </span>
           <p className="mt-3 text-base font-bold text-[var(--ink)]">{t("invEmptyTitle")}</p>
@@ -331,7 +331,7 @@ function StockRow({
   const levelLabel = level === "out" ? t("outOfStock") : level === "low" ? t("lowStock") : t("invHealthy");
 
   return (
-    <li className="relative flex items-center gap-3 overflow-hidden rounded-2xl border border-[var(--border)] bg-white py-3 pe-2 ps-4 shadow-[0_1px_2px_rgba(28,25,23,0.04)] sm:pe-3">
+    <li className="relative flex items-center gap-3 overflow-hidden rounded-2xl border border-[var(--border)] bg-white py-3 pe-2 ps-4 shadow-[0_1px_2px_rgba(42,20,14,0.04)] sm:pe-3">
       <span className={`absolute inset-y-0 start-0 w-1 ${style.bar}`} aria-hidden />
       <span className={`relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl sm:flex ${style.tile}`}>
         <Icon d={ICONS.box} size={20} />
@@ -340,7 +340,7 @@ function StockRow({
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="truncate text-[15px] font-bold text-[var(--ink)]">{item.productName}</span>
           {item.variationLabel ? (
-            <span className="rounded-md bg-[#f3eee6] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gold-deep)]">
+            <span className="rounded-md bg-[#f6e6d4] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gold-deep)]">
               {item.variationLabel}
             </span>
           ) : null}
@@ -486,7 +486,7 @@ function RowMenu({
               ref={menuRef}
               role="menu"
               style={{ top: pos.top, left: pos.left, width: MENU_W }}
-              className="fixed z-[80] overflow-hidden rounded-xl border border-[var(--border)] bg-white py-1 shadow-[0_12px_32px_rgba(28,25,23,0.18)]"
+              className="fixed z-[80] overflow-hidden rounded-xl border border-[var(--border)] bg-white py-1 shadow-[0_12px_32px_rgba(42,20,14,0.18)]"
             >
               {actions.map((a) => (
                 <button
@@ -540,7 +540,7 @@ function Sheet({
     <div className="fixed inset-0 z-[60] flex flex-col justify-end sm:items-center sm:justify-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}>
       <button type="button" className="absolute inset-0 bg-stone-950/55 backdrop-blur-[2px]" aria-label={t("close")} onClick={onClose} />
       <div
-        className={`relative z-10 flex w-full flex-col overflow-hidden rounded-t-3xl bg-[#faf7f2] shadow-[0_25px_80px_rgba(0,0,0,0.4)] sm:rounded-3xl ${
+        className={`relative z-10 flex w-full flex-col overflow-hidden rounded-t-3xl bg-[#fff4e8] shadow-[0_25px_80px_rgba(0,0,0,0.4)] sm:rounded-3xl ${
           // Wide (the picker): one fixed size, so it doesn't jump as you filter or pick.
           wide ? "h-[min(94dvh,44rem)] sm:max-w-2xl" : "max-h-[min(94dvh,46rem)] sm:max-w-md"
         }`}
@@ -872,7 +872,7 @@ function AddItemsDialog({
       disabled
         ? "cursor-not-allowed border-dashed border-[var(--border)] bg-stone-50 dark:bg-stone-800 text-stone-400 dark:text-stone-500"
         : on
-          ? "border-[var(--gold)] bg-[#fff6dc] dark:bg-[rgba(228,193,90,0.16)] text-[var(--ink)] shadow-[0_0_0_2px_rgba(184,134,11,0.18)]"
+          ? "border-[var(--gold)] bg-[#fff3d6] dark:bg-[rgba(240,176,40,0.16)] text-[var(--ink)] shadow-[0_0_0_2px_rgba(197,138,14,0.18)]"
           : "border-[var(--border)] bg-white dark:bg-stone-800 text-[var(--ink)] hover:border-[var(--gold)]/50"
     }`;
 
@@ -905,7 +905,7 @@ function AddItemsDialog({
       title={step === 1 ? t("invPickTitle") : t("invSetCountsTitle")}
       subtitle={
         <span className="flex items-center gap-2">
-          <span className="shrink-0 whitespace-nowrap rounded-full bg-[#f3eee6] dark:bg-[rgba(228,193,90,0.16)] px-2 py-0.5 text-[11px] font-bold text-[var(--gold-deep)]">
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-[#f6e6d4] dark:bg-[rgba(240,176,40,0.16)] px-2 py-0.5 text-[11px] font-bold text-[var(--gold-deep)]">
             {t("invStepOf").replace("{n}", String(step))}
           </span>
           {step === 1 ? t("invPickHint") : t("invSetCountsHint")}
@@ -939,7 +939,7 @@ function AddItemsDialog({
                   type="button"
                   aria-pressed={cat === c.id}
                   className={`inv-cat-chip min-h-9 rounded-full px-3 text-[13px] font-bold transition ${
-                    cat === c.id ? "bg-[#1c1917] text-[#f5efe6] dark:bg-[var(--gold)] dark:text-[#1c1917]" : "bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 ring-1 ring-[var(--border)] hover:ring-[var(--gold)]/50"
+                    cat === c.id ? "bg-[#2a140e] text-[#fff4e8] dark:bg-[var(--gold)] dark:text-[#2a140e]" : "bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-200 ring-1 ring-[var(--border)] hover:ring-[var(--gold)]/50"
                   }`}
                   onClick={() => setCat(c.id)}
                 >
@@ -1032,7 +1032,7 @@ function AddItemsDialog({
                     <p className="text-[15px] font-bold text-[var(--ink)]">
                       {p.productName}
                       {p.variationLabel ? (
-                        <span className="ms-2 rounded-md bg-[#f3eee6] dark:bg-[rgba(228,193,90,0.16)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gold-deep)]">{p.variationLabel}</span>
+                        <span className="ms-2 rounded-md bg-[#f6e6d4] dark:bg-[rgba(240,176,40,0.16)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gold-deep)]">{p.variationLabel}</span>
                       ) : null}
                     </p>
                     <button
@@ -1171,7 +1171,7 @@ function EditItemDialog({ item, user, onClose }: { item: InventoryItem; user: Ap
                 aria-pressed={unit === u}
                 className={`min-h-10 rounded-xl border px-3 text-sm font-semibold transition ${
                   unit === u
-                    ? "border-[var(--gold)] bg-[#fff6dc] dark:bg-[rgba(228,193,90,0.16)] text-[var(--ink)]"
+                    ? "border-[var(--gold)] bg-[#fff3d6] dark:bg-[rgba(240,176,40,0.16)] text-[var(--ink)]"
                     : "border-[var(--border)] bg-white text-stone-700 hover:border-[var(--gold)]/50"
                 }`}
                 onClick={() => setUnit(u)}

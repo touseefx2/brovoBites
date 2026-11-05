@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@bravobites/domain";
 import { useAuth } from "@/lib/auth-context";
-import { useLocale } from "@/i18n/locale-context";
+import { LogoLoader } from "@/components/LogoLoader";
 
 export function RequireAuth({
   children,
@@ -14,7 +14,6 @@ export function RequireAuth({
   roles?: UserRole[];
 }) {
   const { profile, loading, firebaseUser } = useAuth();
-  const { t } = useLocale();
   const router = useRouter();
 
   useEffect(() => {
@@ -29,11 +28,8 @@ export function RequireAuth({
   }, [loading, firebaseUser, profile, roles, router]);
 
   if (loading || !profile) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-[var(--muted)]">
-        {t("loading")}
-      </div>
-    );
+    // Brand splash on first open of admin / POS / activity (caption = t("loading")).
+    return <LogoLoader />;
   }
 
   if (roles && !roles.includes(profile.role)) return null;

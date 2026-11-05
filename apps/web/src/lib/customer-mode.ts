@@ -1,8 +1,7 @@
 /** Public customer menu deployments — no staff screens there. */
 const CUSTOMER_HOSTS = [
-  "bravobites-customer.vercel.app",
-  "menu.your-domain.com",
-  "menu.dev.your-domain.com",
+  "brovobites-menu.vercel.app",
+  "brovobites-menu-dev.vercel.app",
 ];
 
 export function isCustomerMode(host: string): boolean {

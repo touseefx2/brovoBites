@@ -168,7 +168,7 @@ export function expenseChangeParts(edits: number, deletes: number): { key: Messa
   ];
 }
 
-/** "BravoBites-Owner-Report_2026-10-24_saved-2026-10-24_21-35-07.pdf" — a new name every time. */
+/** "BrovoBites-Owner-Report_2026-10-24_saved-2026-10-24_21-35-07.pdf" — a new name every time. */
 export function ownerReportFileName(fromKey: string | null, toKey: string, now = new Date()): string {
   const period = !fromKey ? `all-time-to-${toKey}` : fromKey === toKey ? toKey : `${fromKey}_to_${toKey}`;
   const stamp = new Intl.DateTimeFormat("en-CA", {
@@ -184,7 +184,7 @@ export function ownerReportFileName(fromKey: string | null, toKey: string, now =
     .format(now)
     .replace(", ", "_")
     .replace(/:/g, "-");
-  return `BravoBites-Owner-Report_${period}_saved-${stamp}.pdf`;
+  return `BrovoBites-Owner-Report_${period}_saved-${stamp}.pdf`;
 }
 
 /** "Full ×5 · Half ×10" — an item's sizes, most sold first. */

@@ -1,11 +1,11 @@
 {
-  "name": "Bravo Bites POS",
-  "short_name": "Bravo Bites",
-  "description": "Point of Sale — Bravo Bites",
+  "name": "Brovo Bites POS",
+  "short_name": "Brovo Bites",
+  "description": "Point of Sale — Brovo Bites",
   "start_url": "/pos",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#292524",
+  "background_color": "#190d09",
+  "theme_color": "#190d09",
   "orientation": "any",
   "icons": [
     {

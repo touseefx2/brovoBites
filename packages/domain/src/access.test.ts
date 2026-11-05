@@ -61,8 +61,8 @@ const allOff: StaffPermissions = {
 
 describe("googleMapsUrl", () => {
   it("builds named search biased to coords", () => {
-    expect(googleMapsUrl(31.5204, 74.3587, "Bravo Bites")).toBe(
-      "https://www.google.com/maps?q=Bravo%20Bites&ll=31.5204,74.3587&z=17",
+    expect(googleMapsUrl(31.5204, 74.3587, "Brovo Bites")).toBe(
+      "https://www.google.com/maps?q=Brovo%20Bites&ll=31.5204,74.3587&z=17",
     );
   });
 
@@ -83,26 +83,26 @@ describe("branchMapsUrl", () => {
   it("uses branch name search biased to coords when coords exist", () => {
     expect(
       branchMapsUrl({
-        name: "Bravo Bites Main Branch",
+        name: "Brovo Bites Main Branch",
         address: "Main Road",
         latitude: 33.69,
         longitude: 73.01,
       }),
     ).toBe(
-      "https://www.google.com/maps?q=Bravo%20Bites%20Main%20Branch&ll=33.69,73.01&z=17",
+      "https://www.google.com/maps?q=Brovo%20Bites%20Main%20Branch&ll=33.69,73.01&z=17",
     );
   });
 
   it("falls back to name/address search", () => {
     expect(
       branchMapsUrl({
-        name: "Bravo Bites",
+        name: "Brovo Bites",
         address: "Main Road",
         latitude: null,
         longitude: null,
       }),
     ).toBe(
-      "https://www.google.com/maps/search/?api=1&query=Bravo%20Bites%2C%20Main%20Road",
+      "https://www.google.com/maps/search/?api=1&query=Brovo%20Bites%2C%20Main%20Road",
     );
   });
 

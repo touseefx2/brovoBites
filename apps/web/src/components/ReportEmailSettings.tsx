@@ -167,22 +167,22 @@ export function ReportEmailSettings({ hours }: { hours: BusinessDayHours }) {
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-sm"
+      className="admin-section-card"
       data-testid="report-email-settings"
       aria-labelledby="report-email-title"
     >
-      <div className="border-b border-[var(--border)] bg-[#faf8f5] px-5 py-3.5">
-        <h2 id="report-email-title" className="text-sm font-bold uppercase tracking-wide text-[var(--ink)]">
+      <div className="admin-section-head">
+        <h2 id="report-email-title" className="admin-section-title">
           {t("repEmailTitle")}
         </h2>
-        <p className="mt-0.5 text-xs text-[var(--muted)]">{t("repEmailHint")}</p>
+        <p className="admin-section-hint">{t("repEmailHint")}</p>
       </div>
 
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-4 sm:p-5">
         {server && !server.mailer ? (
-          <p className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">{t("repEmailServerOff")}</p>
+          <p className="toast-warn">{t("repEmailServerOff")}</p>
         ) : server && !server.cron && form.autoDaily ? (
-          <p className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm text-amber-900 ring-1 ring-amber-200">{t("repEmailCronOff")}</p>
+          <p className="toast-warn">{t("repEmailCronOff")}</p>
         ) : null}
 
         {loading ? (
@@ -201,18 +201,20 @@ export function ReportEmailSettings({ hours }: { hours: BusinessDayHours }) {
                   {form.emails.map((email) => (
                     <li
                       key={email}
-                      className="inline-flex min-h-9 items-center gap-1 rounded-full border border-[var(--border)] bg-[#faf8f5] ps-3 pe-1 text-sm font-semibold text-[var(--ink)]"
+                      className="inline-flex min-h-11 max-w-full items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--bb-cream-100)] ps-3.5 text-sm font-semibold text-[var(--ink)]"
                     >
-                      <bdi dir="ltr">{email}</bdi>
+                      <bdi dir="ltr" className="min-w-0 truncate">{email}</bdi>
                       <button
                         type="button"
                         onClick={() => setForm((cur) => ({ ...cur, emails: cur.emails.filter((e) => e !== email) }))}
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-200 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]"
+                        className="group flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--muted)]"
                         aria-label={fill(t("repEmailRemove"), { email })}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
-                          <path d="M6 6l12 12M18 6L6 18" />
-                        </svg>
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full transition-colors group-hover:bg-[var(--bb-cream-200)] group-hover:text-[var(--danger)]">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+                            <path d="M6 6l12 12M18 6L6 18" />
+                          </svg>
+                        </span>
                       </button>
                     </li>
                   ))}
@@ -246,7 +248,7 @@ export function ReportEmailSettings({ hours }: { hours: BusinessDayHours }) {
                 />
                 <button
                   type="button"
-                  className="min-h-11 rounded-xl border border-[var(--border)] bg-[#faf8f5] px-4 text-sm font-semibold text-[var(--ink)] transition hover:bg-[#f0ebe3] disabled:opacity-50"
+                  className="btn btn-ghost shrink-0"
                   onClick={addEmail}
                   disabled={saving || !draft.trim()}
                 >
@@ -279,12 +281,12 @@ export function ReportEmailSettings({ hours }: { hours: BusinessDayHours }) {
             </label>
 
             <div className="flex flex-col gap-2 border-t border-[var(--border)] pt-4 sm:flex-row sm:flex-wrap sm:items-center">
-              <button type="button" className="btn min-h-11" onClick={() => void save()} disabled={saving || (!dirty && !draft.trim())}>
+              <button type="button" className="btn" onClick={() => void save()} disabled={saving || (!dirty && !draft.trim())}>
                 {saving ? t("saving") : t("repEmailSave")}
               </button>
               <button
                 type="button"
-                className="min-h-11 rounded-xl border border-[var(--border)] bg-white px-4 text-sm font-semibold text-[var(--ink)] transition hover:bg-[#faf8f5] disabled:opacity-50"
+                className="btn btn-ghost"
                 onClick={() => void sendTest()}
                 disabled={testing || saving || dirty || saved.emails.length === 0}
                 title={fill(t("repEmailTestHint"), { day: f.day(lastDay) })}

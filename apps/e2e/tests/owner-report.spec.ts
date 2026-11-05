@@ -53,8 +53,8 @@ async function nextMail(before: number): Promise<Mail> {
 /** Every report email: the report twice — an English PDF and an Urdu PDF. */
 async function expectPdf(mail: Mail) {
   expect(mail.attachments.map((a) => a.filename)).toEqual([
-    expect.stringMatching(/^BravoBites-Owner-Report_.+_English\.pdf$/),
-    expect.stringMatching(/^BravoBites-Owner-Report_.+_Urdu\.pdf$/),
+    expect.stringMatching(/^BrovoBites-Owner-Report_.+_English\.pdf$/),
+    expect.stringMatching(/^BrovoBites-Owner-Report_.+_Urdu\.pdf$/),
   ]);
   for (const a of mail.attachments) {
     const pdf = await readFile(path.join(OUTBOX, a.file));
@@ -66,7 +66,7 @@ async function expectPdf(mail: Mail) {
 /** Shop, then in English and in Urdu: "Owner report", branch, period (+ a one-line note) — not the report. */
 function expectHeaderOnly(mail: Mail & { html?: string }) {
   const [shop, english, ...rest] = mail.text.split("\n\n");
-  expect(shop).toBe("BRAVO BITES");
+  expect(shop).toBe("BROVO BITES");
   const lines = english!.split("\n");
   expect(lines[0]).toMatch(/^Owner report/);
   expect(lines[lines.length - 1]).toMatch(/→/);
@@ -92,7 +92,7 @@ function order(id: string, num: number, staff: { uid: string }, o: { total: numb
     {
       clientId: id,
       branchId: "main",
-      branchName: "Bravo Bites — Main",
+      branchName: "Brovo Bites — Main",
       orderNumber: num,
       orderType: "takeaway",
       customerName: id,
@@ -262,7 +262,7 @@ test("owner report flags a lowered bill, a cash cancel and cash short — staff 
         actions.getByRole("button", { name: "Save PDF" }).click(),
       ]);
       expect(download.suggestedFilename()).toMatch(
-        new RegExp(`^BravoBites-Owner-Report_${today}_saved-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.pdf$`),
+        new RegExp(`^BrovoBites-Owner-Report_${today}_saved-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.pdf$`),
       );
       const file = await download.path();
       const head = (await readFile(file)).subarray(0, 5).toString();
@@ -518,8 +518,8 @@ test("report emails: the owner sets who gets them; the daily email goes once aft
       request.post("/api/admin/owner-report/email", {
         headers: { Authorization: `Bearer ${owner.idToken}` },
         multipart: {
-          pdf: { name: "BravoBites-Owner-Report_test.pdf", mimeType: "application/pdf", buffer: pdf },
-          fileName: "BravoBites-Owner-Report_test.pdf",
+          pdf: { name: "BrovoBites-Owner-Report_test.pdf", mimeType: "application/pdf", buffer: pdf },
+          fileName: "BrovoBites-Owner-Report_test.pdf",
           subject: "Owner report test",
           periodLabel: "test",
           locale: "en",

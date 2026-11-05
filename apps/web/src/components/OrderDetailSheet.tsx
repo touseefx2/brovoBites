@@ -564,7 +564,7 @@ export function OrderDetailSheet({
       : order;
     printReceipt({
       order: snapshot,
-      shopName: settings?.shopName ?? "Bravo Bites",
+      shopName: settings?.shopName ?? "Brovo Bites",
       branchName: resolvedBranch || undefined,
       softwareCompanyName:
         settings?.softwareCompanyName ?? DEFAULT_SETTINGS.softwareCompanyName,
@@ -594,12 +594,12 @@ export function OrderDetailSheet({
     "text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--gold-deep)]";
   const fieldLabel = "mb-1 flex items-baseline gap-1 text-[11px] font-semibold text-stone-600";
   const fieldInput =
-    "min-h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-[var(--gold)] focus:ring-2 focus:ring-[var(--gold)]/25 disabled:opacity-60 sm:min-h-9";
+    "min-h-11 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-[var(--gold)] focus:ring-2 focus:ring-[var(--gold)]/25 disabled:opacity-60 pointer-coarse:text-base sm:pointer-fine:min-h-9";
   const segWrap = "flex gap-1 rounded-xl bg-stone-100 p-0.5 ring-1 ring-stone-200/80";
   const segBtn = (on: boolean) =>
-    `min-h-8 flex-1 rounded-lg px-2 text-[13px] font-semibold transition disabled:opacity-50 ${
+    `min-h-8 flex-1 rounded-lg px-2 text-[13px] font-semibold transition disabled:opacity-50 pointer-coarse:min-h-11 ${
       on
-        ? "bg-gradient-to-b from-[#2a231c] to-[#1a1511] text-[#f3d982] shadow-[0_2px_8px_rgba(28,25,23,0.25)] ring-1 ring-[#c9a227]/60"
+        ? "pos-seg-on"
         : "text-stone-600 hover:bg-white hover:text-stone-900"
     }`;
   const itemCount = draft.reduce((n, i) => n + i.qty, 0);
@@ -619,24 +619,24 @@ export function OrderDetailSheet({
             if (!busy) onClose();
           }}
         />
-        <div className="relative z-10 flex max-h-[min(96dvh,52rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.25rem] bg-[#faf7f2] shadow-[0_24px_80px_rgba(0,0,0,0.4)] sm:max-h-[min(92dvh,52rem)] sm:rounded-[1.25rem]">
+        <div className="relative z-10 flex max-h-[min(96dvh,52rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-[1.25rem] bg-[#fff4e8] shadow-[0_24px_80px_rgba(0,0,0,0.4)] sm:max-h-[min(92dvh,52rem)] sm:rounded-[1.25rem]">
           {/* Header — espresso rail: order #, status, who / when */}
           <header className="modal-dark-head shrink-0 px-4 pb-3.5 pt-4 sm:px-6">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#e4c15a]">
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#f0b028]">
                     {t("order")}
                   </span>
                   <h3
-                    className="font-mono text-[1.6rem] font-bold leading-none tracking-tight text-[#f5efe6] sm:text-[1.75rem]"
+                    className="font-mono text-[1.6rem] font-bold leading-none tracking-tight text-[#fff4e8] sm:text-[1.75rem]"
                     dir="ltr"
                   >
                     #{formatOrderNumber(order.orderNumber)}
                   </h3>
                   {order.printedOrderNumber != null ? (
                     <span
-                      className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#e4c15a] ring-1 ring-[#e4c15a]/40"
+                      className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#f0b028] ring-1 ring-[#f0b028]/40"
                       dir="ltr"
                       title={t("receiptNumber").replace("{n}", formatOrderNumber(order.printedOrderNumber))}
                     >
@@ -648,7 +648,7 @@ export function OrderDetailSheet({
                       {t("cancelled")}
                     </span>
                   ) : order.updatedAt ? (
-                    <span className="rounded-full bg-[rgba(228,193,90,0.14)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#f3d982] ring-1 ring-[rgba(228,193,90,0.35)]">
+                    <span className="rounded-full bg-[rgba(240,176,40,0.14)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#f6c95a] ring-1 ring-[rgba(240,176,40,0.35)]">
                       {t("amended")}
                     </span>
                   ) : null}
@@ -661,25 +661,25 @@ export function OrderDetailSheet({
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-2 text-xs leading-snug text-[#e8e0d4]">
+                <p className="mt-2 text-xs leading-snug text-[#e9d5c1]">
                   <span dir="ltr">{formatOrderDateTime(order.createdAt)}</span>
                   {resolvedBranch ? (
                     <>
-                      <span className="mx-1.5 text-[#8a7a66]">·</span>
+                      <span className="mx-1.5 text-[#8f7563]">·</span>
                       {resolvedBranch}
                     </>
                   ) : null}
                 </p>
-                <p className="mt-1 text-xs leading-snug text-[#c9b8a0]">
+                <p className="mt-1 text-xs leading-snug text-[#cbb3a0]">
                   {t("orderByPrefix")}{" "}
-                  <span className="font-semibold capitalize text-[#f5efe6]">
+                  <span className="font-semibold capitalize text-[#fff4e8]">
                     {order.createdByName || "—"}
                   </span>
                   {order.updatedByName && order.updatedAt ? (
                     <>
-                      <span className="mx-1.5 text-[#8a7a66]">·</span>
+                      <span className="mx-1.5 text-[#8f7563]">·</span>
                       {isCancelled ? t("cancelledBy") : t("editedBy")}{" "}
-                      <span className="font-semibold capitalize text-[#f5efe6]">
+                      <span className="font-semibold capitalize text-[#fff4e8]">
                         {order.updatedByName}
                       </span>
                     </>
@@ -688,7 +688,7 @@ export function OrderDetailSheet({
               </div>
               <button
                 type="button"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-[rgba(228,193,90,0.28)] bg-white/10 text-[#f5efe6] transition hover:bg-[rgba(228,193,90,0.18)] hover:text-white disabled:opacity-50"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full pointer-coarse:size-11 border border-[rgba(240,176,40,0.28)] bg-white/10 text-[#fff4e8] transition hover:bg-[rgba(240,176,40,0.18)] hover:text-white disabled:opacity-50"
                 disabled={busy}
                 onClick={onClose}
                 aria-label={t("close")}
@@ -705,7 +705,7 @@ export function OrderDetailSheet({
             {error ? <div className="toast-error">{error}</div> : null}
 
             {allowEdit ? (
-              <section className="space-y-2.5 rounded-2xl border border-stone-200/80 bg-white p-3 shadow-[0_1px_3px_rgba(28,25,23,0.05)] sm:px-4">
+              <section className="space-y-2.5 rounded-2xl border border-stone-200/80 bg-white p-3 shadow-[0_1px_3px_rgba(42,20,14,0.05)] sm:px-4">
                 <p className={sectionTitle}>{t("orderDetailsTitle")}</p>
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   <div>
@@ -824,9 +824,9 @@ export function OrderDetailSheet({
                               type="button"
                               disabled={busy}
                               aria-pressed={draftDiscountType === dt}
-                              className={`h-9 min-w-10 rounded-lg px-2 text-sm font-bold transition ${
+                              className={`h-9 min-w-10 rounded-lg px-2 text-sm font-bold transition pointer-coarse:h-11 pointer-coarse:min-w-11 ${
                                 draftDiscountType === dt
-                                  ? "bg-gradient-to-b from-[#2a231c] to-[#1a1511] text-[#f3d982] ring-1 ring-[#c9a227]/60"
+                                  ? "pos-seg-on"
                                   : "text-stone-600 hover:bg-white hover:text-stone-900"
                               }`}
                               onClick={() => {
@@ -862,7 +862,7 @@ export function OrderDetailSheet({
                             <button
                               type="button"
                               disabled={busy}
-                              className="absolute end-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-900 disabled:opacity-50"
+                              className="absolute end-1 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-900 disabled:opacity-50 pointer-coarse:end-0 pointer-coarse:size-11"
                               aria-label={t("clear")}
                               onClick={() => setDraftDiscountValue(0)}
                             >
@@ -883,15 +883,15 @@ export function OrderDetailSheet({
                 </div>
               </section>
             ) : (
-              <section className="flex flex-wrap gap-1.5 rounded-2xl border border-stone-200/80 bg-white p-3 shadow-[0_1px_3px_rgba(28,25,23,0.05)]">
-                <span className="rounded-lg bg-gradient-to-b from-[#2a231c] to-[#1a1511] px-2.5 py-1 text-xs font-bold text-[#f3d982]">
+              <section className="flex flex-wrap gap-1.5 rounded-2xl border border-stone-200/80 bg-white p-3 shadow-[0_1px_3px_rgba(42,20,14,0.05)]">
+                <span className="pos-seg-on rounded-lg px-2.5 py-1 text-xs font-bold">
                   {draftOrderType === "takeaway"
                     ? t("takeaway")
                     : draftOrderType === "delivery"
                       ? t("delivery")
                       : t("dineIn")}
                 </span>
-                <span className="rounded-lg bg-gradient-to-b from-[#2a231c] to-[#1a1511] px-2.5 py-1 text-xs font-bold text-[#f3d982]">
+                <span className="pos-seg-on rounded-lg px-2.5 py-1 text-xs font-bold">
                   {draftPayment === "card"
                     ? t("card")
                     : draftPayment === "digital"
@@ -934,7 +934,7 @@ export function OrderDetailSheet({
                   {t("orderMustHaveItem")}
                 </p>
               ) : (
-                <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_3px_rgba(28,25,23,0.05)]">
+                <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-[0_1px_3px_rgba(42,20,14,0.05)]">
                   {draft.map((item, index) => (
                     <li
                       key={`${item.productId}-${item.variationId ?? ""}-${index}`}
@@ -946,7 +946,7 @@ export function OrderDetailSheet({
                         </p>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                           {item.variationLabel ? (
-                            <span className="inline-flex max-w-full truncate rounded-md bg-[rgba(184,134,11,0.1)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--gold-deep)]">
+                            <span className="pos-variant-chip inline-flex max-w-full truncate">
                               {item.variationLabel}
                             </span>
                           ) : null}
@@ -965,7 +965,7 @@ export function OrderDetailSheet({
                         <div className="inline-flex shrink-0 items-center rounded-full bg-stone-100 p-0.5 ring-1 ring-stone-200">
                           <button
                             type="button"
-                            className="inline-flex size-9 items-center justify-center rounded-full text-lg font-semibold text-stone-700 transition hover:bg-white hover:shadow-sm disabled:opacity-40"
+                            className="inline-flex size-9 items-center justify-center rounded-full text-lg font-semibold text-stone-700 transition hover:bg-white hover:shadow-sm disabled:opacity-40 pointer-coarse:size-11"
                             disabled={busy}
                             onClick={() => setQty(index, item.qty - 1)}
                             aria-label="−"
@@ -977,7 +977,7 @@ export function OrderDetailSheet({
                           </span>
                           <button
                             type="button"
-                            className="inline-flex size-9 items-center justify-center rounded-full text-lg font-semibold text-stone-700 transition hover:bg-white hover:shadow-sm disabled:opacity-40"
+                            className="inline-flex size-9 items-center justify-center rounded-full text-lg font-semibold text-stone-700 transition hover:bg-white hover:shadow-sm disabled:opacity-40 pointer-coarse:size-11"
                             disabled={busy}
                             onClick={() => setQty(index, item.qty + 1)}
                             aria-label="+"
@@ -1001,7 +1001,7 @@ export function OrderDetailSheet({
                       {allowEdit ? (
                         <button
                           type="button"
-                          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-stone-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-stone-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40 pointer-coarse:size-11"
                           disabled={busy}
                           onClick={() => removeLine(index)}
                           aria-label={t("remove")}
@@ -1032,19 +1032,19 @@ export function OrderDetailSheet({
               ) : null}
 
               {pickerOpen ? (
-                <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--gold)]/40 bg-white shadow-[0_4px_16px_rgba(28,25,23,0.08)]">
+                <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--gold)]/40 bg-white shadow-[0_4px_16px_rgba(42,20,14,0.08)]">
                   <div className="flex items-center gap-2 border-b border-stone-100 p-2">
                     <input
                       type="search"
                       value={pickerSearch}
                       onChange={(e) => setPickerSearch(e.target.value)}
                       placeholder={t("searchMenu")}
-                      className="min-h-10 flex-1 rounded-xl border-0 bg-stone-100 px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--gold)]/40"
+                      className="min-h-10 flex-1 rounded-xl border-0 bg-stone-100 px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--gold)]/40 pointer-coarse:min-h-11 pointer-coarse:text-base"
                       autoFocus
                     />
                     <button
                       type="button"
-                      className="inline-flex min-h-10 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-stone-600 hover:bg-stone-100"
+                      className="inline-flex min-h-10 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-stone-600 hover:bg-stone-100 pointer-coarse:min-h-11"
                       onClick={() => setPickerOpen(false)}
                     >
                       {t("close")}
@@ -1062,7 +1062,7 @@ export function OrderDetailSheet({
                             <button
                               key={`${p.id}-${v.id}`}
                               type="button"
-                              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start transition hover:bg-[#faf5ea]"
+                              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start transition hover:bg-[#fff1df]"
                               onClick={() => addProduct(p, v.id, v.label, v.price)}
                             >
                               <span className="text-sm font-medium text-stone-900">
@@ -1077,7 +1077,7 @@ export function OrderDetailSheet({
                           <button
                             key={p.id}
                             type="button"
-                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start transition hover:bg-[#faf5ea]"
+                            className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-start transition hover:bg-[#fff1df]"
                             onClick={() => addProduct(p)}
                           >
                             <span className="text-sm font-medium text-stone-900">{p.name}</span>
@@ -1206,7 +1206,7 @@ export function OrderDetailSheet({
                   {allowRefund ? (
                     <button
                       type="button"
-                      className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/60 px-2 text-xs font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-50 disabled:opacity-50 sm:text-[13px]"
+                      className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl pointer-coarse:min-h-11 border border-amber-200 bg-amber-50/60 px-2 text-xs font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-50 disabled:opacity-50 sm:text-[13px]"
                       disabled={busy}
                       onClick={() => {
                         setRefundAmt(refundableAmount);
@@ -1224,7 +1224,7 @@ export function OrderDetailSheet({
                   {allowCancel ? (
                     <button
                       type="button"
-                      className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-orange-300 bg-orange-50 px-2 text-xs font-semibold text-orange-700 transition hover:border-orange-400 hover:bg-orange-100 disabled:opacity-50 sm:text-[13px]"
+                      className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl pointer-coarse:min-h-11 border border-orange-300 bg-orange-50 px-2 text-xs font-semibold text-orange-700 transition hover:border-orange-400 hover:bg-orange-100 disabled:opacity-50 sm:text-[13px]"
                       disabled={busy}
                       onClick={() => setConfirmCancel(true)}
                     >
@@ -1238,7 +1238,7 @@ export function OrderDetailSheet({
                   {allowDelete ? (
                     <button
                       type="button"
-                      className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-2 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50 sm:text-[13px]"
+                      className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl pointer-coarse:min-h-11 border border-red-200 bg-white px-2 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50 sm:text-[13px]"
                       disabled={busy}
                       onClick={() => setConfirmDelete(true)}
                     >

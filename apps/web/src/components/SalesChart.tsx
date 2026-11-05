@@ -210,6 +210,15 @@ export function SalesChart({
     };
   }, [filter, dayHours, liveFromKey, loadDailyTotals]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   const activeOrders = useMemo(
     () => orders.filter((o) => o.status !== "cancelled"),
     [orders],
@@ -230,9 +239,10 @@ export function SalesChart({
       filter === "yesterday" ? "yesterday" : "today",
       dayHours,
     );
-    const from = hourLabel(businessHour(start));
-    const to = hourLabel(businessHour(new Date(end.getTime() - 1)));
-    return `${from} → ${to}`;
+    return {
+      from: hourLabel(businessHour(start)),
+      to: hourLabel(businessHour(new Date(end.getTime() - 1))),
+    };
   }, [filter, dayHours]);
 
   const totalForPeriod = useMemo(
@@ -243,88 +253,99 @@ export function SalesChart({
   const denseHourly =
     (filter === "today" || filter === "yesterday") && data.length > 10;
 
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // Axis labels stay flat and 12px; when they would touch, label every Nth bar instead.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [bodyWidth, setBodyWidth] = useState(0);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const sync = () => setBodyWidth(el.clientWidth);
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const yAxisWidth = narrow ? 44 : 58;
+  const longestLabel = data.reduce((m, d) => Math.max(m, d.hour.length), 0);
+  const labelSlot = longestLabel * 7 + 10;
+  const plotWidth = bodyWidth - yAxisWidth - 36;
+  const labelEvery =
+    plotWidth > 0 && data.length > 0
+      ? Math.max(1, Math.ceil((data.length * labelSlot) / plotWidth))
+      : narrow && data.length > 10
+        ? Math.ceil(data.length / 8)
+        : 1;
+
+  const L = locale === "ur" ? "ur" : "en";
+
   return (
-    <section className="overflow-hidden rounded-2xl border border-[rgba(184,134,11,0.18)] bg-white shadow-[0_12px_32px_rgba(28,25,23,0.06)]">
-      <div className="flex items-center justify-between gap-3 border-b border-[rgba(184,134,11,0.12)] bg-gradient-to-r from-[#faf7f2] to-white px-4 py-3.5 sm:px-5">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex size-8 items-center justify-center rounded-lg bg-[rgba(184,134,11,0.12)] text-[var(--gold-deep)] ring-1 ring-[rgba(184,134,11,0.22)]">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-                <rect x="3" y="12" width="4" height="9" rx="1" fill="currentColor" stroke="none" opacity="0.35" />
-                <rect x="10" y="7" width="4" height="14" rx="1" fill="currentColor" stroke="none" opacity="0.55" />
-                <rect x="17" y="3" width="4" height="18" rx="1" fill="currentColor" stroke="none" opacity="0.9" />
-              </svg>
-            </span>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                {filter === "today" ? (
-                  <span className="inline-flex items-center rounded-full bg-[var(--gold-deep)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
-                    {filterLabels.today[locale === "ur" ? "ur" : "en"]}
-                  </span>
-                ) : (
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gold-deep)]">
-                    {locale === "ur" ? "چارٹ" : "Chart"}
-                  </p>
-                )}
-              </div>
-              <h2 className="mt-0.5 text-base font-bold text-[var(--ink)]">
-                {locale === "ur" ? "سیل کا جائزہ" : "Sales Overview"}
-              </h2>
-            </div>
-          </div>
-          <p className="mt-1.5 text-xs text-[var(--muted)]">
-            {filter === "today" && todaySummary
-              ? locale === "ur"
-                ? `آج · ${todaySummary.orders} آرڈرز`
-                : `Today · ${todaySummary.orders} orders`
-              : locale === "ur"
-                ? "وقت کے مطابق سیل"
-                : "Sales by time"}
-            {" · "}
-            <span className="font-semibold text-[var(--gold-deep)]" dir="ltr">
-              {formatPkr(totalForPeriod)}
-            </span>
-          </p>
-          <p className="mt-1 text-[10px] leading-snug text-[var(--muted)] sm:text-xs">
-            {locale === "ur"
-              ? "بائیں = سیل (روپے) · نیچے = وقت"
-              : "Left = sales in rupees · Bottom = time of day"}
-          </p>
-          {olderFailed && (filter === "last7" || filter === "thisMonth") ? (
-            <p className="mt-1 text-[10px] leading-snug text-amber-700 sm:text-xs">
-              {locale === "ur"
-                ? "پرانے دن انٹرنیٹ پر دکھیں گے — ابھی صرف کل اور آج"
-                : "Earlier days need the internet — showing yesterday and today only"}
-            </p>
-          ) : null}
+    <section className="dash-panel dash-chart">
+      <div className="dash-panel-head">
+        <span className="dash-panel-icon" aria-hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M3 21h18" />
+            <rect x="5" y="12" width="3.5" height="6" rx="1" />
+            <rect x="10.25" y="7" width="3.5" height="11" rx="1" />
+            <rect x="15.5" y="3.5" width="3.5" height="14.5" rx="1" />
+          </svg>
+        </span>
+        <div className="min-w-0 flex-1">
+          {filter === "today" ? (
+            <span className="dash-chart-today">{filterLabels.today[L]}</span>
+          ) : (
+            <p className="dash-eyebrow">{L === "ur" ? "چارٹ" : "Chart"}</p>
+          )}
+          <h2 className="dash-panel-title">
+            {L === "ur" ? "سیل کا جائزہ" : "Sales Overview"}
+          </h2>
         </div>
 
-        <div className="relative">
+        <div className="dash-range">
           <button
+            type="button"
             onClick={() => setOpen(!open)}
-            className="flex min-h-10 items-center gap-1.5 rounded-xl border border-[rgba(184,134,11,0.25)] bg-white px-3 py-1.5 text-sm font-semibold text-[var(--ink)] shadow-sm transition hover:border-[var(--gold)] hover:bg-[#faf7f2]"
+            aria-expanded={open}
+            className="dash-range-btn"
           >
-            {filterLabels[filter][locale === "ur" ? "ur" : "en"]}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition ${open ? "rotate-180" : ""}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="3" y="4.5" width="18" height="16.5" rx="2.5" />
+              <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
+            </svg>
+            {filterLabels[filter][L]}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`dash-range-chevron${open ? " is-open" : ""}`} aria-hidden>
               <path d="M6 9l6 6 6-6" />
             </svg>
           </button>
           {open && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-              <div className="absolute end-0 z-20 mt-1 min-w-[160px] overflow-hidden rounded-xl border border-[rgba(184,134,11,0.2)] bg-white shadow-lg">
+              <div className="dash-range-menu">
                 {FILTERS.map((f) => (
                   <button
                     key={f}
+                    type="button"
                     onClick={() => {
                       setFilter(f);
                       setOpen(false);
                     }}
-                    className={`block w-full px-4 py-2.5 text-start text-sm transition hover:bg-[#faf7f2] ${
-                      f === filter ? "font-bold text-[var(--gold-deep)]" : "text-[var(--ink)]"
-                    }`}
+                    aria-pressed={f === filter}
+                    className={`dash-range-item${f === filter ? " is-active" : ""}`}
                   >
-                    {filterLabels[f][locale === "ur" ? "ur" : "en"]}
+                    {filterLabels[f][L]}
+                    {f === filter ? (
+                      <svg className="dash-range-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                        <path d="M5 12l5 5L20 7" />
+                      </svg>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -333,42 +354,75 @@ export function SalesChart({
         </div>
       </div>
 
-      <div className="overflow-x-auto px-3 py-4 sm:px-5 sm:py-5" dir="ltr">
+      <div className="dash-chart-meta">
+        <p className="dash-chart-summary">
+          {filter === "today" && todaySummary
+            ? L === "ur"
+              ? `آج · ${todaySummary.orders} آرڈرز`
+              : `Today · ${todaySummary.orders} orders`
+            : L === "ur"
+              ? "وقت کے مطابق سیل"
+              : "Sales by time"}
+          {" · "}
+          <span className="dash-chart-total" dir="ltr">
+            {formatPkr(totalForPeriod)}
+          </span>
+        </p>
+        <p className="dash-chart-hint">
+          {L === "ur"
+            ? "بائیں = سیل (روپے) · نیچے = وقت"
+            : "Left = sales in rupees · Bottom = time of day"}
+        </p>
+        {olderFailed && (filter === "last7" || filter === "thisMonth") ? (
+          <p className="dash-chart-warn">
+            {L === "ur"
+              ? "پرانے دن انٹرنیٹ پر دکھیں گے — ابھی صرف کل اور آج"
+              : "Earlier days need the internet — showing yesterday and today only"}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="dash-chart-body" dir="ltr" ref={bodyRef}>
         {(filter === "today" || filter === "yesterday") && (
-          <p className="mb-2 text-[10px] font-medium text-[var(--muted)] sm:text-xs">
-            {locale === "ur" ? "کاروباری دن" : "Business day"}
-            {": "}
-            {windowLabel}
+          <p className="dash-chart-day" dir={L === "ur" ? "rtl" : "ltr"}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            <span>{L === "ur" ? "کاروباری دن:" : "Business day:"}</span>
+            <bdi dir="ltr">{windowLabel.from}</bdi>
+            <svg className="dash-window-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+            <bdi dir="ltr">{windowLabel.to}</bdi>
           </p>
         )}
-        <ResponsiveContainer width="100%" height={denseHourly ? 280 : 260}>
+        <ResponsiveContainer width="100%" height={260}>
           <BarChart
             data={data}
             margin={{
               top: 8,
               right: 8,
               left: 4,
-              bottom: denseHourly ? 40 : 8,
+              bottom: 8,
             }}
             barCategoryGap={denseHourly ? "12%" : "18%"}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(28,25,23,0.06)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--bb-cream-200)" vertical={false} />
             <XAxis
               dataKey="hour"
-              tick={{ fontSize: denseHourly ? 8 : 11, fill: "#78716c" }}
+              tick={{ fontSize: 12, fill: "var(--bb-muted)" }}
               axisLine={false}
               tickLine={false}
-              interval={0}
-              angle={denseHourly ? -40 : 0}
-              textAnchor={denseHourly ? "end" : "middle"}
-              height={denseHourly ? 52 : 24}
+              interval={labelEvery - 1}
+              height={26}
               minTickGap={0}
             />
             <YAxis
-              tick={{ fontSize: 10, fill: "#78716c" }}
+              tick={{ fontSize: 12, fill: "var(--bb-muted)" }}
               axisLine={false}
               tickLine={false}
-              width={58}
+              width={yAxisWidth}
               tickCount={5}
               tickFormatter={(v: number) => {
                 if (!Number.isFinite(v) || v <= 0) return "0";
@@ -378,36 +432,38 @@ export function SalesChart({
               }}
             />
             <Tooltip
-              cursor={{ fill: "rgba(201,162,39,0.08)" }}
+              cursor={{ fill: "var(--bb-cream-100)" }}
               contentStyle={{
-                background: "#1c1917",
-                border: "none",
-                borderRadius: 10,
+                background: "var(--bb-brown-900)",
+                border: "1px solid var(--bb-brown-700)",
+                borderRadius: 12,
                 padding: "8px 14px",
                 fontSize: 13,
               }}
-              labelStyle={{ color: "#a8a29e", marginBottom: 2 }}
-              formatter={(value) => [formatPkr(Number(value ?? 0)), locale === "ur" ? "سیل" : "Sales"]}
+              labelStyle={{ color: "var(--bb-muted-on-dark)", marginBottom: 2 }}
+              itemStyle={{ color: "var(--bb-cream-100)", fontWeight: 700, padding: 0 }}
+              formatter={(value) => [formatPkr(Number(value ?? 0)), L === "ur" ? "سیل" : "Sales"]}
               labelFormatter={(label) =>
-                locale === "ur" ? `وقت: ${label}` : `Time: ${label}`
+                L === "ur" ? `وقت: ${label}` : `Time: ${label}`
               }
             />
             <defs>
-              <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#e4c15a" />
-                <stop offset="100%" stopColor="#8a6508" />
+              <linearGradient id="bbBarMustard" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--bb-mustard-400)" />
+                <stop offset="100%" stopColor="var(--bb-mustard-700)" />
               </linearGradient>
             </defs>
             <Bar
               dataKey="sales"
-              fill="url(#barGold)"
-              radius={[4, 4, 0, 0]}
+              fill="url(#bbBarMustard)"
+              activeBar={{ fill: "var(--bb-red-500)" }}
+              radius={[6, 6, 0, 0]}
               maxBarSize={denseHourly ? 18 : 36}
             />
           </BarChart>
         </ResponsiveContainer>
-        <p className="mt-1 text-center text-[10px] text-[var(--muted)]">
-          {locale === "ur"
+        <p className="dash-chart-foot" dir={L === "ur" ? "rtl" : "ltr"}>
+          {L === "ur"
             ? "۷k = ۷,۰۰۰ روپے · بار جتنی اونچی، اتنی زیادہ سیل"
             : "7k = Rs 7,000 · Taller bar = more sales that hour"}
         </p>

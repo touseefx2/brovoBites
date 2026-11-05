@@ -83,14 +83,14 @@ export function SyncStatusSheet({ user, onClose }: { user: AppUser; onClose: () 
         className="relative z-10 flex max-h-[85dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
         style={locale === "ur" ? undefined : NUM}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-[#f0e9dc] px-5 pb-3 pt-4">
+        <div className="flex items-start justify-between gap-3 border-b border-[#f0dcc6] px-5 pb-3 pt-4">
           <div>
             <h2 className="text-lg font-bold text-[var(--ink)]">{t("syncStatusTitle")}</h2>
             <p className="mt-1 text-xs leading-relaxed text-stone-500">{t("syncStatusHint")}</p>
           </div>
           <button
             type="button"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900 pointer-coarse:size-11"
             onClick={onClose}
             aria-label={t("close")}
           >
@@ -115,7 +115,7 @@ export function SyncStatusSheet({ user, onClose }: { user: AppUser; onClose: () 
           ) : (
             <ul className="space-y-2.5">
               {issues.map((i) => (
-                <li key={i.id} className="rounded-2xl border border-[#f0e9dc] px-4 py-3">
+                <li key={i.id} className="rounded-2xl border border-[#f0dcc6] px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold text-[var(--ink)]">{title(i)}</p>

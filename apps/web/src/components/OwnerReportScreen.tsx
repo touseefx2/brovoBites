@@ -70,10 +70,10 @@ import {
 const NUM: CSSProperties = { fontFamily: "var(--font-en), system-ui, sans-serif" };
 
 const CARD =
-  "rounded-2xl border border-[#e8dfcf] bg-white shadow-[0_1px_2px_rgba(28,25,23,0.04),0_12px_28px_-18px_rgba(28,25,23,0.25)]";
+  "rounded-2xl border border-[#e7d0b8] bg-white shadow-[0_1px_2px_rgba(42,20,14,0.04),0_12px_28px_-18px_rgba(42,20,14,0.25)]";
 
 const BTN =
-  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[#e8dfcf] bg-white px-3 text-sm font-semibold text-[var(--gold-deep)] transition hover:bg-[#faf8f5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]";
+  "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[#e7d0b8] bg-white px-3 text-sm font-semibold text-[var(--gold-deep)] transition hover:bg-[#fff7ee] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]";
 
 /** A 28px chip that still takes a 44px tap (the hit area reaches 8px above and below). */
 const HIT = "relative after:absolute after:inset-x-0 after:-inset-y-2";
@@ -255,9 +255,9 @@ function Section({
 }) {
   return (
     <section id={id} className={`${CARD} scroll-mt-4 ${className}`} data-testid={testId}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#f0e9dc] px-4 py-4 sm:px-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#f0dcc6] px-4 py-4 sm:px-6">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f6efe0] text-[var(--gold-deep)]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fdeccb] text-[var(--gold-deep)]">
             <Svg d={icon} size={20} />
           </span>
           <div className="min-w-0">
@@ -350,7 +350,7 @@ function Dialog({
     >
       <button type="button" className="absolute inset-0 bg-stone-950/55 backdrop-blur-[2px]" aria-label={t("close")} onClick={onClose} />
       <div className="relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
-        <div className="flex items-center justify-between gap-3 border-b border-[#f0e9dc] px-5 py-3.5">
+        <div className="flex items-center justify-between gap-3 border-b border-[#f0dcc6] px-5 py-3.5">
           <h3 className="text-base font-bold text-[var(--ink)]">{title}</h3>
           <button
             type="button"
@@ -362,7 +362,7 @@ function Dialog({
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-        <div className="flex justify-end gap-2 border-t border-[#f0e9dc] px-5 py-3">{footer}</div>
+        <div className="flex justify-end gap-2 border-t border-[#f0dcc6] px-5 py-3">{footer}</div>
       </div>
     </div>
   );
@@ -491,7 +491,7 @@ function ActionButtons({ a, compact }: { a: Actions; compact?: boolean }) {
     <>
       <button
         type="button"
-        className={`${ACTION_BTN} ${tile} justify-center border-[#e8dfcf] bg-white text-[var(--ink)] hover:bg-[#faf8f5]`}
+        className={`${ACTION_BTN} ${tile} justify-center border-[#e7d0b8] bg-white text-[var(--ink)] hover:bg-[#fff7ee]`}
         onClick={a.savePdf}
         disabled={a.pdfBusy}
       >
@@ -500,7 +500,7 @@ function ActionButtons({ a, compact }: { a: Actions; compact?: boolean }) {
       </button>
       <button
         type="button"
-        className={`${ACTION_BTN} ${tile} justify-center border-[#e8dfcf] bg-white text-[var(--ink)] hover:bg-[#faf8f5]`}
+        className={`${ACTION_BTN} ${tile} justify-center border-[#e7d0b8] bg-white text-[var(--ink)] hover:bg-[#fff7ee]`}
         onClick={a.printSlip}
       >
         <Svg d={PATH.printer} size={18} className="text-[var(--gold-deep)]" />
@@ -563,7 +563,7 @@ function PrintPreview({ a }: { a: Actions }) {
         <>
           <button
             type="button"
-            className={`${ACTION_BTN} border-[#e8dfcf] bg-white px-4 text-stone-700 hover:bg-[#faf8f5]`}
+            className={`${ACTION_BTN} border-[#e7d0b8] bg-white px-4 text-stone-700 hover:bg-[#fff7ee]`}
             onClick={() => a.setPreview(null)}
           >
             {t("cancel")}
@@ -584,7 +584,7 @@ function PrintPreview({ a }: { a: Actions }) {
         </>
       }
     >
-      <div className="bg-[#efebe4] px-2 py-3">
+      <div className="bg-[#efe2d3] px-2 py-3">
         <ReceiptPreview html={html} title={t("orPrintPreview")} />
       </div>
     </Dialog>
@@ -656,7 +656,7 @@ function EqTile({
     <div
       data-testid={testId}
       className={`grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-2xl px-4 py-3.5 lg:grid-cols-1 lg:content-start lg:py-4 ${
-        dark ? "bg-[#1c1917] text-white ring-1 ring-[#f0e9dc]" : "bg-[#faf8f5] ring-1 ring-[#f0e9dc]"
+        dark ? "bg-[#2a140e] text-white ring-1 ring-[#f0dcc6]" : "bg-[#fff7ee] ring-1 ring-[#f0dcc6]"
       }`}
     >
       <p className={`col-start-1 row-start-1 text-sm font-semibold ${dark ? "text-white" : "text-stone-600"}`}>{label}</p>
@@ -676,7 +676,7 @@ function EqOp({ sign }: { sign: string }) {
   return (
     <div className="flex shrink-0 items-center justify-center" aria-hidden>
       <span
-        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#f6efe0] text-base font-bold text-[var(--gold-deep)] lg:h-9 lg:w-9 lg:text-lg"
+        className="flex h-7 w-7 items-center justify-center rounded-full bg-[#fdeccb] text-base font-bold text-[var(--gold-deep)] lg:h-9 lg:w-9 lg:text-lg"
         style={NUM}
       >
         {sign}
@@ -842,7 +842,7 @@ function SummarySection({
         </div>
       </div>
 
-      <div className="border-t border-[#f0e9dc] px-4 py-4 sm:px-6 sm:py-5">
+      <div className="border-t border-[#f0dcc6] px-4 py-4 sm:px-6 sm:py-5">
         <p className="mb-3 text-sm font-semibold text-stone-600">
           {t("orAlsoTitle")} <span className="font-normal">— {t("orAlsoHint")}</span>
         </p>
@@ -861,14 +861,14 @@ function SummarySection({
                 <span className="mt-0.5 block text-sm text-stone-600">{tile.sub}</span>
               </>
             );
-            const cls = `min-h-[104px] rounded-2xl bg-white p-4 text-start ${warn ? `border border-transparent ring-1 ${warn.ring}` : "border border-[#e8dfcf]"}`;
+            const cls = `min-h-[104px] rounded-2xl bg-white p-4 text-start ${warn ? `border border-transparent ring-1 ${warn.ring}` : "border border-[#e7d0b8]"}`;
             return tile.count > 0 ? (
               <button
                 key={tile.key}
                 type="button"
                 data-testid={tile.testId}
                 onClick={() => onTile(tile.target)}
-                className={`${cls} transition hover:bg-[#faf8f5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]`}
+                className={`${cls} transition hover:bg-[#fff7ee] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]`}
               >
                 {body}
               </button>
@@ -953,7 +953,7 @@ function OneDrawer({ d, branch }: { d: DrawerRow; branch?: string }) {
   const tn = TONE[r.tone];
   const counted = d.status === "closed" && !d.autoClosed && d.closingCount != null;
   const fig = (label: string, value: ReactNode, tinted?: boolean) => (
-    <div className={`rounded-2xl p-4 ring-1 ${tinted ? `${tn.tint} ${tn.ring}` : "bg-[#faf8f5] ring-[#f0e9dc]"}`}>
+    <div className={`rounded-2xl p-4 ring-1 ${tinted ? `${tn.tint} ${tn.ring}` : "bg-[#fff7ee] ring-[#f0dcc6]"}`}>
       <dt className="text-sm text-stone-600">{label}</dt>
       <dd className="mt-1 text-2xl font-bold tabular-nums text-[var(--ink)]" style={NUM}>
         {value}
@@ -1026,7 +1026,7 @@ function DrawerSummary({ report }: { report: OwnerReport }) {
           );
         })}
       </ul>
-      <div className="flex shrink-0 items-baseline justify-between gap-3 rounded-2xl bg-[#faf8f5] px-4 py-3 ring-1 ring-[#f0e9dc] sm:flex-col sm:items-end sm:gap-0">
+      <div className="flex shrink-0 items-baseline justify-between gap-3 rounded-2xl bg-[#fff7ee] px-4 py-3 ring-1 ring-[#f0dcc6] sm:flex-col sm:items-end sm:gap-0">
         <span className="text-sm font-semibold text-stone-600">{t("orDifference")}</span>
         <span className="text-2xl font-bold">
           {total < 0 ? (
@@ -1054,8 +1054,8 @@ function DrawerDays({ report, multiBranch, branchNameFor }: { report: OwnerRepor
   );
   return (
     <>
-      <h3 className="border-t border-[#f0e9dc] bg-[#faf7f2] px-4 py-2.5 text-sm font-bold text-stone-700 sm:px-6">{t("orDrawerTitle")}</h3>
-      <ul data-testid="owner-drawers" className="divide-y divide-[#f3ede2]">
+      <h3 className="border-t border-[#f0dcc6] bg-[#fff4e8] px-4 py-2.5 text-sm font-bold text-stone-700 sm:px-6">{t("orDrawerTitle")}</h3>
+      <ul data-testid="owner-drawers" className="divide-y divide-[#f3e2cf]">
         {report.drawers.map((d) => {
           const r = drawerTone(d);
           const tn = TONE[r.tone];
@@ -1112,7 +1112,7 @@ function CheckLine({ row, onJump }: { row: CheckRow; onJump: () => void }) {
   return (
     <li data-check={row.id} data-mark={row.mark}>
       {row.mark === "bad" || row.mark === "warn" || row.mark === "info" ? (
-        <button type="button" onClick={onJump} className={`${base} transition hover:bg-[#faf8f5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]`}>
+        <button type="button" onClick={onJump} className={`${base} transition hover:bg-[#fff7ee] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]`}>
           {body}
           <Svg d={PATH.chevronEnd} size={16} className="text-stone-500 rtl:-scale-x-100" />
         </button>
@@ -1174,7 +1174,7 @@ function CheckSection({
           ))}
         </ul>
       </div>
-      <div className="border-t border-[#f0e9dc]">
+      <div className="border-t border-[#f0dcc6]">
         {anyLog || notes.length > 0 ? (
           <div className="flex flex-wrap justify-end gap-2 px-4 py-3 sm:px-6">
             {anyLog ? (
@@ -1219,12 +1219,12 @@ function CheckSection({
                     <h3
                       id={`or-grp-${g.level}`}
                       tabIndex={-1}
-                      className={`flex scroll-mt-4 items-center gap-2 bg-[#faf7f2] px-4 py-2.5 text-sm font-bold focus:outline-none sm:px-6 ${tn.text}`}
+                      className={`flex scroll-mt-4 items-center gap-2 bg-[#fff4e8] px-4 py-2.5 text-sm font-bold focus:outline-none sm:px-6 ${tn.text}`}
                     >
                       <Svg d={tn.icon} size={16} />
                       {t(g.word)} ({total})
                     </h3>
-                    <ul className="divide-y divide-[#f3ede2]">
+                    <ul className="divide-y divide-[#f3e2cf]">
                       {g.list.map((flag) => (
                         <FlagRow
                           key={flag.id}
@@ -1249,7 +1249,7 @@ function CheckSection({
           </div>
         )}
         {main.length > LIMIT ? (
-          <div className="border-t border-[#f0e9dc] px-4 py-3 sm:px-6">
+          <div className="border-t border-[#f0dcc6] px-4 py-3 sm:px-6">
             <button type="button" onClick={() => state.setShowAll(!state.showAll)} className={`${BTN} w-full`}>
               {state.showAll ? t("orShowLess") : fill(t("orShowAll"), { n: main.length })}
             </button>
@@ -1377,7 +1377,7 @@ function FlagRow({
         </div>
       ) : null}
       {log && open ? (
-        <div className="col-span-full mt-3 rounded-2xl bg-[#faf7f2] p-3 sm:p-4 [&_.text-\[11px\]]:text-sm [&_.text-xs]:text-sm">
+        <div className="col-span-full mt-3 rounded-2xl bg-[#fff4e8] p-3 sm:p-4 [&_.text-\[11px\]]:text-sm [&_.text-xs]:text-sm">
           <ActivityChangeView log={log} showTotals={flag.kind !== "editDown"} billsOpen />
         </div>
       ) : null}
@@ -1439,7 +1439,7 @@ function StaffSection({ staff, onPerson }: { staff: StaffAudit[]; onPerson: (uid
             ))}
           </div>
           {staff.length > 6 ? (
-            <div className="border-t border-[#f0e9dc] px-4 py-3 sm:px-6">
+            <div className="border-t border-[#f0dcc6] px-4 py-3 sm:px-6">
               <button type="button" className={`${BTN} w-full`} onClick={() => setShowAll((v) => !v)}>
                 {showAll ? t("orShowLess") : fill(t("orShowAll"), { n: staff.length })}
               </button>
@@ -1534,9 +1534,9 @@ function StaffPerson({ s, onPerson }: { s: StaffAudit; onPerson: (uid: string) =
   );
 
   return (
-    <article data-uid={s.uid} className="min-w-0 rounded-2xl border border-[#e8dfcf] bg-white p-4">
+    <article data-uid={s.uid} className="min-w-0 rounded-2xl border border-[#e7d0b8] bg-white p-4">
       <div className="flex flex-wrap items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f6efe0] text-base font-bold text-[var(--gold-deep)]" aria-hidden>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fdeccb] text-base font-bold text-[var(--gold-deep)]" aria-hidden>
           {initials || "?"}
         </span>
         {/* A narrow phone: "Sold" moves under the name (the head row wraps) instead of pushing the card wider. */}
@@ -1569,7 +1569,7 @@ function StaffPerson({ s, onPerson }: { s: StaffAudit; onPerson: (uid: string) =
         </div>
       </div>
       <p className="mt-3 text-sm font-semibold text-stone-600">{t("orPaidBy")}</p>
-      <div className="mt-1 grid grid-cols-3 gap-2 rounded-xl bg-[#faf7f2] p-3">
+      <div className="mt-1 grid grid-cols-3 gap-2 rounded-xl bg-[#fff4e8] p-3">
         {pay(t("cash"), s.cash)}
         {pay(t("card"), s.card)}
         {pay(t("digital"), s.digital)}
@@ -1578,12 +1578,12 @@ function StaffPerson({ s, onPerson }: { s: StaffAudit; onPerson: (uid: string) =
         {t("dineIn")} <b style={NUM}>{s.dineIn}</b> · {t("takeaway")} <b style={NUM}>{s.takeaway}</b> · {t("delivery")} <b style={NUM}>{s.delivery}</b>
       </p>
       {theirs.length > 0 ? (
-        <div className="mt-3 border-t border-[#f0e9dc] pt-3">
+        <div className="mt-3 border-t border-[#f0dcc6] pt-3">
           <p className="text-sm font-semibold text-stone-600">{t("orStaffOnTheirOrders")}</p>
           <ul className="mt-1 space-y-2">{lineList(theirs)}</ul>
         </div>
       ) : null}
-      <div className="mt-3 border-t border-[#f0e9dc] pt-3">
+      <div className="mt-3 border-t border-[#f0dcc6] pt-3">
         <p className="text-sm font-semibold text-stone-600">{t("orStaffChanges")}</p>
         <ul className="mt-1 space-y-2">
           {lines.length === 0 ? (
@@ -1610,7 +1610,7 @@ function StaffTable({ staff }: { staff: StaffAudit[] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[980px] text-sm" data-testid="owner-staff">
-        <thead className="bg-[#faf7f2]">
+        <thead className="bg-[#fff4e8]">
           <tr>
             <th scope="col" className={`${head} text-start`}>{t("orColStaff")}</th>
             <th scope="col" className={head}>{t("orStaffSold")}</th>
@@ -1628,7 +1628,7 @@ function StaffTable({ staff }: { staff: StaffAudit[] }) {
             <th scope="col" className={head}>{t("orExpenses")}</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#f3ede2]">
+        <tbody className="divide-y divide-[#f3e2cf]">
           {staff.map((s) => (
             <tr key={s.uid} data-uid={s.uid}>
               <th scope="row" className="px-3 py-3 text-start align-top font-semibold text-[var(--ink)]">
@@ -1715,7 +1715,7 @@ function StaffTable({ staff }: { staff: StaffAudit[] }) {
           ))}
         </tbody>
       </table>
-      <p className="border-t border-[#f0e9dc] px-4 py-3 text-sm text-stone-600 sm:px-6">{t("orStaffFootnote")}</p>
+      <p className="border-t border-[#f0dcc6] px-4 py-3 text-sm text-stone-600 sm:px-6">{t("orStaffFootnote")}</p>
     </div>
   );
 }
@@ -1761,7 +1761,7 @@ function ItemsSection({ items, sales }: { items: ItemSales; sales: number }) {
       ) : (
         <>
           {all.length > 5 ? (
-            <div className="border-b border-[#f0e9dc] px-4 py-4 sm:px-6">
+            <div className="border-b border-[#f0dcc6] px-4 py-4 sm:px-6">
               <p className="text-sm font-semibold text-stone-600">{t("orTopSellers")}</p>
               <ol className="mt-2 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
                 {top.map((it, i) => (
@@ -1789,9 +1789,9 @@ function ItemsSection({ items, sales }: { items: ItemSales; sales: number }) {
               const expanded = openGroups.has(key);
               const list = expanded ? g.items : g.items.slice(0, 6);
               return (
-                <div key={key} data-group={g.name ?? ""} className="overflow-hidden rounded-2xl border border-[#e8dfcf] bg-white">
+                <div key={key} data-group={g.name ?? ""} className="overflow-hidden rounded-2xl border border-[#e7d0b8] bg-white">
                   {items.grouped ? (
-                    <div className="flex items-baseline justify-between gap-3 bg-[#faf7f2] px-4 py-3">
+                    <div className="flex items-baseline justify-between gap-3 bg-[#fff4e8] px-4 py-3">
                       <h3 className="truncate text-[15px] font-bold text-[var(--gold-deep)]">{g.name ?? t("orItemsOther")}</h3>
                       <span className="shrink-0 text-sm text-stone-600" style={NUM}>
                         <bdi dir="ltr">×{g.qty}</bdi> · <Rs value={g.revenue} />
@@ -1802,7 +1802,7 @@ function ItemsSection({ items, sales }: { items: ItemSales; sales: number }) {
                     <div
                       key={fam.name}
                       data-testid="owner-item-family"
-                      className="mx-3 mt-3 flex items-start justify-between gap-3 rounded-xl bg-[#f6efe0] px-3 py-3 ring-1 ring-[#f0e9dc]"
+                      className="mx-3 mt-3 flex items-start justify-between gap-3 rounded-xl bg-[#fdeccb] px-3 py-3 ring-1 ring-[#f0dcc6]"
                     >
                       <div className="min-w-0">
                         <p className="text-[15px] font-bold text-[var(--ink)]">{fill(t("orItemsFamily"), { name: fam.name })}</p>
@@ -1816,7 +1816,7 @@ function ItemsSection({ items, sales }: { items: ItemSales; sales: number }) {
                       </div>
                     </div>
                   ))}
-                  <ul className="divide-y divide-[#f3ede2]">
+                  <ul className="divide-y divide-[#f3e2cf]">
                     {list.map((it) => (
                       <li key={it.productId || it.name} className="flex items-start justify-between gap-3 px-4 py-3">
                         <div className="min-w-0">
@@ -1841,7 +1841,7 @@ function ItemsSection({ items, sales }: { items: ItemSales; sales: number }) {
                     ))}
                   </ul>
                   {g.items.length > 6 ? (
-                    <div className="border-t border-[#f0e9dc] px-4 py-2">
+                    <div className="border-t border-[#f0dcc6] px-4 py-2">
                       <button
                         type="button"
                         className={`${BTN} w-full border-transparent`}
@@ -1922,7 +1922,7 @@ export function StockSection({ rows, log, multiDay }: { rows: StockDayRow[] | un
       ) : (
         <>
           {/* Phone: a card per item. */}
-          <ul className="divide-y divide-[#f6f1e7] dark:divide-[var(--border)] sm:hidden">
+          <ul className="divide-y divide-[#f8ecdc] dark:divide-[var(--border)] sm:hidden">
             {list.map((r) => (
               <li key={r.inventoryItemId} className="px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
@@ -1937,7 +1937,7 @@ export function StockSection({ rows, log, multiDay }: { rows: StockDayRow[] | un
                 </div>
                 <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-1.5 text-[13px]">
                   {shown.map((c) => (
-                    <div key={c.key} className="flex items-baseline justify-between gap-1 rounded-md bg-[#faf7f2] px-2 py-1">
+                    <div key={c.key} className="flex items-baseline justify-between gap-1 rounded-md bg-[#fff4e8] px-2 py-1">
                       <dt className="text-[11px] text-stone-500">{t(c.label)}</dt>
                       <dd className="font-semibold tabular-nums text-stone-800" dir="ltr">{stockFig(c.key, r[c.key] as number)}</dd>
                     </div>
@@ -1950,7 +1950,7 @@ export function StockSection({ rows, log, multiDay }: { rows: StockDayRow[] | un
           <div className="hidden overflow-x-auto sm:block">
             <table className="w-full text-[15px]">
               <thead>
-                <tr className="border-b border-[#f0e9dc] text-[11px] font-bold uppercase tracking-[0.1em] text-stone-500">
+                <tr className="border-b border-[#f0dcc6] text-[11px] font-bold uppercase tracking-[0.1em] text-stone-500">
                   <th className="px-6 py-2.5 text-start">{t("itemName")}</th>
                   {shown.map((c) => (
                     <th key={c.key} className="px-2 py-2.5 text-end">{t(c.label)}</th>
@@ -1960,7 +1960,7 @@ export function StockSection({ rows, log, multiDay }: { rows: StockDayRow[] | un
               </thead>
               <tbody>
                 {list.map((r) => (
-                  <tr key={r.inventoryItemId} className="border-b border-[#f6f1e7] last:border-0 dark:border-[var(--border)]">
+                  <tr key={r.inventoryItemId} className="border-b border-[#f8ecdc] last:border-0 dark:border-[var(--border)]">
                     <td className="px-6 py-2.5 font-semibold text-[var(--ink)]">
                       {r.name}
                       <span className="ms-1.5 text-xs font-medium text-stone-500">{t(unitLabelKey[r.unit])}</span>
@@ -1982,7 +1982,7 @@ export function StockSection({ rows, log, multiDay }: { rows: StockDayRow[] | un
       )}
 
       {/* Who changed stock by hand: closed until asked for. */}
-      <div className="border-t border-[#f0e9dc] px-4 py-3 sm:px-6">
+      <div className="border-t border-[#f0dcc6] px-4 py-3 sm:px-6">
         <h3>
           <button
             type="button"
@@ -1993,7 +1993,7 @@ export function StockSection({ rows, log, multiDay }: { rows: StockDayRow[] | un
           >
             <Svg d={PATH.chevronEnd} size={16} className={`shrink-0 text-stone-500 transition-transform ${logOpen ? "rotate-90" : "rtl:-scale-x-100"}`} />
             <span className="flex-1">{t("stockChangesTitle")}</span>
-            <span className="rounded-full bg-[#f3eee6] px-2 py-0.5 text-xs font-bold tabular-nums text-[var(--gold-deep)]" dir="ltr">
+            <span className="rounded-full bg-[#f6e6d4] px-2 py-0.5 text-xs font-bold tabular-nums text-[var(--gold-deep)]" dir="ltr">
               {log.length}
             </span>
           </button>
@@ -2004,7 +2004,7 @@ export function StockSection({ rows, log, multiDay }: { rows: StockDayRow[] | un
           <>
             <ul id="or-stock-log" className="mt-2 space-y-1.5">
               {logShown.map((l) => (
-                <li key={l.id} className="flex items-start gap-3 rounded-xl bg-[#faf7f2] px-3 py-2">
+                <li key={l.id} className="flex items-start gap-3 rounded-xl bg-[#fff4e8] px-3 py-2">
                   <span className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold ${stockLogTag(l).tone}`}>
                     {t(stockLogTag(l).key)}
                   </span>
@@ -2159,7 +2159,7 @@ function TimelineSection({
 
   return (
     <Section id="or-changes" title={t("orTimelineTitle")} hint={t("orTimelineHint")} icon={PATH.list}>
-      <div className="border-b border-[#f0e9dc] px-4 py-3 sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:px-6">
+      <div className="border-b border-[#f0dcc6] px-4 py-3 sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:px-6">
         <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
           {FILTERS.filter((x) => x.id === "all" || counts[x.id] > 0).map((x) => (
             <button
@@ -2168,7 +2168,7 @@ function TimelineSection({
               aria-pressed={filter === x.id}
               onClick={() => setFilter(x.id)}
               className={`inline-flex h-11 shrink-0 snap-start items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition ${
-                filter === x.id ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[#e8dfcf] bg-white text-stone-700 hover:bg-[#faf8f5]"
+                filter === x.id ? "border-[var(--ink)] bg-[var(--ink)] text-white" : "border-[#e7d0b8] bg-white text-stone-700 hover:bg-[#fff7ee]"
               }`}
             >
               {t(x.key)}
@@ -2181,7 +2181,7 @@ function TimelineSection({
             value={who}
             onChange={(e) => setWho(e.target.value)}
             aria-label={t("staff")}
-            className="mt-2 h-11 w-full rounded-xl border border-[#e8dfcf] bg-white px-3 text-sm font-semibold text-stone-700 outline-none focus:border-[var(--gold)] sm:ms-auto sm:mt-0 sm:w-auto"
+            className="mt-2 h-11 w-full rounded-xl border border-[#e7d0b8] bg-white px-3 text-sm font-semibold text-stone-700 outline-none focus:border-[var(--gold)] sm:ms-auto sm:mt-0 sm:w-auto"
           >
             <option value="all">{t("orEveryone")}</option>
             {people.map(([uid, name]) => (
@@ -2211,11 +2211,11 @@ function TimelineSection({
             return (
               <li key={ev.id} data-kind={ev.kind}>
                 {newDay ? (
-                  <p className="border-t border-[#f0e9dc] bg-[#faf7f2] px-4 py-2 text-sm font-bold text-stone-700 sm:px-6" style={NUM}>
+                  <p className="border-t border-[#f0dcc6] bg-[#fff4e8] px-4 py-2 text-sm font-bold text-stone-700 sm:px-6" style={NUM}>
                     {fDay.day(dayKey)}
                   </p>
                 ) : null}
-                <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 gap-y-1 border-t border-[#f0e9dc] px-4 py-3.5 sm:grid-cols-[5.5rem_2.25rem_minmax(0,1fr)_auto] sm:px-6">
+                <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3 gap-y-1 border-t border-[#f0dcc6] px-4 py-3.5 sm:grid-cols-[5.5rem_2.25rem_minmax(0,1fr)_auto] sm:px-6">
                   <span className="hidden pt-2 text-sm tabular-nums text-stone-600 sm:block" style={NUM} dir="ltr">
                     {f.when(ev.at)}
                   </span>
@@ -2261,7 +2261,7 @@ function TimelineSection({
                     ) : null}
                   </div>
                   {isOpen ? (
-                    <div className="col-span-full mt-3 rounded-2xl bg-[#faf7f2] p-3 sm:p-4 [&_.text-\[11px\]]:text-sm [&_.text-xs]:text-sm">
+                    <div className="col-span-full mt-3 rounded-2xl bg-[#fff4e8] p-3 sm:p-4 [&_.text-\[11px\]]:text-sm [&_.text-xs]:text-sm">
                       <ActivityChangeView log={ev.log} billsOpen />
                     </div>
                   ) : null}
@@ -2272,7 +2272,7 @@ function TimelineSection({
         </ol>
       )}
       {list.length > limitN ? (
-        <div className="border-t border-[#f0e9dc] px-4 py-3 sm:px-6">
+        <div className="border-t border-[#f0dcc6] px-4 py-3 sm:px-6">
           <button type="button" onClick={() => setLimitN((n) => n + 60)} className={`${BTN} w-full`}>
             {fill(t("orLoadMore"), { n: list.length - limitN })}
           </button>

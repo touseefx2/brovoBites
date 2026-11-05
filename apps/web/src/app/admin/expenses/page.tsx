@@ -359,8 +359,8 @@ export default function ExpensesPage() {
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold sm:text-2xl">{t("expenses")}</h1>
-          <p className="text-sm text-[var(--muted)]">
+          <h1 className="admin-page-title">{t("expenses")}</h1>
+          <p className="admin-page-sub">
             {isOwner ? t("expensesHint") : t("expensesHintStaff")}
           </p>
         </div>

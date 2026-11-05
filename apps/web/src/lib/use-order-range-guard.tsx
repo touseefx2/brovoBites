@@ -94,7 +94,7 @@ export function OrderRangeGuardNotice({ guard }: { guard: ReturnType<typeof useO
   }
   if (guard.bigCount == null) return <PageSpinner label={t("orCounting")} />;
   return (
-    <section className="rounded-2xl border border-[#e8dfcf] bg-white p-5 shadow-sm" data-testid="big-period">
+    <section className="rounded-2xl border border-[#e7d0b8] bg-white p-5 shadow-sm" data-testid="big-period">
       <h2 className="text-lg font-bold text-[var(--ink)]">
         {t("orBigRangeTitle").replace("{n}", guard.bigCount.toLocaleString("en-PK"))}
       </h2>

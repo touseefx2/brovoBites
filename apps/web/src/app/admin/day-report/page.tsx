@@ -232,8 +232,8 @@ export default function DayReportPage() {
   return (
     <div className="mx-auto w-full max-w-5xl">
       <div className="mb-4 sm:mb-5">
-        <h1 className="text-xl font-bold sm:text-2xl">{t("dayEndReport")}</h1>
-        <p className="text-sm text-[var(--muted)]">{t("dayEndReportHint")}</p>
+        <h1 className="admin-page-title">{t("dayEndReport")}</h1>
+        <p className="admin-page-sub">{t("dayEndReportHint")}</p>
       </div>
 
       {/* Controls */}
@@ -333,13 +333,13 @@ export default function DayReportPage() {
         >
           <div className="space-y-4 p-3 sm:p-4">
           {/* Sales Summary */}
-          <section className="rounded-xl border border-[var(--border)] bg-white shadow-sm">
+          <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm">
             <div className="border-b border-[var(--border)] px-4 py-3 sm:px-5">
               <h2 className="font-bold text-[var(--ink)]">
                 {isTodayOnly ? t("todaySales") : t("totalSales")}
               </h2>
             </div>
-            <div className="grid grid-cols-2 gap-px bg-[var(--border)] sm:grid-cols-3">
+            <div className="admin-stat-grid">
               <div className="bg-white p-4">
                 <p className="text-xs font-medium text-[var(--muted)]">{t("totalSales")}</p>
                 <p className="mt-1 text-xl font-bold text-[var(--gold-deep)]" dir="ltr">{formatPkr(report.totalSales)}</p>
@@ -381,8 +381,8 @@ export default function DayReportPage() {
           </section>
 
           {/* Expenses + Net (branch-wide for owner and staff) */}
-          <section className="rounded-xl border border-[var(--border)] bg-white shadow-sm">
-            <div className="grid grid-cols-2 gap-px bg-[var(--border)] sm:grid-cols-3">
+          <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm">
+            <div className="admin-stat-grid">
               <div className="bg-white p-4">
                 <p className="text-xs font-medium text-[var(--muted)]">{t("totalExpenses")}</p>
                 <p className="mt-1 text-lg font-bold text-red-600" dir="ltr">{formatPkr(report.totalExpenses)}</p>
@@ -422,21 +422,21 @@ export default function DayReportPage() {
 
           {/* Staff breakdown (Owner only) */}
           {isOwner && report.staffBreakdown.length > 0 && (
-            <section className="overflow-hidden rounded-xl border border-[rgba(184,134,11,0.18)] bg-white shadow-[0_10px_28px_rgba(28,25,23,0.05)]">
-              <div className="border-b border-[rgba(184,134,11,0.12)] bg-gradient-to-r from-[#faf7f2] to-white px-4 py-3.5 sm:px-5">
+            <section className="overflow-hidden rounded-xl border border-[rgba(197,138,14,0.18)] bg-white shadow-[0_10px_28px_rgba(42,20,14,0.05)]">
+              <div className="border-b border-[rgba(197,138,14,0.12)] bg-gradient-to-r from-[#fff4e8] to-white px-4 py-3.5 sm:px-5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gold-deep)]">
                   {t("staff")}
                 </p>
                 <h2 className="text-base font-bold text-[var(--ink)]">{t("staffSales")}</h2>
               </div>
-              <ul className="divide-y divide-[rgba(184,134,11,0.1)]">
+              <ul className="divide-y divide-[rgba(197,138,14,0.1)]">
                 {report.staffBreakdown.map((s) => {
                   const initial = (s.name.trim().charAt(0) || "?").toUpperCase();
                   return (
                     <li key={s.key} className="px-3 py-3.5 sm:px-5 sm:py-4">
                       <div className="flex items-start gap-3">
                         <span
-                          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[rgba(184,134,11,0.12)] text-sm font-bold text-[var(--gold-deep)] ring-1 ring-[rgba(184,134,11,0.22)]"
+                          className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-[rgba(197,138,14,0.12)] text-sm font-bold text-[var(--gold-deep)] ring-1 ring-[rgba(197,138,14,0.22)]"
                           aria-hidden
                         >
                           {initial}
@@ -470,7 +470,7 @@ export default function DayReportPage() {
                           </div>
 
                           <div className="mt-2.5 flex flex-wrap gap-1.5">
-                            <span className="inline-flex max-w-full items-center gap-1 rounded-lg border border-[rgba(184,134,11,0.16)] bg-[#faf7f2]/90 px-2 py-1 text-[11px] font-medium text-[var(--ink)]">
+                            <span className="inline-flex max-w-full items-center gap-1 rounded-lg border border-[rgba(197,138,14,0.16)] bg-[#fff4e8]/90 px-2 py-1 text-[11px] font-medium text-[var(--ink)]">
                               <span className="shrink-0 text-[var(--muted)]">{t("branch")}</span>
                               <span className="truncate">{s.branchName}</span>
                             </span>
@@ -489,7 +489,7 @@ export default function DayReportPage() {
                           {(s.cash > 0 || s.card > 0 || s.digital > 0 || s.refunds > 0 || s.cancelledAmount > 0) && (
                             <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                               {s.cash > 0 ? (
-                                <div className="rounded-lg border border-[var(--border)] bg-[#fcfbf9] px-2.5 py-1.5">
+                                <div className="rounded-lg border border-[var(--border)] bg-[var(--bb-cream-50)] px-2.5 py-1.5">
                                   <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
                                     <PaymentMethodIcon method="cash" size={12} />
                                     {t("cash")}
@@ -500,7 +500,7 @@ export default function DayReportPage() {
                                 </div>
                               ) : null}
                               {s.card > 0 ? (
-                                <div className="rounded-lg border border-[var(--border)] bg-[#fcfbf9] px-2.5 py-1.5">
+                                <div className="rounded-lg border border-[var(--border)] bg-[var(--bb-cream-50)] px-2.5 py-1.5">
                                   <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
                                     <PaymentMethodIcon method="card" size={12} />
                                     {t("card")}
@@ -511,7 +511,7 @@ export default function DayReportPage() {
                                 </div>
                               ) : null}
                               {s.digital > 0 ? (
-                                <div className="rounded-lg border border-[var(--border)] bg-[#fcfbf9] px-2.5 py-1.5">
+                                <div className="rounded-lg border border-[var(--border)] bg-[var(--bb-cream-50)] px-2.5 py-1.5">
                                   <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
                                     <PaymentMethodIcon method="digital" size={12} />
                                     {t("digital")}

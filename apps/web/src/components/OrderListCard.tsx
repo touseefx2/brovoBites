@@ -152,7 +152,7 @@ export function OrderListCard({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(28,25,23,0.04)] transition hover:border-[rgba(184,134,11,0.35)] hover:shadow-[0_4px_14px_rgba(28,25,23,0.06)] ${
+      className={`order-list-card group relative overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(42,20,14,0.04)] transition hover:shadow-[0_4px_14px_rgba(42,20,14,0.06)] ${
         cancelled ? "opacity-65" : ""
       }`}
     >

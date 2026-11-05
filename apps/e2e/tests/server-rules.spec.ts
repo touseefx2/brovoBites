@@ -28,7 +28,7 @@ const created: string[] = [];
 function orderFields(createdBy: string, customerName: string, extra: Json = {}): Json {
   return {
     branchId: "main",
-    branchName: "Bravo Bites — Main",
+    branchName: "Brovo Bites — Main",
     orderNumber: 9_000_000 + Math.floor(Math.random() * 900_000),
     orderType: "takeaway",
     customerName,

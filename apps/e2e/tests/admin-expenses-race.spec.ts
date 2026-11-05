@@ -31,7 +31,7 @@ test("owner: Add expense opened while branches load can still be saved", async (
   await modal.locator('input[type="number"]').fill("10");
 
   // Once the branch has loaded the modal shows it…
-  await expect(modal).toContainText("Bravo Bites — Main", { timeout: 30_000 });
+  await expect(modal).toContainText("Brovo Bites — Main", { timeout: 30_000 });
   // …so saving must be possible without closing and reopening the form.
   await expect(modal.getByRole("button", { name: "Save", exact: true })).toBeEnabled({ timeout: 5_000 });
 

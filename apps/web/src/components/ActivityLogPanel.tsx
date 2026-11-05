@@ -95,7 +95,7 @@ export function ActivityLogList({
         return (
           <li
             key={log.id}
-            className="relative px-3.5 py-2.5 transition hover:bg-[#faf8f5]/80 sm:px-4 sm:py-3"
+            className="relative px-3.5 py-2.5 transition hover:bg-[#fff7ee]/80 sm:px-4 sm:py-3"
           >
             <span
               className={`absolute inset-y-2 start-0 w-[3px] rounded-full ${style.bar}`}

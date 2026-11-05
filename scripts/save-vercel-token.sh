@@ -3,9 +3,9 @@
 # so DEV and LIVE tokens stay separate (no logout dance on deploy).
 #
 # Usage (from repo root):
-#   Log in to Bravo Bites' Vercel account(s) into repo-local auth dirs, then save:
-#     vercel login --future -Q .tools/vercel-dev-auth    # Bravo Bites DEV Vercel account
-#     vercel login --future -Q .tools/vercel-live-auth   # Bravo Bites LIVE Vercel account
+#   Log in to Brovo Bites' Vercel account(s) into repo-local auth dirs, then save:
+#     vercel login --future -Q .tools/vercel-dev-auth    # Brovo Bites DEV Vercel account
+#     vercel login --future -Q .tools/vercel-live-auth   # Brovo Bites LIVE Vercel account
 #     bash scripts/save-vercel-token.sh dev  .tools/vercel-dev-auth
 #     bash scripts/save-vercel-token.sh live .tools/vercel-live-auth
 #
@@ -41,7 +41,7 @@ fi
 
 if [[ ! -f "$AUTH_JSON" ]]; then
   echo "No Vercel auth at: $AUTH_JSON"
-  echo "Run: vercel login --future -Q $CFG_REL   (Bravo Bites $SLOT Vercel account)"
+  echo "Run: vercel login --future -Q $CFG_REL   (Brovo Bites $SLOT Vercel account)"
   exit 1
 fi
 

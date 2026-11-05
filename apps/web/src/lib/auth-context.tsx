@@ -14,7 +14,6 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import {
-  createContext,
   useCallback,
   useContext,
   useEffect,
@@ -25,6 +24,8 @@ import {
 } from "react";
 import type { AppUser } from "@bravobites/domain";
 import { getClientAuth, getClientDb } from "@/lib/firebase/client";
+import { writeAuthRoleHint } from "@/lib/auth-hint";
+import { AuthContext } from "@/lib/auth-optional";
 import { mapFirebaseError } from "@/lib/errors";
 import { syncShopClock } from "@/lib/shop-clock";
 import { clearPosCatalogCache } from "@/lib/pos-catalog";
@@ -35,35 +36,14 @@ import { startReviewOutbox, stopReviewOutbox } from "@/lib/review-outbox";
 import { useLocale } from "@/i18n/locale-context";
 import { dictionaries, type MessageKey } from "@/i18n/dictionaries";
 
-const AUTH_ROLE_HINT_KEY = "bravobites.auth.role";
+// The role hint lives in a Firebase-free module so the public website can read
+// it; re-exported here for existing callers.
+export { getAuthRoleHint } from "@/lib/auth-hint";
+export { useAuthOptional, type AuthContextValue } from "@/lib/auth-optional";
+
 const AUTH_BRANCH_KEY = "bravobites.auth.activeBranch";
 /** Last known users/{uid} for offline session restore (same Chrome profile). */
 const AUTH_PROFILE_KEY = "bravobites.auth.profile";
-
-function readAuthRoleHint(): AppUser["role"] | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const v = localStorage.getItem(AUTH_ROLE_HINT_KEY);
-    return v === "owner" || v === "counter" ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeAuthRoleHint(role: AppUser["role"] | null) {
-  if (typeof window === "undefined") return;
-  try {
-    if (role) localStorage.setItem(AUTH_ROLE_HINT_KEY, role);
-    else localStorage.removeItem(AUTH_ROLE_HINT_KEY);
-  } catch {
-    // private mode / quota
-  }
-}
-
-/** Last known role for instant landing CTA while Firebase auth restores. */
-export function getAuthRoleHint(): AppUser["role"] | null {
-  return readAuthRoleHint();
-}
 
 function readActiveBranch(): string | null {
   if (typeof window === "undefined") return null;
@@ -131,20 +111,6 @@ function applyCachedProfile(
   setProfile(cached);
   return true;
 }
-
-interface AuthContextValue {
-  firebaseUser: User | null;
-  profile: AppUser | null;
-  loading: boolean;
-  error: string | null;
-  activeBranchId: string | null;
-  setActiveBranch: (branchId: string) => boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  clearError: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
 
 function mapUserDoc(uid: string, data: Record<string, unknown>): AppUser {
   return {

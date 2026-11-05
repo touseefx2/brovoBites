@@ -1,6 +1,6 @@
-# Bravo Bites — naye accounts pe setup
+# Brovo Bites — naye accounts pe setup
 
-Yeh repo **Bravo Bites** ka hai. Isay Bravo Bites ke **apne** Firebase, ImageKit aur Vercel accounts chahiye, do alag worlds me:
+Yeh repo **Brovo Bites** ka hai. Isay Brovo Bites ke **apne** Firebase, ImageKit aur Vercel accounts chahiye, do alag worlds me:
 **DEV** (test data, safe mistakes) aur **LIVE** (asal dukaan, asal orders). Upar se neeche order me karo.
 
 Roz ka deploy + detail: [DEPLOYMENT.md](DEPLOYMENT.md) · env files: [docs/ENV-SETUP.md](docs/ENV-SETUP.md) · pehle [8. Safety](#8-safety) parh lo.
@@ -14,7 +14,7 @@ Roz ka deploy + detail: [DEPLOYMENT.md](DEPLOYMENT.md) · env files: [docs/ENV-S
 - [ ] Firebase CLI `firebase` (`scripts/ship.sh` isi ko chalata hai) — ya `npx firebase-tools`
 - [ ] Vercel CLI — `scripts/deploy.sh` pehle `~/.local/vercel-cli/node_modules/.bin/vercel`, phir PATH wala `vercel`, warna `npx vercel@41` use karta hai. `scripts/report-email-setup.sh` me npx fallback **nahi** — installed CLI chahiye.
 - [ ] Repo root se: `pnpm install`
-- Local dev server port **3001** hai (3000 nahi) — taake isi Mac pe doosri shop ka local app / service worker Bravo Bites ke tab me kabhi load na ho.
+- Local dev server port **3001** hai (3000 nahi) — taake isi Mac pe doosri shop ka local app / service worker Brovo Bites ke tab me kabhi load na ho.
 - Tests sab offline hain (emulator, `demo-bravobites`): `pnpm test`, `pnpm test:rules`, `pnpm test:e2e:local`.
 
 ---
@@ -23,13 +23,13 @@ Roz ka deploy + detail: [DEPLOYMENT.md](DEPLOYMENT.md) · env files: [docs/ENV-S
 
 ### 1.1 Projects banao
 
-- [ ] [console.firebase.google.com](https://console.firebase.google.com) → Add project → **DEV**. Project id **`-dev` pe khatam** ho (DEV emails isi suffix se tag hoti hain; scripts bhi check karte hain).
+- [ ] [console.firebase.google.com](https://console.firebase.google.com) → Add project → **DEV**. Project id **`dev` pe khatam** ho (e.g. `brovodev`) (DEV emails isi suffix se tag hoti hain; scripts bhi check karte hain).
 - [ ] Phir **LIVE** — bilkul alag project, id me `dev` kahin **na** ho.
 - Project id baad me change nahi hoti. Dono ek hi Google account ke under rakho to CLI me aasani.
 
 ### 1.2 Ids code me set karo
 
-Code me placeholder ids hain — `.firebaserc`: `dev` = `bravobites-dev`, `live` = `bravobites-live`. Firebase ne kuch aur diya (id globally unique hoti hai, aksar milta hai) to **ek dafa**:
+Code me placeholder ids hain — `.firebaserc`: `dev` = `brovodev`, `live` = `borovo-ffc56`. Firebase ne kuch aur diya (id globally unique hoti hai, aksar milta hai) to **ek dafa**:
 
 ```bash
 bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>
@@ -38,9 +38,9 @@ cat .firebaserc && git diff --stat      # check karo, phir commit
 
 Yeh `.firebaserc`, project allowlist (`apps/web/src/lib/firebase/allowed-projects.ts`), `scripts/deploy.sh` defaults, `deploy/targets.example.env`, `apps/web/scripts/*` ke safety guards aur docs — **yeh file bhi** — me ids badal deta hai. Refuse karta hai agar id galat format ho, DEV id `-dev` pe khatam na ho, LIVE id me `dev` ho, ya dono same hon.
 
-**Allowlist:** app (browser + server) aur har `apps/web/scripts/*` sirf in do projects (ya emulator `demo-*`) se baat karte hain — koi aur project id env me ho to foran error. Is liye yeh step **zaroori** hai agar ids `bravobites-dev`/`bravobites-live` nahi mili.
+**Allowlist:** app (browser + server) aur har `apps/web/scripts/*` sirf in do projects (ya emulator `demo-*`) se baat karte hain — koi aur project id env me ho to foran error. Is liye yeh step **zaroori** hai agar ids `brovodev`/`borovo-ffc56` nahi mili.
 
-> Neeche ke commands `bravobites-dev` / `bravobites-live` likhte hain — script ke baad yahan bhi asal ids aa jayengi.
+> Neeche ke commands `brovodev` / `borovo-ffc56` likhte hain — script ke baad yahan bhi asal ids aa jayengi.
 
 ### 1.3 Authentication (dono projects)
 
@@ -58,7 +58,7 @@ Yeh `.firebaserc`, project allowlist (`apps/web/src/lib/firebase/allowed-project
 
 ### 1.5 Web app → `NEXT_PUBLIC_FIREBASE_*`
 
-- [ ] Project settings → General → Your apps → Web (`</>`) → nickname "Bravo Bites POS" (Hosting tick nahi) → `firebaseConfig`:
+- [ ] Project settings → General → Your apps → Web (`</>`) → nickname "Brovo Bites POS" (Hosting tick nahi) → `firebaseConfig`:
 
 | `firebaseConfig` | Env variable |
 |---|---|
@@ -90,24 +90,24 @@ Is machine ka Firebase CLI doosri shop ke projects me bhi logged in hai. `fireba
 
 ```bash
 firebase login:list        # kaun se Google accounts logged in hain
-firebase projects:list     # dono Bravo Bites projects yahan nazar aane chahiye
+firebase projects:list     # dono Brovo Bites projects yahan nazar aane chahiye
 ```
 
-Bravo Bites projects kisi aur Google account ke hain to:
+Brovo Bites projects kisi aur Google account ke hain to:
 
 ```bash
-firebase login:add                          # Bravo Bites wala Google account add karo (browser)
+firebase login:add                          # Brovo Bites wala Google account add karo (browser)
 firebase login:use <bravobites-google-email>    # is repo folder ka default account
 # ya har command me: --account <bravobites-google-email>
 ```
 
 ```bash
-firebase deploy --only firestore:rules,firestore:indexes --project bravobites-dev  --non-interactive
-firebase deploy --only firestore:rules,firestore:indexes --project bravobites-live --non-interactive
+firebase deploy --only firestore:rules,firestore:indexes --project brovodev  --non-interactive
+firebase deploy --only firestore:rules,firestore:indexes --project borovo-ffc56 --non-interactive
 ```
 
 - Indexes banne me kuch minute lagte hain (Console → Firestore → Indexes).
-- Baad me `pnpm ship:dev` / `pnpm ship:live` yahi kaam `firebase use dev|live` (aliases `.firebaserc` se) ke zariye karte hain — tab chalao jab `.firebaserc` me Bravo Bites ids hon aur `firebase projects:list` sahi account dikhaye.
+- Baad me `pnpm ship:dev` / `pnpm ship:live` yahi kaam `firebase use dev|live` (aliases `.firebaserc` se) ke zariye karte hain — tab chalao jab `.firebaserc` me Brovo Bites ids hon aur `firebase projects:list` sahi account dikhaye.
 
 ### 1.8 DEV: seed + owner
 
@@ -131,7 +131,7 @@ pnpm create-owner -- --email=owner@example.com --password='StrongPass123' --name
 ```bash
 SEED_ENV=production pnpm create-owner -- \
   --email='owner@example.com' --password='...' --name='Owner' \
-  --confirm=bravobites-live --primary
+  --confirm=borovo-ffc56 --primary
 ```
 
 - Sirf `.env.production.local` load hoti hai; `--confirm=<live id>` ke bina refuse; project id me `dev` ho to refuse.
@@ -139,14 +139,14 @@ SEED_ENV=production pnpm create-owner -- \
 - LIVE branch + settings + menu: **naya menu aane ke baad** (step 7), khali LIVE pe ek dafa:
 
   ```bash
-  SEED_ENV=production pnpm seed -- --confirm=bravobites-live
+  SEED_ENV=production pnpm seed -- --confirm=borovo-ffc56
   ```
 
   Ya DEV admin me menu bana ke DEV → LIVE copy:
 
   ```bash
   pnpm copy-menu -- --dry-run
-  pnpm copy-menu -- --confirm=bravobites-live --with-branches
+  pnpm copy-menu -- --confirm=borovo-ffc56 --with-branches
   ```
 
   `--with-settings` mat do fresh dukaan pe — woh `counters` bhi copy karta hai (DEV ke test order numbers LIVE pe chale jayenge). `settings/shop` na ho to app `DEFAULT_SETTINGS` dikhati hai jab tak owner Landing Page save na kare.
@@ -155,7 +155,7 @@ SEED_ENV=production pnpm create-owner -- \
 
 ## 2. ImageKit (menu / logo / hero images)
 
-- [ ] [imagekit.io](https://imagekit.io) → Bravo Bites ke email se naya account → **Developer options**:
+- [ ] [imagekit.io](https://imagekit.io) → Brovo Bites ke email se naya account → **Developer options**:
 
 | ImageKit | Env variable | Note |
 |---|---|---|
@@ -165,7 +165,7 @@ SEED_ENV=production pnpm create-owner -- \
 
 - Teeno chahiye. Private key missing → `/api/upload-menu-image` 503 "ImageKit is not configured". Public key/endpoint missing → admin me upload hi band.
 - DEV aur LIVE ke liye **alag** ImageKit accounts best: image delete (`/api/delete-image`) ImageKit se file hata deta hai, to shared account me DEV ka delete LIVE ki image ura sakta hai. Ek account bhi chalega — bas dhyan.
-- `IMAGEKIT_FOLDER` optional. Unset → `bravobites/menu/branding`, `bravobites/menu/hero-slides`, `bravobites/menu/categories/<branch>`, `bravobites/menu/products/<branch>`. Set kiya to **har** upload usi ek folder me. Normally unset rakho.
+- `IMAGEKIT_FOLDER` optional. Unset → `brovobites/menu/branding`, `brovobites/menu/hero-slides`, `brovobites/menu/categories/<branch>`, `brovobites/menu/products/<branch>`. Set kiya to **har** upload usi ek folder me. Normally unset rakho.
 
 ---
 
@@ -209,16 +209,16 @@ cp apps/web/.env.example apps/web/.env.production.local    # LIVE Firebase + LIV
 
 ### 4.1 Account + 4 projects
 
-- [ ] Bravo Bites ka **naya** Vercel account (LIVE). DEV ke liye alag Bravo Bites account, ya **same** account me 2 aur projects — tab same token + org id dono slots (DEV + LIVE) me.
+- [ ] Brovo Bites ka **naya** Vercel account (LIVE). DEV ke liye alag Brovo Bites account, ya **same** account me 2 aur projects — tab same token + org id dono slots (DEV + LIVE) me.
 - [ ] 4 projects (deploy targets `dev`, `dev-customer`, `live`, `live-customer`):
 
 | | DEV | LIVE |
 |---|---|---|
-| Staff/admin POS | e.g. `bravobites-pos-dev` | e.g. `bravobites-pos` |
-| Customer menu (landing only) | e.g. `bravobites-menu-dev` | e.g. `bravobites-menu` |
+| Staff/admin POS | e.g. `brovobites-pos-dev` | e.g. `brovobites-pos` |
+| Customer menu (landing only) | e.g. `brovobites-menu-dev` | e.g. `brovobites-menu` |
 
 - Kisi Vercel project ka naam bilkul Firebase project id jaisa mat rakho — `set-firebase-ids.sh` docs me woh naam bhi badal dega.
-- Banane ka tareeqa: Bravo Bites GitHub repo import karo (git deploy waise bhi off hai), ya sirf CLI deploy (Git link ke bina bhi chalta hai).
+- Banane ka tareeqa: Brovo Bites GitHub repo import karo (git deploy waise bhi off hai), ya sirf CLI deploy (Git link ke bina bhi chalta hai).
 
 ### 4.2 Har project ki settings
 
@@ -264,13 +264,13 @@ Bharo: `DEV_VERCEL_ORG_ID`, `DEV_VERCEL_PROJECT_ID_ADMIN`, `DEV_VERCEL_PROJECT_I
 **Tokens — dhyan:** is Mac ka global `vercel` login **doosri shop ki team** ka hai. Is repo me **kabhi bare `vercel`, `vercel link` ya `vercel env pull` mat chalao.** `save-vercel-token.sh` ab auth folder ke bina chalta hi nahi — hamesha alag auth folders (gitignored `.tools/`, `report-email:setup` bhi inhi ko use karta hai):
 
 ```bash
-vercel login --future -Q .tools/vercel-dev-auth      # Bravo Bites DEV Vercel account
+vercel login --future -Q .tools/vercel-dev-auth      # Brovo Bites DEV Vercel account
 bash scripts/save-vercel-token.sh dev  .tools/vercel-dev-auth
-vercel login --future -Q .tools/vercel-live-auth     # Bravo Bites LIVE Vercel account
+vercel login --future -Q .tools/vercel-live-auth     # Brovo Bites LIVE Vercel account
 bash scripts/save-vercel-token.sh live .tools/vercel-live-auth
 ```
 
-Script `Token account: ...` print karta hai — Bravo Bites ka hona chahiye. Ya Bravo Bites account se [vercel.com/account/tokens](https://vercel.com/account/tokens) pe token bana ke `DEV_VERCEL_TOKEN` / `LIVE_VERCEL_TOKEN` me paste.
+Script `Token account: ...` print karta hai — Brovo Bites ka hona chahiye. Ya Brovo Bites account se [vercel.com/account/tokens](https://vercel.com/account/tokens) pe token bana ke `DEV_VERCEL_TOKEN` / `LIVE_VERCEL_TOKEN` me paste.
 `vercel logout` saved token ko invalid kar sakta hai.
 
 ### 4.5 Deploy
@@ -289,7 +289,7 @@ pnpm ship:live                         # LIVE: rules/indexes + dono — yeh LIVE
 ### 4.6 Pehle deploy ke baad
 
 - [ ] Firebase → Authentication → Settings → **Authorized domains**: DEV project me dono DEV `*.vercel.app` hosts, LIVE project me dono LIVE hosts (+ custom domain baad me).
-- [ ] `apps/web/src/lib/customer-mode.ts` → `CUSTOMER_HOSTS` me placeholders (`bravobites-customer.vercel.app`, `menu.your-domain.com`, `menu.dev.your-domain.com`) ko asal customer hostnames se badlo → commit → redeploy. (Backup hai; asal switch `NEXT_PUBLIC_CUSTOMER_MODE=true` hai.)
+- [ ] `apps/web/src/lib/customer-mode.ts` → `CUSTOMER_HOSTS` me placeholders (`brovobites-customer.vercel.app`, `menu.your-domain.com`, `menu.dev.your-domain.com`) ko asal customer hostnames se badlo → commit → redeploy. (Backup hai; asal switch `NEXT_PUBLIC_CUSTOMER_MODE=true` hai.)
 - [ ] `NEXT_PUBLIC_APP_URL` asal URLs se (`.env.production.local` + Vercel).
 - [ ] Admin → Landing Page → "Online menu link (WhatsApp message)" = customer menu URL.
 - Cron: `apps/web/vercel.json` me 24 hourly entries → `/api/admin/cron/owner-report`. Vercel `Authorization: Bearer $CRON_SECRET` bhejta hai; `CRON_SECRET` na ho to route 401 — kuch nahi jata. Same `vercel.json` customer project pe bhi crons banata hai — harmless (customer mode `/api/admin/*` block karta hai, wahan secret bhi nahi).
@@ -298,7 +298,7 @@ pnpm ship:live                         # LIVE: rules/indexes + dono — yeh LIVE
 
 ## 5. Owner report email (Gmail)
 
-1. [ ] Shop ka Gmail → [2-Step Verification](https://myaccount.google.com/security) on → [App passwords](https://myaccount.google.com/apppasswords) → "Bravo Bites POS" → 16 letters.
+1. [ ] Shop ka Gmail → [2-Step Verification](https://myaccount.google.com/security) on → [App passwords](https://myaccount.google.com/apppasswords) → "Brovo Bites POS" → 16 letters.
 2. [ ] `pnpm report-email:setup` → Gmail + app password (hidden) + `dev`/`live`/`both` poochta hai → **admin** project (Production) pe `SMTP_USER`, `SMTP_PASS` aur random `CRON_SECRET` set. Customer project ko nahi chhoota. Chahiye: `deploy/targets.local.env` (org + admin project id + token, ya `.tools/vercel-*-auth`) aur installed Vercel CLI.
 3. [ ] `pnpm ship:dev` / `pnpm ship:live`.
 4. [ ] Admin → Landing Page → Owner report email → owner ka Gmail → Save emails → "Send last day's report now" → inbox (aur Spam) check.
@@ -316,7 +316,7 @@ Node 22.x/24.x + Fluid Compute (4.2) zaroori. Poori detail: [DEPLOYMENT.md](DEPL
 | POS / PWA icons | `apps/web/public/icon-192.png`, `icon-512.png`, `src/app/apple-icon.png` (iPhone) | ✅ asli logo |
 | Favicon | `apps/web/src/app/favicon.ico` (16/32/48) | ✅ asli logo |
 | Shop phone | Admin → Branches → Main → Phone (landing page branch phone dikhata hai). Seed se pehle chaho to `packages/domain/src/types.ts` `DEFAULT_SETTINGS.phone` bhi bhar do (seed branch me copy karta hai) | khali (phone chip chhupa rehta hai) |
-| Shop name, tagline, eyebrow, copyright, WhatsApp, Google review link | Admin → Landing Page (`settings/shop`); code defaults `DEFAULT_SETTINGS` | "Bravo Bites", "Authentic Taste, Royal Experience", eyebrow purane menu wala |
+| Shop name, tagline, eyebrow, copyright, WhatsApp, Google review link | Admin → Landing Page (`settings/shop`); code defaults `DEFAULT_SETTINGS` | "Brovo Bites", "Authentic Taste, Royal Experience", eyebrow purane menu wala |
 | Meta description | `apps/web/src/app/layout.tsx` → `metadata.description` (tagline + dish list) — code | purana |
 | Hero slides | Admin → Landing Page (ImageKit) | default `public/menu/hero.jpg` |
 | Customer hosts | 4.6 | placeholders |
@@ -324,9 +324,11 @@ Node 22.x/24.x + Fluid Compute (4.2) zaroori. Poori detail: [DEPLOYMENT.md](DEPL
 
 ---
 
-## 7. Menu — abhi purana (starter) menu
+## 7. Menu — Brovo Bites menu (owner ki list, Nov 2026)
 
-Owner naya menu bhejega. Tab tak code me purana starter menu hai — **LIVE pe seed mat karo** jab tak naya menu na aa jaye.
+`seed-data.ts` me ab Brovo Bites ka asal menu hai: Burgers & Wraps, Wings & Nuggets, Fries, Salads, Dip Sauces, Extras, Drinks (26 items, sab single price). Photos abhi generic stock / logo hain — asal photos Admin → Menu se upload karo (ImageKit).
+
+Purana starter (Sajji/pizza) menu sirf e2e tests ke liye bacha hai: `apps/web/scripts/fixtures/e2e-menu.ts` — `pnpm seed` usay **sirf** emulator (`demo-*`) pe use karta hai, DEV/LIVE pe kabhi nahi.
 
 | Kya | Kahan |
 |---|---|
@@ -338,14 +340,14 @@ Owner naya menu bhejega. Tab tak code me purana starter menu hai — **LIVE pe s
 | Inventory unit guess (dish words regex) | `packages/domain/src/inventory.ts` |
 | Asal data (deploy ke baad) | Firestore `categories` / `products` → Admin → Menu (owner); photos ImageKit pe |
 
-Do raste: (a) `seed-data.ts` me naya menu → khali project pe `pnpm seed` (DEV) / `SEED_ENV=production pnpm seed -- --confirm=bravobites-live` (LIVE), ya (b) DEV admin me haath se → `pnpm copy-menu` (1.9).
+Do raste: (a) `seed-data.ts` me naya menu → khali project pe `pnpm seed` (DEV) / `SEED_ENV=production pnpm seed -- --confirm=borovo-ffc56` (LIVE), ya (b) DEV admin me haath se → `pnpm copy-menu` (1.9).
 
 ---
 
 ## 8. Safety
 
-> - Yeh repo **sirf Bravo Bites** ke Firebase / Vercel / ImageKit se judega. Kisi aur shop ke project id, Vercel token/org/project id ya ImageKit key yahan kabhi nahi.
-> - Kisi aur project se `.env*`, `deploy/targets.local.env`, `.tools/` ya service-account JSON **copy mat karo** — har value Bravo Bites ke console se nayi lo.
+> - Yeh repo **sirf Brovo Bites** ke Firebase / Vercel / ImageKit se judega. Kisi aur shop ke project id, Vercel token/org/project id ya ImageKit key yahan kabhi nahi.
+> - Kisi aur project se `.env*`, `deploy/targets.local.env`, `.tools/` ya service-account JSON **copy mat karo** — har value Brovo Bites ke console se nayi lo.
 > - Firebase CLI: har command me `--project <bravobites id>`. Vercel: kabhi bare `vercel` nahi — sirf `-Q .tools/vercel-<world>-auth` / `--token`; banner me Org/Project + `Token account` check.
 > - Allowlist (`apps/web/src/lib/firebase/allowed-projects.ts`) ko kabhi kisi aur shop ke project id se mat bharo.
 > - LIVE likhne se pehle: banner me LIVE id, `SEED_ENV=production` sirf jaan boojh ke, `--confirm=<live id>`.

@@ -39,7 +39,7 @@ export function BrandLogo({
   return (
     <Image
       src={src}
-      alt="Bravo Bites"
+      alt="Brovo Bites"
       width={px}
       height={px}
       className={`brand-mark ${size === "sm" ? "brand-mark-sm" : ""} ${className}`}
@@ -49,7 +49,7 @@ export function BrandLogo({
 }
 
 export function BrandFullLogo({
-  alt = "Bravo Bites",
+  alt = "Brovo Bites",
   className = "",
 }: {
   alt?: string;
@@ -76,19 +76,13 @@ export function BrandTitle({
 }) {
   const { locale, t } = useLocale();
   const shopName =
-    locale === "ur" ? t("brand") : "Bravo Bites";
-  const tagline =
-    subtitle ??
-    (locale === "ur"
-      ? "اصیل ذائقہ، شاہی تجربہ"
-      : "Authentic Taste, Royal Experience");
+    locale === "ur" ? t("brand") : "Brovo Bites";
+  const tagline = subtitle ?? t("landingSloganDefault");
 
   return (
     <div className={align === "center" ? "text-center" : "text-start"}>
-      <h1 className="text-xl font-bold tracking-tight text-[var(--ink)] sm:mt-1 sm:text-3xl">
-        {shopName}
-      </h1>
-      <p className="mt-1 text-xs text-[var(--muted)] sm:mt-2 sm:text-sm">{tagline}</p>
+      <h1 className="brand-title text-xl sm:mt-1 sm:text-3xl">{shopName}</h1>
+      <p className="brand-tagline mt-1 text-xs sm:mt-2 sm:text-sm">{tagline}</p>
     </div>
   );
 }

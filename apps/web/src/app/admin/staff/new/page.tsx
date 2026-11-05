@@ -90,10 +90,10 @@ export default function NewStaffPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+          <p className="admin-page-eyebrow">
             {t("addStaff")}
           </p>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">{t("createCounter")}</h1>
+          <h1 className="admin-page-title">{t("createCounter")}</h1>
         </div>
         <Link href="/admin/staff" className="btn btn-ghost btn-sm">
           {t("backToStaff")}

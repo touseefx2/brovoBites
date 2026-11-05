@@ -1,6 +1,6 @@
-# Bravo Bites POS — System Document
+# Brovo Bites POS — System Document
 
-> Firebase project ids `bravobites-dev` (DEV) and `bravobites-live` (LIVE) are placeholders — `scripts/set-firebase-ids.sh` swaps in the real ids.
+> Firebase project ids `brovodev` (DEV) and `borovo-ffc56` (LIVE) are placeholders — `scripts/set-firebase-ids.sh` swaps in the real ids.
 
 ## Stack
 
@@ -133,8 +133,8 @@ Uses a Firestore transaction on `/counters/global` to atomically increment one s
 ## Deployment
 
 Each environment (DEV and LIVE, in separate Vercel accounts) has two Vercel projects deployed from the same repo:
-- **Admin / POS** (e.g. `bravobites-dev`, `bravobites-live`) — full POS + Admin access
-- **Customer menu** (e.g. `bravobites-customer`, `bravobites-menu`) — landing page only (`NEXT_PUBLIC_CUSTOMER_MODE=true`; middleware blocks admin routes)
+- **Admin / POS** (e.g. `brovodev`, `borovo-ffc56`) — full POS + Admin access
+- **Customer menu** (e.g. `brovobites-customer`, `brovobites-menu`) — landing page only (`NEXT_PUBLIC_CUSTOMER_MODE=true`; middleware blocks admin routes)
 
 See [DEPLOYMENT.md](../DEPLOYMENT.md) for deploy commands, env vars, and domain setup.
 

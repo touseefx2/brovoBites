@@ -1,0 +1,1016 @@
+/* POS categories, product cards, cart. Split out of globals.css (original lines 1150-1465); order matters — see globals.css. */
+/* Light design (default). Dark versions live in 08-pos-theme.css §3 — keep them in sync. */
+
+/* ── POS category rail ── */
+.pos-cats {
+  border-bottom: 1px solid var(--bb-cream-300);
+  background: var(--bb-cream-100);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(122, 90, 76, 0.3) transparent;
+}
+.pos-cats::-webkit-scrollbar,
+.pos-cats .overflow-x-auto::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.pos-cats::-webkit-scrollbar-track,
+.pos-cats .overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.pos-cats::-webkit-scrollbar-thumb,
+.pos-cats .overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(122, 90, 76, 0.3);
+  border-radius: 999px;
+}
+.pos-cats::-webkit-scrollbar-thumb:hover {
+  background: rgba(122, 90, 76, 0.5);
+}
+.pos-cats .overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(122, 90, 76, 0.3) transparent;
+}
+
+@media (min-width: 1024px) {
+  .pos-cats {
+    border-bottom: 0;
+    border-inline-end: 1px solid var(--bb-cream-300);
+  }
+}
+
+.pos-cats-title {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .pos-cats-title {
+    display: block;
+    margin: 0.15rem 0.25rem 0.6rem;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--bb-red-700);
+  }
+}
+
+/* Phone / tablet: pill chips in a scrolling row. Desktop (≥1024): full-width cards. */
+.pos-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+  min-height: 48px;
+  padding: 0.3rem 0.85rem 0.3rem 0.3rem;
+  border-radius: var(--bb-radius-pill);
+  border: 1px solid var(--bb-cream-300);
+  background: #fff;
+  color: var(--bb-ink);
+  box-shadow: 0 1px 2px rgba(42, 20, 14, 0.05);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+  text-align: start;
+}
+html[dir="rtl"] .pos-cat-btn {
+  padding: 0.3rem 0.3rem 0.3rem 0.85rem;
+}
+
+@media (min-width: 1024px) {
+  .pos-cat-btn,
+  html[dir="rtl"] .pos-cat-btn {
+    width: 100%;
+    min-height: 58px;
+    padding: 0.45rem 0.6rem;
+    border-radius: 14px;
+    white-space: normal;
+  }
+}
+
+.pos-cat-btn:hover {
+  border-color: rgba(197, 138, 14, 0.6);
+  box-shadow: 0 2px 4px rgba(42, 20, 14, 0.06), 0 6px 14px rgba(42, 20, 14, 0.07);
+}
+
+.pos-cat-btn:focus-visible {
+  outline: 3px solid var(--bb-red-700); /* ≥ 6.9:1 on cream; mustard in dark (08) */
+  outline-offset: 2px;
+}
+
+/* Phone row: room for the active chip's shadow inside the scroller */
+@media (max-width: 1023px) {
+  .pos-cats > .overflow-x-auto {
+    padding-block: 2px 8px;
+  }
+}
+
+/* Active: brown-900 card (logo background), mustard text + mustard icon tile */
+.pos-cat-btn.is-active {
+  border-color: var(--bb-brown-900);
+  background:
+    radial-gradient(ellipse 90% 120% at 0% 0%, rgba(215, 54, 43, 0.28), transparent 65%),
+    linear-gradient(180deg, var(--bb-brown-800) 0%, var(--bb-brown-900) 100%);
+  box-shadow: 0 6px 16px rgba(42, 20, 14, 0.24);
+}
+html[dir="rtl"] .pos-cat-btn.is-active {
+  background:
+    radial-gradient(ellipse 90% 120% at 100% 0%, rgba(215, 54, 43, 0.28), transparent 65%),
+    linear-gradient(180deg, var(--bb-brown-800) 0%, var(--bb-brown-900) 100%);
+}
+.pos-cat-btn.is-active .pos-cat-label {
+  color: var(--bb-mustard-500);
+}
+.pos-cat-btn.is-active .pos-cat-count {
+  color: var(--bb-muted-on-dark);
+}
+.pos-cat-btn.is-active .pos-cat-img {
+  box-shadow: 0 0 0 2px var(--bb-mustard-500);
+}
+
+.pos-cat-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bb-cream-200);
+}
+/* No photo (missing file): initial on a cream tile */
+.pos-cat-img.pos-cat-fallback {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-brand-stack);
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--bb-red-700);
+  text-transform: uppercase;
+}
+.pos-cat-btn.is-active .pos-cat-img.pos-cat-fallback {
+  background: var(--bb-mustard-500);
+  color: var(--bb-brown-900);
+}
+
+.pos-cat-icon-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--bb-cream-200);
+  color: var(--bb-red-700);
+}
+.pos-cat-btn.is-active .pos-cat-icon-all {
+  background: var(--bb-mustard-500);
+  color: var(--bb-brown-900);
+}
+@media (min-width: 1024px) {
+  .pos-cat-img,
+  .pos-cat-icon-all {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+}
+
+.pos-cat-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.pos-cat-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--bb-ink);
+  text-transform: capitalize;
+  line-height: 1.25;
+}
+.pos-cat-count {
+  display: none;
+  margin-top: 1px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--bb-muted);
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 1024px) {
+  .pos-cat-count {
+    display: block;
+  }
+}
+
+/* ── POS search ── */
+.pos-menu-search-bar .input.pos-menu-search {
+  min-height: 48px;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(42, 20, 14, 0.04);
+}
+.pos-menu-search-icon {
+  color: var(--bb-red-700);
+}
+
+/* Section heading above the grid (category name + count) */
+.pos-grid-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
+.pos-grid-title {
+  margin: 0;
+  font-family: var(--font-brand-stack);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  color: var(--bb-ink);
+}
+.pos-grid-count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--bb-muted);
+}
+
+.pos-menu-note {
+  margin: 0;
+  padding: 2rem 1rem;
+  border: 1px dashed var(--bb-cream-300);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--bb-muted);
+}
+
+/* ── POS product cards ── */
+.pos-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .pos-product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.875rem;
+  }
+}
+@media (min-width: 1024px) {
+  .pos-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  }
+}
+@media (min-width: 1700px) {
+  .pos-product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+}
+
+.pos-product-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 16px;
+  border: 1px solid var(--bb-cream-300);
+  background: #fff;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: start;
+  color: var(--bb-ink);
+  box-shadow: 0 1px 2px rgba(42, 20, 14, 0.06), 0 6px 16px rgba(42, 20, 14, 0.05);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s var(--bb-ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .pos-product-card:hover {
+    border-color: rgba(215, 54, 43, 0.45);
+    box-shadow: 0 2px 4px rgba(42, 20, 14, 0.08), 0 12px 24px rgba(42, 20, 14, 0.1);
+    transform: translateY(-2px);
+  }
+  .pos-product-card:hover .pos-product-add {
+    background: var(--bb-red-600);
+  }
+}
+.pos-product-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 2px rgba(42, 20, 14, 0.08);
+}
+.pos-product-card:focus-visible {
+  outline: 3px solid var(--bb-red-700);
+  outline-offset: 2px;
+}
+
+.pos-product-media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--bb-cream-200);
+}
+
+.pos-product-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pos-product-info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.65rem 0.65rem;
+}
+
+.pos-product-name {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--bb-ink);
+}
+
+.pos-product-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: auto;
+}
+
+.pos-product-price {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin: 0;
+  line-height: 1.1;
+}
+.pos-product-from {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--bb-muted);
+}
+.pos-product-amount {
+  font-family: var(--font-brand-stack);
+  font-size: 1.125rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--bb-red-700);
+}
+
+/* Round red "+" (decorative — the whole card is the button) */
+.pos-product-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--bb-red-500);
+  color: #fff;
+  box-shadow: 0 2px 0 var(--bb-red-800);
+  transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
+}
+.pos-product-card:active .pos-product-add {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--bb-red-800);
+}
+
+.pos-product-deal {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  font-size: 0.75rem;
+  color: var(--bb-muted);
+  line-height: 1.35;
+}
+
+/* ── POS cart ("Current order") ── */
+.pos-cart-aside {
+  border-inline-start: 1px solid var(--bb-cream-300);
+  background: #fff;
+}
+.pos-cart-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 60px;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--bb-cream-200);
+}
+.pos-cart-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-family: var(--font-brand-stack);
+  font-size: 1.3125rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--bb-ink);
+}
+html[lang="ur"] .pos-cart-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.pos-cart-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--bb-red-500);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #fff;
+}
+.pos-cart-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 40px;
+  padding: 0 0.6rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--danger);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.pos-cart-clear:hover {
+  background: #fef2f2;
+}
+.pos-cart-clear:focus-visible {
+  outline: 3px solid var(--bb-red-700);
+  outline-offset: 1px;
+}
+.pos-cart-clear:disabled {
+  opacity: 0.5;
+}
+
+.pos-cart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.pos-cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 12rem;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--bb-muted);
+}
+.pos-cart-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: var(--bb-cream-100);
+  color: var(--bb-red-500);
+  box-shadow: inset 0 0 0 1px var(--bb-cream-300);
+}
+
+.pos-cart-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.55rem;
+  border: 1px solid var(--bb-cream-200);
+  border-radius: 14px;
+  background: var(--bb-cream-50);
+}
+.pos-cart-line-body {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.pos-cart-line-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+.pos-cart-line-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  padding-top: 0.15rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--bb-ink);
+}
+.pos-variant-chip {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.05rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(240, 176, 40, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(197, 138, 14, 0.4);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--bb-brown-800);
+}
+.pos-cart-note-btn {
+  align-self: flex-start;
+  min-height: 24px;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: start;
+  color: var(--bb-muted);
+  cursor: pointer;
+}
+.pos-cart-note-btn:hover {
+  color: var(--bb-red-700);
+  text-decoration: underline;
+}
+.pos-cart-note-btn:focus-visible {
+  outline: 3px solid var(--bb-red-700);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.pos-cart-note-btn.has-note {
+  font-style: italic;
+  font-weight: 500;
+}
+.pos-cart-note-input {
+  width: 100%;
+  min-height: 36px;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--bb-cream-300);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--bb-ink);
+  font-size: 16px;
+}
+@media (min-width: 640px) {
+  .pos-cart-note-input {
+    font-size: 0.8125rem;
+  }
+}
+.pos-cart-note-input:focus {
+  outline: 2px solid rgba(215, 54, 43, 0.3);
+  border-color: var(--bb-red-500);
+}
+.pos-cart-line-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+.pos-cart-line-price {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--bb-red-700);
+}
+
+.pos-cart-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bb-cream-200);
+}
+
+/* Qty stepper: one pill, − qty + */
+.pos-qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 2px;
+  border: 1px solid var(--bb-cream-300);
+  border-radius: 999px;
+  background: #fff;
+}
+.pos-qty-value {
+  min-width: 1.6rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--bb-ink);
+}
+.pos-qty-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--bb-cream-100);
+  color: var(--bb-ink);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.pos-qty-btn:hover {
+  background: var(--bb-cream-200);
+}
+.pos-qty-btn.is-plus {
+  background: var(--bb-red-500);
+  color: #fff;
+}
+.pos-qty-btn.is-plus:hover {
+  background: var(--bb-red-600);
+}
+.pos-qty-btn:focus-visible {
+  outline: 3px solid var(--bb-red-700);
+  outline-offset: 1px;
+}
+
+.pos-cart-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--bb-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.pos-cart-delete:hover {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+.pos-cart-delete:focus-visible {
+  outline: 3px solid var(--bb-red-700);
+  outline-offset: 1px;
+}
+
+/* Touch screens: 44px targets in the cart */
+@media (pointer: coarse) {
+  .pos-qty-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+  .pos-cart-delete {
+    width: 44px;
+    height: 44px;
+  }
+  .pos-cart-clear {
+    min-height: 44px;
+  }
+  .pos-cart-note-btn {
+    min-height: 44px;
+    padding-inline-end: 0.75rem;
+  }
+}
+
+.pos-cart-foot {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--bb-cream-200);
+  background: #fff;
+}
+.pos-cart-sums {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--bb-muted);
+}
+.pos-cart-sums > div {
+  display: flex;
+  justify-content: space-between;
+}
+.pos-cart-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--bb-ink);
+}
+.pos-cart-total-amount {
+  font-family: var(--font-brand-stack);
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--bb-red-700);
+}
+
+/* Primary POS action ("Review bill", mobile "View order", Checkout) — the .btn red
+   sticker (01-base) made bigger for the till. Colours/disabled/dark come from .btn. */
+.btn.pos-cta {
+  --btn-lift: 4px;
+  min-height: 52px;
+  border-radius: 14px;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+.pos-cta-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  margin-inline-start: 0.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--bb-mustard-500);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--bb-brown-900);
+}
+
+/* Mobile cart sheet head */
+.pos-sheet-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--bb-cream-200);
+}
+.pos-sheet-grip {
+  position: absolute;
+  top: 6px;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bb-cream-300);
+}
+
+/* ── Size picker ── */
+.pos-size-sheet {
+  background: var(--bb-cream-50);
+}
+.pos-size-head {
+  border-bottom: 1px solid var(--bb-cream-200);
+  background: #fff;
+}
+.pos-size-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--bb-cream-200);
+  box-shadow: inset 0 0 0 1px var(--bb-cream-300);
+}
+.pos-size-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bb-red-700);
+}
+.pos-size-opt {
+  display: flex;
+  min-height: 5.25rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.5rem;
+  border: 1px solid var(--bb-cream-300);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--bb-ink);
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(42, 20, 14, 0.05);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.pos-size-opt:hover {
+  border-color: rgba(215, 54, 43, 0.5);
+  box-shadow: 0 8px 18px rgba(42, 20, 14, 0.1);
+}
+.pos-size-opt:active {
+  transform: scale(0.97);
+}
+.pos-size-opt:focus-visible {
+  outline: 3px solid var(--bb-red-700);
+  outline-offset: 2px;
+}
+.pos-size-label {
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+.pos-size-price {
+  font-family: var(--font-brand-stack);
+  font-size: 1.0625rem;
+  letter-spacing: 0.01em;
+  color: var(--bb-red-700);
+}
+
+/* ── Checkout (Review bill) — POS brand touches on the shared .pos-opt cards (base in 03) ── */
+.pos-opt-icon {
+  color: var(--bb-red-700);
+  background: var(--bb-cream-100);
+  box-shadow: inset 0 0 0 1px var(--bb-cream-300);
+}
+.pos-opt.is-active {
+  border-color: var(--bb-brown-900);
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(215, 54, 43, 0.3), transparent 70%),
+    linear-gradient(180deg, var(--bb-brown-800) 0%, var(--bb-brown-900) 100%);
+  color: var(--bb-mustard-500);
+  box-shadow: 0 0 0 2px var(--bb-mustard-500), 0 10px 22px rgba(42, 20, 14, 0.25);
+}
+.pos-opt.is-active .pos-opt-icon {
+  background: var(--bb-mustard-500);
+  color: var(--bb-brown-900);
+  box-shadow: none;
+}
+.pos-opt-check {
+  background: var(--bb-mustard-500);
+  color: var(--bb-brown-900);
+}
+.pos-rail {
+  background: var(--bb-cream-100);
+}
+.pos-rail-title {
+  color: var(--bb-red-700);
+}
+.pos-switch.is-on {
+  background: var(--bb-red-500);
+}
+.pos-receipt-stage {
+  background: #efe2d3; /* = the iframe stage in lib/print-receipt.ts (@media screen html) */
+}
+.pos-foot-total {
+  font-family: var(--font-brand-stack);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--bb-red-700);
+}
+
+@media (max-width: 640px) {
+  .pos-product-info {
+    padding: 0.5rem 0.55rem 0.55rem;
+  }
+
+  .pos-product-name {
+    font-size: 0.8125rem;
+  }
+
+  .pos-product-amount {
+    font-size: 1rem;
+  }
+
+  .pos-product-add {
+    width: 32px;
+    height: 32px;
+  }
+
+  .pos-cart-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pos-product-card,
+  .pos-product-add,
+  .pos-qty-btn,
+  .pos-size-opt,
+  .btn.pos-cta {
+    transition: none;
+  }
+  .pos-product-card:hover,
+  .pos-product-card:active,
+  .pos-size-opt:active {
+    transform: none;
+  }
+}
+
+.brand-mark {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  /* Circular badge with transparent PNG edge — no crop, no white matte */
+  object-fit: contain;
+  border: none;
+  outline: none;
+  background: transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  /* Kill any 1px anti-alias fringe on dark headers */
+  -webkit-clip-path: circle(49.5% at 50% 50%);
+  clip-path: circle(49.5% at 50% 50%);
+}
+
+.brand-mark-sm {
+  width: 40px;
+  height: 40px;
+}
+
+/* Checkout receipt preview: rendered by components/ReceiptPreview from the
+   same HTML/CSS as the printed receipt (lib/print-receipt.ts). */
+
+/* ── POS dialogs (recent orders, checkout, size picker, mobile cart) ── */
+/* Checkout field "×": a 44px hit area at the field's end; the visible 28px
+   circle (.modal-dark-clear) lights up when any part of the button is hovered. */
+:is(.modal-dark-head, .modal-dark-zone) .pos-field-clear:hover > .modal-dark-clear {
+  background: var(--dz-fill-hover);
+  color: var(--bb-cream-50);
+}
+.pos-field-clear:focus-visible {
+  outline: 3px solid var(--bb-mustard-500);
+  outline-offset: -3px;
+}
+.pos-scrim {
+  background: rgba(25, 13, 9, 0.55);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.pos-dialog {
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(42, 20, 14, 0.08), 0 25px 70px rgba(25, 13, 9, 0.4);
+}
+/* Lilita title on the dark .modal-dark-head strip (Urdu falls back to Naskh) */
+.pos-dialog-title {
+  margin: 0;
+  font-family: var(--font-brand-stack);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--bb-cream-100);
+}
+html[lang="ur"] .pos-dialog-title {
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* ── POS sheets (order detail, expenses, day report, activity log) ── */
+/* Big money figures: Lilita (DESIGN §2 — KPI numbers on brand cards) */
+.pos-kpi {
+  font-family: var(--font-brand-stack);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+/* Full-height sheet canvas behind the white cards */
+.pos-sheet-body {
+  background: var(--bb-cream-100);
+}
+/* Selected segment / fact pill: brown-900 card with mustard text (same as the active category) */
+.pos-seg-on {
+  background: linear-gradient(180deg, var(--bb-brown-800) 0%, var(--bb-brown-900) 100%);
+  color: var(--bb-mustard-500);
+  box-shadow: 0 2px 8px rgba(42, 20, 14, 0.22), inset 0 0 0 1px rgba(240, 176, 40, 0.45);
+}
+/* "See activity log" row */
+.pos-logs-link {
+  border-color: var(--bb-cream-300);
+  background: #fff;
+}
+.pos-logs-link:hover {
+  border-color: rgba(215, 54, 43, 0.35);
+  background: var(--bb-cream-50);
+}
+.pos-logs-icon {
+  background: var(--bb-cream-200);
+  color: var(--bb-red-700);
+  box-shadow: inset 0 0 0 1px rgba(197, 138, 14, 0.3);
+}
+/* Order card (recent orders + admin orders list) */
+@media (hover: hover) {
+  .order-list-card:hover {
+    border-color: rgba(215, 54, 43, 0.35);
+  }
+}

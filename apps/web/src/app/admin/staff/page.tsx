@@ -143,8 +143,8 @@ export default function StaffPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-[var(--ink)] sm:text-2xl">{t("staffTitle")}</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">{t("staffHint")}</p>
+          <h1 className="admin-page-title">{t("staffTitle")}</h1>
+          <p className="admin-page-sub">{t("staffHint")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {iAmPrimary ? (
@@ -189,7 +189,7 @@ export default function StaffPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold capitalize text-[var(--ink)]">{name}</p>
-                    <span className="rounded-md bg-[#f3eee6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+                    <span className="rounded-md bg-[#f6e6d4] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
                       {roleLabel}
                     </span>
                     {!u.isActive ? (

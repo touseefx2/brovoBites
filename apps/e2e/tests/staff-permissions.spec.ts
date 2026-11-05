@@ -49,7 +49,7 @@ test("staff permission switches hide the controls and the server agrees", async 
       {
         clientId: orderId,
         branchId: "main",
-        branchName: "Bravo Bites — Main",
+        branchName: "Brovo Bites — Main",
         orderNumber: 9_000_000 + Math.floor(Math.random() * 900_000),
         orderType: "takeaway",
         customerName: orderId,

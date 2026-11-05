@@ -9,7 +9,7 @@
  * checks this list, so an env file copied from another shop can never read
  * or write that shop's data from here.
  */
-export const SHOP_FIREBASE_PROJECTS: readonly string[] = ["bravobites-dev", "bravobites-live"];
+export const SHOP_FIREBASE_PROJECTS: readonly string[] = ["brovodev", "borovo-ffc56"];
 
 export function isShopFirebaseProject(projectId: string | undefined | null): boolean {
   const id = (projectId ?? "").trim();

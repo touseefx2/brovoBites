@@ -362,7 +362,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
     setBusyId(p.id);
     setPendingToggleProduct(null);
     setActionError(null);
-    const result = await runAction((_ctx) => saveProduct(next), {
+    const result = await runAction(() => saveProduct(next), {
       label: t("pleaseWait"),
       silentFail: true,
     });
@@ -382,7 +382,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
     setBusyId(p.id);
     setPendingDeleteProduct(null);
     setActionError(null);
-    const result = await runAction((_ctx) => deleteProduct(p.id), {
+    const result = await runAction(() => deleteProduct(p.id), {
       label: t("pleaseWait"),
       silentFail: true,
     });
@@ -403,7 +403,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
     setBusyId(c.id);
     setPendingToggleCategory(null);
     setActionError(null);
-    const result = await runAction((_ctx) => saveCategory(next), {
+    const result = await runAction(() => saveCategory(next), {
       label: t("pleaseWait"),
       silentFail: true,
     });
@@ -435,7 +435,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
     setDeletingCategory(true);
     setActionError(null);
 
-    const result = await runAction((_ctx) => deleteCategory(c.id, productIds), {
+    const result = await runAction(() => deleteCategory(c.id, productIds), {
       label: t("pleaseWait"),
       silentFail: true,
     });
@@ -498,11 +498,11 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
 
   return (
     <div className="admin-menu-showcase flex h-full min-h-0 flex-col">
-      <header className="relative z-30 shrink-0 border-b border-[var(--border)] bg-[var(--bg)] px-4 pb-3 pt-4 sm:px-6 sm:pt-5 md:px-8">
+      <header className="admin-menu-head relative z-30 shrink-0 px-4 pb-3 pt-4 sm:px-6 sm:pt-5 md:px-8">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <div className="min-w-0">
-            <p className="landing-section-eyebrow">{t("ourMenu")}</p>
-            <h1 className="landing-section-title !text-lg sm:!text-2xl">
+            <p className="admin-menu-eyebrow">{t("ourMenu")}</p>
+            <h1 className="admin-menu-title">
               {t("menuPrices")}
             </h1>
           </div>
@@ -576,11 +576,10 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                 key={category.id}
                 type="button"
                 data-cat={category.id}
-                className={`admin-menu-cat min-h-11 shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-semibold capitalize whitespace-nowrap transition ${
-                  activeCat === category.id
-                    ? "bg-[var(--gold)] text-[var(--ink)] shadow-sm"
-                    : "bg-[#f3eee6] text-[var(--ink)]/85 hover:bg-[#ebe4d8]"
-                } ${!category.isActive ? "opacity-60" : ""}`}
+                aria-current={activeCat === category.id ? "true" : undefined}
+                className={`admin-menu-cat shrink-0 capitalize whitespace-nowrap${
+                  activeCat === category.id ? " is-active" : ""
+                }${!category.isActive ? " is-hidden" : ""}`}
                 onClick={() => scrollToCategory(category.id)}
               >
                 {category.name}
@@ -701,7 +700,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                         </button>
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm text-[var(--danger)]"
+                          className="btn btn-ghost btn-sm btn-danger-ghost"
                           disabled={busyId === category.id || actionBusy}
                           onClick={() => askRemoveCategory(category, allInCat)}
                         >
@@ -763,7 +762,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                                     href={`/admin/menu/${product.id}/edit`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex min-h-9 items-center rounded-lg bg-[var(--gold)] px-3 text-xs font-bold text-[var(--ink)] shadow-sm"
+                                    className="admin-menu-edit"
                                   >
                                     {t("edit")}
                                   </Link>
@@ -836,7 +835,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                                   </button>
                                   <button
                                     type="button"
-                                    className="btn btn-ghost btn-sm text-[var(--danger)]"
+                                    className="btn btn-ghost btn-sm btn-danger-ghost"
                                     disabled={
                                       busyId === product.id || actionBusy
                                     }
@@ -896,7 +895,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                               href={`/admin/menu/${product.id}/edit`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex min-h-9 items-center rounded-lg bg-[var(--gold)] px-3 text-xs font-bold text-[var(--ink)] shadow-sm"
+                              className="admin-menu-edit"
                             >
                               {t("edit")}
                             </Link>
@@ -913,7 +912,7 @@ export function MenuShowcase({ manage = false }: MenuShowcaseProps) {
                           <div className="mt-2 flex flex-wrap gap-1.5 border-t border-[var(--border)]/60 pt-2">
                             <button
                               type="button"
-                              className="btn btn-ghost btn-sm text-[var(--danger)]"
+                              className="btn btn-ghost btn-sm btn-danger-ghost"
                               onClick={() => setPendingDeleteProduct(product)}
                             >
                               {t("delete")}

@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { defaultLandingPath } from "@bravobites/domain";
 import { useAuth } from "@/lib/auth-context";
 import { useLocale } from "@/i18n/locale-context";
-import { LanguageToggle } from "@/components/LanguageToggle";
-import { BrandLogo, BrandTitle } from "@/components/Brand";
-import { AtmosphereBg } from "@/components/AtmosphereBg";
+import { AuthBackdrop, AuthPanelHero } from "@/components/BranchGate";
+import { LogoLoader } from "@/components/LogoLoader";
 
 const EMAIL_KEY = "bravobites.login.email";
 /** Old "save password" keys — the password sat in plain text on the shared shop PC. */
@@ -67,111 +66,98 @@ export default function LoginPage() {
   }
 
   if (!loading && firebaseUser && profile && !busy) {
-    return (
-      <main className="login-page relative flex min-h-svh justify-center overflow-y-auto text-white">
-        <div className="login-page-bg" aria-hidden>
-          <AtmosphereBg />
-          <div className="login-page-scrim" />
-        </div>
-        <p className="relative z-10 py-10">{t("redirecting")}</p>
-      </main>
-    );
+    return <LogoLoader label={t("redirecting")} />;
   }
 
   return (
     <main className="login-page relative flex min-h-svh justify-center overflow-y-auto overscroll-y-contain">
-      <div className="login-page-bg" aria-hidden>
-        <AtmosphereBg />
-        <div className="login-page-scrim" />
-      </div>
+      <AuthBackdrop />
 
       <div className="login-panel panel w-full max-w-md">
-        <div className="login-panel-lang">
-          <LanguageToggle />
-        </div>
+        <AuthPanelHero />
 
-        <div className="login-panel-brand">
-          <BrandLogo size="md" className="login-brand-logo" />
-          <BrandTitle />
-        </div>
+        <div className="login-panel-body">
+          <div className="login-drip" aria-hidden />
+          <div className="login-panel-head">
+            <h2 className="login-panel-title">{t("posLogin")}</h2>
+            <p className="login-panel-hint">{t("loginHint")}</p>
+          </div>
 
-        <div className="login-panel-head">
-          <h2 className="login-panel-title">{t("posLogin")}</h2>
-          <p className="login-panel-hint">{t("loginHint")}</p>
-        </div>
+          {error ? <div className="toast-error login-alert">{error}</div> : null}
 
-        {error ? <div className="toast-error mb-2 text-start sm:mb-3">{error}</div> : null}
-
-        <form onSubmit={onSubmit} className="login-form">
-          <label className="login-field">
-            {t("email")}
-            <input
-              className="input"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              dir="ltr"
-              suppressHydrationWarning
-              name="email"
-            />
-          </label>
-
-          <label className="login-field">
-            {t("password")}
-            <div className="login-password-wrap">
+          <form onSubmit={onSubmit} className="login-form">
+            <label className="login-field">
+              {t("email")}
               <input
-                className="input login-password-input"
-                type={showPassword ? "text" : "password"}
-                autoComplete="off"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                className="input"
+                type="email"
+                autoComplete="username"
+                inputMode="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 dir="ltr"
                 suppressHydrationWarning
-                name="password"
+                name="email"
               />
-              <button
-                type="button"
-                className="login-password-toggle"
-                onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? t("hidePassword") : t("showPassword")}
-                title={showPassword ? t("hidePassword") : t("showPassword")}
-              >
-                {showPassword ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </label>
+            </label>
 
-          <button
-            className="btn login-submit"
-            type="submit"
-            disabled={busy || loading}
-          >
-            {busy ? t("signingIn") : t("login")}
-          </button>
-        </form>
+            <label className="login-field">
+              {t("password")}
+              <div className="login-password-wrap">
+                <input
+                  className="input login-password-input"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="off"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  dir="ltr"
+                  suppressHydrationWarning
+                  name="password"
+                />
+                <button
+                  type="button"
+                  className="login-password-toggle"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? t("hidePassword") : t("showPassword")}
+                  aria-pressed={showPassword}
+                  title={showPassword ? t("hidePassword") : t("showPassword")}
+                >
+                  {showPassword ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </label>
 
-        <p className="login-panel-footer">
-          <Link
-            href="/#menu"
-            className="font-semibold text-[var(--gold-deep)] underline-offset-2 hover:underline"
-          >
-            ← {t("viewMenu")}
-          </Link>
-        </p>
+            <button
+              className="btn login-submit"
+              type="submit"
+              disabled={busy || loading}
+            >
+              {busy ? t("signingIn") : t("login")}
+            </button>
+          </form>
+
+          <p className="login-panel-footer">
+            <Link href="/#menu" className="login-back-link">
+              <svg className="login-back-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M19 12H5M11 6l-6 6 6 6" />
+              </svg>
+              {t("viewMenu")}
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   );

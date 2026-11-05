@@ -257,10 +257,10 @@ export default function ItemSalesPage() {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <div className="mb-4 sm:mb-5">
-        <h1 className="text-xl font-bold tracking-tight text-[var(--ink)] sm:text-2xl">
+        <h1 className="admin-page-title">
           {t("itemSales")}
         </h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">{t("itemSalesHint")}</p>
+        <p className="admin-page-sub">{t("itemSalesHint")}</p>
         <p className="mt-1 text-xs leading-snug text-[var(--muted)]">
           {t("itemSalesVsOrdersHint")}
         </p>
@@ -330,7 +330,7 @@ export default function ItemSalesPage() {
 
           <span className="relative mt-3 block">
             <svg
-              className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[#e4c15a]/80"
+              className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[#f0b028]/80"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -360,7 +360,7 @@ export default function ItemSalesPage() {
             <p className="admin-filter-muted text-[10px] font-bold uppercase tracking-[0.12em]">
               {t("itemsCount")}
             </p>
-            <p className="mt-1 text-xl font-bold tabular-nums text-[#f5efe6] sm:text-2xl">
+            <p className="mt-1 text-xl font-bold tabular-nums text-[#fff4e8] sm:text-2xl">
               {filteredStats.length}
             </p>
           </div>
@@ -379,7 +379,7 @@ export default function ItemSalesPage() {
             <p className="admin-filter-muted text-[10px] font-bold uppercase tracking-[0.12em]">
               {t("qtySold")}
             </p>
-            <p className="mt-1 text-xl font-bold tabular-nums text-[#f5efe6] sm:text-2xl">
+            <p className="mt-1 text-xl font-bold tabular-nums text-[#fff4e8] sm:text-2xl">
               {totalQty}
             </p>
           </div>
@@ -392,11 +392,11 @@ export default function ItemSalesPage() {
               {t("salesBridgeTitle")}
             </p>
             <div
-              className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-[#e8e0d4] sm:text-sm"
+              className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-[#e9d5c1] sm:text-sm"
               dir="ltr"
             >
               <span className="text-[var(--muted)]">{t("itemRevenue")}</span>
-              <span className="font-bold tabular-nums text-[#f5efe6]">
+              <span className="font-bold tabular-nums text-[#fff4e8]">
                 {formatPkr(periodMoney.itemRevenue)}
               </span>
               {periodMoney.discounts > 0 ? (
@@ -412,7 +412,7 @@ export default function ItemSalesPage() {
                 <>
                   <span className="text-white/25">+</span>
                   <span className="text-[var(--muted)]">{t("tax")}</span>
-                  <span className="font-bold tabular-nums text-[#f5efe6]">
+                  <span className="font-bold tabular-nums text-[#fff4e8]">
                     {formatPkr(periodMoney.tax)}
                   </span>
                 </>
@@ -421,14 +421,14 @@ export default function ItemSalesPage() {
                 <>
                   <span className="text-white/25">+</span>
                   <span className="text-[var(--muted)]">{t("deliveryCharges")}</span>
-                  <span className="font-bold tabular-nums text-[#f5efe6]">
+                  <span className="font-bold tabular-nums text-[#fff4e8]">
                     {formatPkr(periodMoney.delivery)}
                   </span>
                 </>
               ) : null}
               <span className="text-white/25">=</span>
               <span className="text-[var(--muted)]">{t("orderSales")}</span>
-              <span className="font-bold tabular-nums text-[#e4c15a]">
+              <span className="font-bold tabular-nums text-[#f0b028]">
                 {formatPkr(periodMoney.orderSales)}
               </span>
             </div>
@@ -477,7 +477,7 @@ export default function ItemSalesPage() {
             </p>
           ) : (
             <div className="divide-y divide-[var(--border)]">
-              <div className="hidden items-center gap-3 bg-[#faf7f2] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--muted)] sm:flex">
+              <div className="hidden items-center gap-3 bg-[#fff4e8] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--muted)] sm:flex">
                 <span className="w-8 text-center">#</span>
                 <span className="flex-1">{t("itemName")}</span>
                 <span className="w-20 text-end">{t("qtySold")}</span>
@@ -540,7 +540,7 @@ export default function ItemSalesPage() {
                   </div>
                 );
               })}
-              <div className="flex items-center gap-2.5 bg-[#faf7f2] px-3 py-3.5 sm:gap-3 sm:px-4">
+              <div className="flex items-center gap-2.5 bg-[#fff4e8] px-3 py-3.5 sm:gap-3 sm:px-4">
                 <span className="w-8 shrink-0" />
                 <span className="min-w-0 flex-1 text-sm font-bold text-[var(--ink)]">
                   {t("total")}

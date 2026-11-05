@@ -1,0 +1,569 @@
+/* Staff sign-in (/login) + counter branch picker (BranchGate, also shown on /pos and /admin).
+   Dark brand atmosphere (hero photos + logo glow) with a centred card: dark brand header
+   (badge + Lilita wordmark) and a cream form body — docs/DESIGN.md §4 "Login".
+   Body colours use the app tokens (--ink, --muted, --border, --bg-elevated) so the POS dark
+   theme (html[data-pos-theme="dark"], 08-pos-theme.css) still flips BranchGate on /pos.
+   Order matters — see globals.css. */
+
+html:has(body .login-page),
+html:has(body .login-page) body {
+  background: var(--bb-brown-900);
+}
+
+.login-page {
+  /* Focus + field boundary (WCAG 2.4.11 / 1.4.11 ≥ 3:1 on the cream card); POS dark flips them below */
+  --login-focus: var(--bb-red-700); /* 6.9:1 on cream */
+  --login-field-border: color-mix(in srgb, var(--bb-muted) 75%, var(--bg-elevated)); /* ≈ 3.4:1 */
+  --login-field-border-hover: color-mix(in srgb, var(--ink) 70%, var(--bg-elevated));
+  min-height: 100svh;
+  min-height: 100dvh;
+  color: var(--ink);
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  /* Spacers (::before/::after) handle vertical centering */
+  padding-block: 0;
+}
+
+/* Equal flex spacers = true vertical center; if the card is taller than
+   the viewport they shrink to min-height so top/bottom still scroll. */
+.login-page::before,
+.login-page::after {
+  content: "";
+  flex: 1 0 auto;
+  width: 100%;
+  min-height: max(1rem, env(safe-area-inset-top, 0px));
+  pointer-events: none;
+}
+
+.login-page::after {
+  min-height: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+.login-page-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  background: radial-gradient(ellipse at 50% 35%, var(--bb-brown-800) 0%, var(--bb-brown-900) 60%, var(--bb-brown-950) 100%);
+}
+
+.login-page-bg .atmosphere-bg {
+  position: absolute;
+  inset: 0;
+}
+
+.login-page-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 45%, rgba(25, 13, 9, 0.5) 0%, rgba(18, 9, 6, 0.86) 72%, rgba(18, 9, 6, 0.94) 100%),
+    linear-gradient(180deg, rgba(18, 9, 6, 0.35) 0%, rgba(18, 9, 6, 0.6) 100%);
+}
+
+/* ── Card ── */
+.login-page .login-panel,
+.login-page .panel {
+  position: relative;
+  z-index: 10;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: min(26.5rem, calc(100vw - 1.5rem));
+  margin-block: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 24px;
+  background: var(--bb-cream-50);
+  backdrop-filter: none;
+  box-shadow:
+    0 0 0 1px rgba(255, 244, 232, 0.08),
+    0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+/* Dark brand header */
+.login-panel-hero {
+  position: relative;
+  padding: 0.75rem 0.75rem 1.4rem;
+  text-align: center;
+  color: var(--bb-cream-100);
+  background: radial-gradient(ellipse at 50% 30%, var(--bb-brown-800) 0%, var(--bb-brown-900) 62%, var(--bb-brown-950) 100%);
+}
+
+.login-panel-lang {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.login-panel-lang .lang-toggle-btn {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 0.8rem;
+  border-radius: var(--bb-radius-pill);
+  border: 1px solid rgba(255, 244, 232, 0.24);
+  background: rgba(255, 244, 232, 0.08);
+  color: var(--bb-cream-100);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.login-panel-lang .lang-toggle-btn:hover {
+  background: rgba(255, 244, 232, 0.14);
+  border-color: var(--bb-mustard-500);
+}
+
+.login-panel-lang .lang-toggle-btn:focus-visible {
+  outline: 3px solid var(--bb-mustard-500);
+  outline-offset: 2px;
+}
+
+.login-panel-lang .lang-toggle-icon {
+  color: var(--bb-mustard-500);
+}
+
+/* listbox opens under the toggle, aligned to the card's end edge */
+.login-panel-lang .lang-toggle-root ul[role="listbox"] {
+  left: auto;
+  right: 0;
+  min-width: 9rem;
+}
+
+html[dir="rtl"] .login-panel-lang .lang-toggle-root ul[role="listbox"] {
+  right: auto;
+  left: 0;
+}
+
+.login-panel-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: -1.25rem;
+}
+
+.login-page .login-brand-logo.brand-mark {
+  width: 76px;
+  height: 76px;
+}
+
+.login-wordmark {
+  margin: 0;
+  font-family: var(--font-brand-stack);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bb-cream-100);
+  text-shadow: var(--bb-text-stamp);
+}
+
+/* Form body */
+.login-panel-body {
+  position: relative;
+  padding: 3rem 1.25rem 1.1rem;
+}
+
+/* Mustard cheese drip from the brand header into the form (mask from 05-landing.css) */
+.login-drip {
+  position: absolute;
+  top: -1px;
+  inset-inline: 0;
+  height: 48px;
+  pointer-events: none;
+}
+
+.login-drip::before,
+.login-drip::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 45px;
+  -webkit-mask: var(--landing-drip-mask) repeat-x 18px 0 / 240px 45px;
+  mask: var(--landing-drip-mask) repeat-x 18px 0 / 240px 45px;
+}
+
+.login-drip::before {
+  top: 2px;
+  background: var(--bb-mustard-700);
+}
+
+.login-drip::after {
+  background: var(--bb-mustard-500);
+}
+
+.login-panel-head {
+  margin-bottom: 1.1rem;
+  text-align: center;
+}
+
+.login-panel-title {
+  margin: 0;
+  font-family: var(--font-brand-stack);
+  font-weight: 400;
+  font-size: 1.6rem;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.login-panel-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.login-alert {
+  margin-bottom: 0.9rem;
+  text-align: start;
+  font-size: 0.875rem;
+}
+
+.login-panel-status {
+  margin: 0.5rem 0;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.login-field {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.login-field .input {
+  margin-top: 0.4rem;
+}
+
+.login-page .input {
+  min-height: 50px;
+  padding: 0.7rem 0.9rem;
+  font-size: 16px; /* prevent iOS zoom on focus */
+  border-radius: 12px;
+  border: 1.5px solid var(--login-field-border);
+  background-color: var(--bg-elevated);
+  color: var(--ink);
+  transition:
+    border-color 0.15s var(--bb-ease-out),
+    box-shadow 0.15s var(--bb-ease-out);
+}
+
+.login-page .input:hover {
+  border-color: var(--login-field-border-hover);
+}
+
+.login-page .input:focus,
+.login-page .input:focus-visible {
+  outline: none;
+  border-color: var(--login-focus);
+  box-shadow:
+    0 0 0 1.5px var(--login-focus),
+    0 0 0 5px color-mix(in srgb, var(--login-focus) 16%, transparent);
+}
+
+/* Password stays LTR, so the eye sits on the right in both languages */
+.login-password-wrap {
+  position: relative;
+  margin-top: 0.4rem;
+}
+
+.login-password-wrap .input {
+  margin-top: 0;
+}
+
+.login-page .login-password-input {
+  width: 100%;
+  padding-right: 3.25rem;
+}
+
+.login-password-toggle {
+  position: absolute;
+  right: 0.2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.login-password-toggle:hover {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.login-password-toggle:focus-visible {
+  outline: 3px solid var(--login-focus);
+  outline-offset: -3px;
+}
+
+/* Red sticker submit (overrides the app-wide .btn) */
+.login-page .login-submit {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 0.35rem;
+  padding: 0 1.25rem;
+  border: 0;
+  border-radius: 14px;
+  background: var(--bb-primary);
+  color: var(--bb-on-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: var(--bb-sticker-shadow);
+  transition:
+    background-color 0.18s var(--bb-ease-out),
+    transform 0.18s var(--bb-ease-out),
+    box-shadow 0.18s var(--bb-ease-out);
+}
+
+.login-page .login-submit:hover:not(:disabled) {
+  background: var(--bb-primary-hover);
+  transform: none;
+}
+
+.login-page .login-submit:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--bb-red-800);
+}
+
+.login-page .login-submit:focus-visible {
+  outline: 3px solid var(--login-focus);
+  outline-offset: 2px;
+}
+
+.login-page .login-submit:disabled {
+  opacity: 1;
+  background: var(--bb-cream-200);
+  color: var(--bb-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+html[data-pos-theme="dark"] .login-page .login-submit:disabled {
+  background: rgba(255, 244, 232, 0.08);
+  color: var(--muted);
+}
+
+.login-page .login-ghost {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 14px;
+  border: 1.5px solid var(--login-field-border);
+  background: transparent;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.login-page .login-ghost:hover:not(:disabled) {
+  border-color: var(--bb-red-500);
+  color: var(--bb-red-700);
+  transform: none;
+}
+
+html[data-pos-theme="dark"] .login-page .login-ghost:hover:not(:disabled) {
+  color: var(--bb-mustard-400);
+  border-color: var(--bb-mustard-500);
+}
+
+.login-panel-footer {
+  margin: 0.75rem 0 0;
+  text-align: center;
+}
+
+.login-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--gold-deep); /* red-700 on cream; mustard in POS dark */
+}
+
+.login-back-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.login-back-link:focus-visible {
+  outline: 3px solid var(--login-focus);
+  outline-offset: 1px;
+}
+
+html[dir="rtl"] .login-back-icon {
+  transform: scaleX(-1);
+}
+
+/* ── Branch picker (BranchGate) ── */
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.login-branch-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.login-branch-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 52px;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  border: 1.5px solid var(--login-field-border);
+  background: var(--bg-elevated);
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--bb-ease-out),
+    background-color 0.15s var(--bb-ease-out);
+}
+
+.login-branch-option:hover {
+  border-color: color-mix(in srgb, var(--bb-red-500) 55%, transparent);
+}
+
+.login-branch-option:focus-visible {
+  outline: 3px solid var(--login-focus);
+  outline-offset: 2px;
+}
+
+.login-branch-option.is-selected {
+  border-color: var(--bb-red-500);
+  background: color-mix(in srgb, var(--bb-red-500) 7%, var(--bg-elevated));
+}
+
+.login-branch-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 0.05rem;
+  border-radius: 50%;
+  border: 2px solid var(--login-field-border);
+  color: var(--bb-on-primary);
+}
+
+.login-branch-option.is-selected .login-branch-check {
+  border-color: var(--bb-red-500);
+  background: var(--bb-red-500);
+}
+
+.login-branch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.login-branch-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.login-branch-address {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* POS dark theme (BranchGate on /pos): the card body is dark there — mustard focus,
+   cream field boundary (≈ 3.4:1 on the dark card) */
+html[data-pos-theme="dark"] .login-page {
+  --login-focus: var(--bb-mustard-500);
+  --login-field-border: color-mix(in srgb, var(--bb-cream-100) 38%, transparent);
+  --login-field-border-hover: color-mix(in srgb, var(--bb-cream-100) 60%, transparent);
+}
+
+/* Short screens (landscape phones / small laptops): tighter header */
+@media (max-height: 700px) {
+  .login-panel-hero {
+    padding-bottom: 1rem;
+  }
+  .login-page .login-brand-logo.brand-mark {
+    width: 60px;
+    height: 60px;
+  }
+  .login-wordmark {
+    font-size: 1.6rem;
+  }
+  .login-panel-body {
+    padding-top: 2.6rem;
+  }
+  .login-form {
+    gap: 0.75rem;
+  }
+}
+
+/* ── Urdu ── */
+html[lang="ur"] .login-page,
+body[data-locale="ur"] .login-page {
+  line-height: 1.45;
+}
+
+html[lang="ur"] .login-page h1,
+html[lang="ur"] .login-page h2,
+html[lang="ur"] .login-page label,
+html[lang="ur"] .login-page .btn,
+html[lang="ur"] .login-page p,
+body[data-locale="ur"] .login-page h1,
+body[data-locale="ur"] .login-page h2,
+body[data-locale="ur"] .login-page label,
+body[data-locale="ur"] .login-page .btn,
+body[data-locale="ur"] .login-page p {
+  line-height: 1.5;
+}
+
+/* .login-wordmark stays the Latin Lilita lockup in Urdu too (lang="en") — no Naskh metrics */
+html[lang="ur"] .login-page h1.login-wordmark,
+body[data-locale="ur"] .login-page h1.login-wordmark {
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+html[lang="ur"] .login-panel-title {
+  line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page .login-submit,
+  .login-page .input,
+  .login-branch-option,
+  .login-password-toggle {
+    transition: none;
+  }
+}

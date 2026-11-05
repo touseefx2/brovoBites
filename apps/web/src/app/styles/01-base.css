@@ -1,0 +1,792 @@
+/* Tokens, fonts, base elements, buttons, forms, shared helpers. Split out of globals.css (original lines 2-351); order matters — see globals.css.
+   Design system: docs/DESIGN.md (Brovo Bites v2). New CSS uses the --bb-* tokens, never raw hex. */
+
+:root {
+  /* ── Brovo Bites brand palette (sampled from the logo) — docs/DESIGN.md ── */
+  --bb-brown-950: #120906;
+  --bb-brown-900: #190d09; /* logo background edge */
+  --bb-brown-850: #1f100b;
+  --bb-brown-800: #2a140e; /* logo background centre glow */
+  --bb-brown-700: #3a1e15;
+  --bb-brown-600: #4e2a1d;
+  --bb-red-400: #e85a4f;
+  --bb-red-500: #d7362b; /* logo red */
+  --bb-red-600: #b92b21;
+  --bb-red-700: #a3271d; /* red text on light (≥ 6.9:1 on cream) */
+  --bb-red-800: #882018; /* logo lettering shadow */
+  --bb-mustard-300: #f7cf6e;
+  --bb-mustard-400: #f5c04a;
+  --bb-mustard-500: #f0b028; /* logo cheese drip */
+  --bb-mustard-600: #d99a12;
+  --bb-mustard-700: #c58a0e;
+  --bb-cream-50: #fffaf3;
+  --bb-cream-100: #fff4e8; /* logo lettering */
+  --bb-cream-200: #f8e6d0;
+  --bb-cream-300: #efd5b8;
+  --bb-ink: #2a140e;
+  --bb-muted: #7a5a4c; /* muted text on light (≥ 5.9:1) */
+  --bb-muted-on-dark: #d4bfae; /* muted text on brown-900 (≥ 9:1) */
+  --bb-line-on-dark: rgba(255, 244, 232, 0.1);
+  /* status colours (NOT brand colours — they keep their meaning) */
+  --bb-danger: #b91c1c; /* white on it = 6.5:1 */
+  --bb-danger-hover: #991b1b;
+  --bb-danger-press: #7f1d1d;
+  --bb-danger-tint: #fef2f2;
+  --bb-success: #15803d;
+  --bb-success-tint: #f0fdf4;
+  --bb-warning-ink: #92400e;
+  --bb-warning-tint: #fffbeb;
+  /* semantic */
+  --bb-primary: var(--bb-red-500);
+  --bb-primary-hover: var(--bb-red-600);
+  --bb-primary-press: var(--bb-red-800);
+  --bb-on-primary: #ffffff; /* white on red-500 = 4.7:1 */
+  --bb-accent: var(--bb-mustard-500);
+  --bb-on-accent: var(--bb-brown-900); /* 10:1 */
+  --bb-sticker-shadow: 0 4px 0 var(--bb-red-800);
+  --bb-text-stamp: 0.06em 0.06em 0 var(--bb-red-800); /* logo-style hard shadow for Lilita headings on dark */
+  --bb-shadow-card: 0 1px 2px rgba(42, 20, 14, 0.06), 0 8px 24px rgba(42, 20, 14, 0.06);
+  --bb-glow-dark: radial-gradient(ellipse at 50% 35%, var(--bb-brown-800) 0%, var(--bb-brown-900) 60%, var(--bb-brown-950) 100%);
+  --bb-radius-card: 18px;
+  --bb-radius-pill: 999px;
+  --bb-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── Legacy names (30+ TSX files use them as text-[var(--x)] etc.) — remapped to the brand ── */
+  --bg: var(--bb-cream-50); /* light page background */
+  --bg-elevated: #ffffff;
+  --bg-panel: #ffffff;
+  --ink: var(--bb-ink); /* 16:1 on cream-50 */
+  --muted: var(--bb-muted); /* 5.9:1 on cream-50 */
+  --gold: var(--bb-mustard-700); /* decorative mustard: borders, bars, fills with ink text — never text on light */
+  --gold-deep: var(--bb-red-700); /* accent TEXT on light: 6.9:1 on cream-50, 7.3:1 on white */
+  --gold-soft: var(--bb-mustard-500); /* accent on dark surfaces */
+  --cream: var(--bb-cream-100); /* real cream (was ink by mistake; unused in TSX — POS dark also sets it light) */
+  --danger: var(--bb-danger);
+  --success: var(--bb-success);
+  --border: rgba(190, 110, 40, 0.24); /* ≈ cream-300 on white, slightly deeper on cream */
+  /* Boundary of a control (inputs, selects, ghost buttons): WCAG 1.4.11 needs ≥ 3:1 —
+     tan-brown 3.55:1 on white, 3.42:1 on cream-50. Decorative outlines use --border. */
+  --border-strong: #a8805f;
+  --shadow: 0 2px 6px rgba(42, 20, 14, 0.05), 0 18px 44px rgba(42, 20, 14, 0.1);
+  --radius: 14px;
+
+  /* ── Component tokens (dark zones below re-point them) ── */
+  --focus-ring: var(--bb-red-700); /* solid: 7.1:1 on cream-50 / 7.3:1 on white; mustard on dark */
+  --field-focus: var(--bb-red-500); /* 2px focused-field line: 4.5:1 on cream-50, 4.7:1 on white */
+  --field-focus-ring: rgba(215, 54, 43, 0.28); /* soft halo around it (decorative) */
+  --btn-ghost-hover: var(--bb-cream-100);
+  --btn-disabled-bg: var(--bb-cream-200);
+  --btn-disabled-ink: var(--bb-muted);
+  --spinner-track: rgba(215, 54, 43, 0.14);
+  --scrollbar-thumb: rgba(122, 90, 76, 0.38);
+}
+
+/* POS dark theme (html[data-pos-theme=dark], see 08-pos-theme.css): only the component
+   tokens introduced here — the legacy tokens are switched there. */
+html[data-pos-theme="dark"] {
+  --border-strong: rgba(255, 237, 213, 0.4); /* field boundary ≥ 3.4:1 on the dark surfaces */
+  --focus-ring: var(--bb-mustard-500);
+  --field-focus: var(--bb-mustard-500);
+  --field-focus-ring: rgba(240, 176, 40, 0.2);
+  --btn-ghost-hover: var(--pd-hover, #301a12);
+  --btn-disabled-bg: var(--pd-raised, #26130c);
+  --btn-disabled-ink: var(--pd-faint, #917868);
+  --spinner-track: rgba(255, 237, 213, 0.12);
+  --scrollbar-thumb: rgba(255, 237, 213, 0.2);
+}
+
+/* Font stacks live on <body>: next/font sets --font-en / --font-ur there, so a
+   var(--font-en) resolved on :root was undefined and the app fell back to the
+   browser's default serif. (Urdu overrides below are more specific.) */
+body {
+  /* Plain system font (SF on Mac, Segoe UI on Windows, Roboto on Android). */
+  --font-en: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-en);
+  --font-body: var(--font-en);
+  /* Lilita One (latin only, public/fonts) — headings / brand / prices. */
+  --font-brand-stack: var(--font-brand, "Lilita One"), var(--font-ur, serif), var(--font-en);
+}
+
+html[lang="ur"] body,
+body[data-locale="ur"] {
+  /* Naskh covers Urdu script only (unicode-range); Latin uses the same system font as English. */
+  --font-display: var(--font-ur), var(--font-en);
+  --font-body: var(--font-ur), var(--font-en);
+  /* Naskh FIRST for Lilita titles too: next/font appends system-ui to --font-brand, which would
+     otherwise draw the Urdu glyphs (Arial) before Naskh is tried. Naskh's @font-face is
+     Urdu-only (unicode-range), so Latin words in these titles still render in Lilita. Scoped to
+     Urdu so English titles keep Lilita as their primary font (spacing + baseline unchanged). */
+  --font-brand-stack: var(--font-ur), var(--font-brand, "Lilita One"), var(--font-en);
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+html[lang="ur"] label,
+html[lang="ur"] h1,
+html[lang="ur"] h2,
+html[lang="ur"] h3 {
+  line-height: 1.45;
+}
+
+/* Mobile admin header: Nastaliq role label needs room for descenders */
+.admin-mobile-role {
+  line-height: 1.35;
+  overflow: visible;
+}
+
+html[lang="ur"] .admin-mobile-role {
+  line-height: 1.6;
+  padding-block: 0.1em 0.2em;
+}
+
+/* Language toggle stays Latin + tight metrics so icons/text align in both locales */
+.lang-toggle-root,
+.lang-toggle-root * {
+  font-family: var(--font-en), "Segoe UI", system-ui, sans-serif !important;
+  line-height: 1.2 !important;
+  letter-spacing: normal;
+}
+
+.lang-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.lang-toggle-btn:focus-visible,
+.lang-toggle-option:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.lang-toggle-btn .lang-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1 !important;
+  padding-block: 0;
+}
+
+.lang-toggle-label-short {
+  display: none;
+}
+
+.lang-toggle-btn svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Language menu: small brand mark on the selected row */
+.lang-toggle-option[aria-selected="true"] {
+  box-shadow: inset 3px 0 0 var(--bb-red-500);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-panel: var(--bg-panel);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-cream: var(--cream);
+  --color-muted: var(--muted);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow-x: clip;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* Layered so any Tailwind focus/outline/accent utility on an element still wins. */
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: rgba(240, 176, 40, 0.38);
+    color: inherit;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"],
+  progress {
+    accent-color: var(--bb-red-500);
+  }
+}
+
+/* Text link inside copy (nav links stay inherit) */
+.link {
+  color: var(--gold-deep);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.link:hover {
+  color: var(--bb-red-600);
+  text-decoration-color: currentColor;
+}
+
+/* ═══ Buttons ═════════════════════════════════════════════════════════════
+   .btn / .btn-primary = red "sticker" (white text, hard red-800 shadow).
+   Variants only re-point the --btn-* vars, so states stay consistent. */
+.btn,
+.btn-primary {
+  --btn-bg: var(--bb-primary);
+  --btn-bg-hover: var(--bb-primary-hover);
+  --btn-ink: var(--bb-on-primary);
+  --btn-ink-hover: var(--btn-ink);
+  --btn-border: transparent;
+  --btn-border-hover: var(--btn-border);
+  --btn-shadow: var(--bb-primary-press);
+  --btn-lift: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--btn-ink);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.005em;
+  text-decoration: none;
+  border-radius: 12px;
+  padding: 0.7rem 1.15rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 var(--btn-lift) 0 var(--btn-shadow);
+  transition:
+    background-color 0.15s var(--bb-ease-out),
+    border-color 0.15s var(--bb-ease-out),
+    color 0.15s var(--bb-ease-out),
+    box-shadow 0.15s var(--bb-ease-out),
+    transform 0.15s var(--bb-ease-out);
+}
+
+/* Naskh needs a taller line; :where keeps this at class weight so area CSS (.pos-cta, .login-submit) still wins */
+:where(html[lang="ur"]) .btn,
+:where(html[lang="ur"]) .btn-primary {
+  line-height: 1.5;
+  padding-block: 0.55rem;
+}
+
+@media (hover: hover) {
+  .btn:hover:not(:disabled),
+  .btn-primary:hover:not(:disabled) {
+    background: var(--btn-bg-hover);
+    color: var(--btn-ink-hover);
+    border-color: var(--btn-border-hover);
+  }
+}
+
+.btn:active:not(:disabled),
+.btn-primary:active:not(:disabled) {
+  transform: translateY(calc(var(--btn-lift) / 2));
+  box-shadow: 0 calc(var(--btn-lift) / 2) 0 var(--btn-shadow);
+}
+
+.btn:focus-visible,
+.btn-primary:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn-primary:disabled,
+.btn[aria-disabled="true"] {
+  --btn-shadow: transparent;
+  background: var(--btn-disabled-bg);
+  border-color: transparent;
+  color: var(--btn-disabled-ink);
+  box-shadow: none;
+  transform: none;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  --btn-lift: 2px;
+  padding: 0.5rem 0.85rem;
+  min-height: 44px;
+  font-size: 0.875rem;
+  border-radius: 10px;
+  gap: 0.3rem;
+}
+
+/* Mouse/trackpad only: denser small buttons. Touch screens (POS tablets) keep 44px. */
+@media (min-width: 640px) and (pointer: fine) {
+  .btn-sm {
+    padding: 0.4rem 0.75rem;
+    min-height: 36px;
+    font-size: 0.8125rem;
+  }
+}
+
+/* Quiet button: white, cream outline, ink text — red text on hover */
+.btn-ghost {
+  --btn-bg: var(--bg-elevated);
+  --btn-bg-hover: var(--btn-ghost-hover);
+  --btn-ink: var(--ink);
+  --btn-ink-hover: var(--gold-deep);
+  --btn-border: var(--border-strong);
+  --btn-border-hover: color-mix(in srgb, var(--gold-deep) 45%, var(--border-strong));
+  --btn-shadow: transparent;
+  --btn-lift: 0px;
+}
+
+.btn-ghost:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-ghost:disabled {
+  background: transparent;
+  border-color: var(--border);
+}
+
+/* Secondary: ink outline on light (DESIGN §3) */
+.btn-secondary {
+  --btn-bg: transparent;
+  --btn-bg-hover: var(--ink);
+  --btn-ink: var(--ink);
+  --btn-ink-hover: var(--bg-elevated);
+  --btn-border: var(--ink);
+  --btn-shadow: transparent;
+  --btn-lift: 0px;
+  border-width: 1.5px;
+}
+
+/* Destructive — crimson status red, NOT the brand red, so it never reads as "go" */
+.btn-danger {
+  --btn-bg: var(--bb-danger);
+  --btn-bg-hover: var(--bb-danger-hover);
+  --btn-ink: #ffffff;
+  --btn-border: transparent;
+  --btn-shadow: var(--bb-danger-press);
+}
+
+/* Destructive but quiet (row actions): outline + red text */
+.btn-ghost.btn-danger-ghost,
+.btn-ghost.text-\[var\(--danger\)\],
+.btn-ghost.text-red-600 {
+  --btn-ink: var(--danger);
+  --btn-ink-hover: var(--danger);
+  --btn-border: color-mix(in srgb, var(--danger) 35%, transparent);
+  --btn-border-hover: var(--danger);
+  --btn-bg-hover: color-mix(in srgb, var(--danger) 8%, var(--bg-elevated));
+}
+
+/* Spinner inside a button follows the text colour */
+.btn .spinner {
+  border-color: color-mix(in srgb, currentColor 28%, transparent);
+  border-top-color: currentColor;
+}
+
+/* ═══ Forms ═══════════════════════════════════════════════════════════════ */
+.input {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  font-size: 16px; /* prevent iOS zoom on focus */
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+@media (min-width: 640px) and (pointer: fine) {
+  .input {
+    font-size: inherit;
+  }
+}
+
+.input::placeholder {
+  color: var(--muted);
+  opacity: 0.9; /* ≈ 4.9:1 on white */
+}
+
+@media (hover: hover) {
+  .input:hover:not(:disabled):not(:focus) {
+    border-color: color-mix(in srgb, var(--border-strong) 55%, var(--muted));
+  }
+}
+
+/* Focus = a solid 2px line (red on light, mustard in dark zones) drawn INSIDE the box, so a
+   scrolling/overflow-hidden parent can't clip it, plus a soft outer halo. */
+.input:focus {
+  outline: 2px solid var(--field-focus);
+  outline-offset: -2px;
+  border-color: var(--field-focus);
+  box-shadow: 0 0 0 3px var(--field-focus-ring);
+}
+
+.input:disabled {
+  background-color: var(--bb-cream-100);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+/* Native select: room for chevron in LTR + RTL (avoids clipped first letter) */
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--bg-elevated);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a3271d' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  background-position: right 0.85rem center;
+  padding-right: 2.4rem;
+  padding-left: 0.9rem;
+  cursor: pointer;
+}
+
+html[dir="rtl"] select.input:not([dir="ltr"]) {
+  background-position: left 0.85rem center;
+  padding-left: 2.4rem;
+  padding-right: 0.9rem;
+}
+
+/* ═══ Surfaces ════════════════════════════════════════════════════════════ */
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: var(--bb-shadow-card);
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* Dialogs (ConfirmDialog): brown scrim, lifted card, short rise-in */
+.dialog-scrim {
+  background: rgba(18, 9, 6, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.panel.dialog-card {
+  border-radius: var(--bb-radius-card);
+  box-shadow: 0 2px 6px rgba(18, 9, 6, 0.12), 0 28px 70px rgba(18, 9, 6, 0.38);
+  animation: dialog-in 0.22s var(--bb-ease-out) both;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Brand wordmark as a title (login / branch picker): Lilita + a faint logo-red stamp */
+.brand-title {
+  margin: 0;
+  font-family: var(--font-brand-stack);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.015em;
+  color: var(--ink);
+  text-shadow: 0.06em 0.06em 0 color-mix(in srgb, var(--bb-red-500) 24%, transparent);
+}
+
+html[lang="ur"] .brand-title {
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+.brand-tagline {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: var(--bb-radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bb-cream-100);
+  color: var(--gold-deep);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0.25rem 0.65rem;
+}
+
+.badge-accent {
+  border-color: transparent;
+  background: var(--bb-accent);
+  color: var(--bb-on-accent);
+}
+
+.badge-dark {
+  border-color: transparent;
+  background: var(--bb-brown-900);
+  color: var(--bb-mustard-400);
+}
+
+/* ═══ Toasts / inline notices (status colours keep their meaning) ═════════ */
+.toast-error,
+.toast-success,
+.toast-warn {
+  border: 1px solid;
+  border-inline-start-width: 4px;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.toast-error {
+  background: var(--bb-danger-tint);
+  border-color: #fecaca;
+  border-inline-start-color: var(--bb-danger);
+  color: #991b1b;
+}
+
+.toast-success {
+  background: var(--bb-success-tint);
+  border-color: #bbf7d0;
+  border-inline-start-color: var(--bb-success);
+  color: #166534;
+}
+
+.toast-warn {
+  background: var(--bb-warning-tint);
+  border-color: #fde68a;
+  border-inline-start-color: #d97706;
+  color: var(--bb-warning-ink);
+}
+
+/* ═══ Loading ═════════════════════════════════════════════════════════════ */
+.nav-progress {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+  z-index: 100;
+  height: 3px;
+  pointer-events: none;
+  background: transparent;
+}
+
+.nav-progress-bar {
+  height: 100%;
+  border-start-end-radius: 3px;
+  border-end-end-radius: 3px;
+  background: linear-gradient(90deg, var(--bb-red-500) 0%, var(--bb-red-400) 45%, var(--bb-mustard-500) 100%);
+  box-shadow: 0 0 10px rgba(240, 176, 40, 0.55);
+  transition: width 0.25s var(--bb-ease-out);
+}
+
+html[dir="rtl"] .nav-progress-bar {
+  background: linear-gradient(270deg, var(--bb-red-500) 0%, var(--bb-red-400) 45%, var(--bb-mustard-500) 100%);
+}
+
+/* Ring: red head + mustard tail on a faint track. Keep the class name — e2e waits for .spinner to go. */
+.spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 3px solid var(--spinner-track);
+  border-top-color: var(--bb-red-500);
+  border-right-color: var(--bb-mustard-500);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+.spinner-sm {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-width: 2px;
+}
+
+/* Mini logo loader: BB badge inside the spinning ring (PageSpinner / action overlay) */
+.brand-spinner {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  flex-shrink: 0;
+}
+
+.brand-spinner > .spinner {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-width: 3px;
+}
+
+.brand-spinner-badge {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  object-fit: contain;
+  animation: brand-spinner-bob 1.6s var(--bb-ease-out) infinite;
+}
+
+@keyframes brand-spinner-bob {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+}
+
+.page-spinner {
+  display: flex;
+  min-height: 40vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.action-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 9, 6, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  padding: 1rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Dark brand card (logo background) — same family as the full-screen LogoLoader */
+.action-overlay-card {
+  --spinner-track: rgba(255, 244, 232, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: min(18rem, 90vw);
+  max-width: 24rem;
+  border-radius: var(--bb-radius-card);
+  border: 1px solid var(--bb-line-on-dark);
+  background: var(--bb-glow-dark);
+  color: var(--bb-cream-100);
+  padding: 1.4rem 1.6rem 1.25rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.action-overlay-card .spinner {
+  border-top-color: var(--bb-mustard-500);
+  border-right-color: var(--bb-red-500);
+}
+
+.action-overlay-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--bb-cream-100);
+}
+
+.action-overlay-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--bb-muted-on-dark);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.8s;
+  }
+  .brand-spinner-badge,
+  .panel.dialog-card {
+    animation: none;
+  }
+  .nav-progress-bar,
+  .btn,
+  .btn-primary,
+  .input {
+    transition: none;
+  }
+  .btn:active:not(:disabled),
+  .btn-primary:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ═══ App shell (admin + POS light) ═══════════════════════════════════════ */
+.app-shell-bg {
+  background:
+    radial-gradient(ellipse 70% 45% at 90% -12%, rgba(240, 176, 40, 0.14), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 0% 0%, rgba(215, 54, 43, 0.05), transparent 60%),
+    linear-gradient(180deg, var(--bb-cream-50) 0%, var(--bb-cream-100) 100%);
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* Nastaliq is tall — tighten dense shells (POS + admin) on phone */
+html[lang="ur"] .app-shell-bg,
+body[data-locale="ur"] .app-shell-bg {
+  line-height: 1.5;
+}

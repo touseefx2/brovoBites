@@ -1,4 +1,4 @@
-# Bravo Bites POS — ERD
+# Brovo Bites POS — ERD
 
 ## Entity relationship
 

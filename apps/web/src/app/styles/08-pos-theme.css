@@ -1,0 +1,783 @@
+/* POS light/dark theme remap (must stay last). Split out of globals.css (original lines 3913-4495); order matters — see globals.css. */
+/* ═══════════════════════════════════════════════════════════════════════
+   POS theme — light (default) ⇄ dark
+   Dark is POS-only: lib/pos-theme.ts sets data-pos-theme="dark" on <html>
+   while the POS page is open, so the admin never goes dark. Everything above
+   is the light design and stays as it is; this section only adds
+     1. the header icon buttons (dark-mode + language),
+     2. dark tokens (the Brovo Bites brown ladder),
+     3. dark versions of the POS component classes (02 / 04 + the sheets),
+     4. a dark remap of the Tailwind colour utilities the POS screens use.
+   A new light colour utility on a POS screen needs a line in (4); a new light
+   POS class needs its dark twin in (3).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* `dark:` = POS dark mode (for the few spots the remap below can't infer). */
+@custom-variant dark (&:is(html[data-pos-theme="dark"] *));
+
+/* 1 ── Header icon buttons (PosThemeToggle, icon-only LanguageToggle, logout).
+   They sit on the brown app bar in both themes → mustard icons, cream hover. */
+.pos-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  color: var(--bb-mustard-500);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+/* Mouse-driven desktops only: touch tablets keep the 44px target. */
+@media (min-width: 1024px) and (pointer: fine) {
+  .pos-icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+}
+.pos-icon-btn svg {
+  display: block;
+  flex-shrink: 0;
+}
+.pos-icon-btn:hover,
+.pos-icon-btn[aria-expanded="true"] {
+  background: rgba(240, 176, 40, 0.14);
+  color: var(--bb-mustard-300);
+}
+.pos-icon-btn:focus-visible {
+  outline: 3px solid var(--bb-mustard-500);
+  outline-offset: 1px;
+}
+.pos-icon-btn.is-danger {
+  color: #fca5a5; /* danger on brown: 9:1 */
+}
+.pos-icon-btn.is-danger:hover {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fecaca;
+}
+
+/* Theme flips instantly — no half-faded cards (set for one frame by pos-theme.ts) */
+html[data-pos-theme-switching] *,
+html[data-pos-theme-switching] *::before,
+html[data-pos-theme-switching] *::after {
+  transition: none !important;
+}
+
+/* 2 ── Dark tokens: the logo's brown ladder, mustard accents */
+html[data-pos-theme="dark"] {
+  color-scheme: dark;
+  /* depth ladder: base < sunken < surface < raised < hover < active */
+  --pd-base: #120906; /* brown-950 */
+  --pd-sunken: #170b07;
+  --pd-surface: #1f100b; /* brown-850 */
+  --pd-raised: #2a140e; /* brown-800 */
+  --pd-hover: #3a1e15; /* brown-700 */
+  --pd-active: #4e2a1d; /* brown-600 */
+  --pd-line: rgba(255, 244, 232, 0.08);
+  --pd-line-strong: rgba(255, 244, 232, 0.14);
+  /* text ladder (light design: stone-700 / 600 / 400 / 300) — ≥ 4.5:1 on surface down to --pd-faint */
+  --pd-ink-2: #e8d5c4; /* 13:1 */
+  --pd-ink-3: #d4bfae; /* 10:1 */
+  --pd-faint: #a3896f; /* 5.3:1 on raised */
+  --pd-fainter: #6e5546; /* decorative only */
+
+  --bg: var(--pd-base);
+  --bg-elevated: var(--pd-surface);
+  --bg-panel: var(--pd-surface);
+  --ink: #fff4e8; /* cream-100, 17:1 */
+  --cream: #fff4e8;
+  --muted: #b39a88; /* 6.9:1 on surface */
+  /* gold = mustard fills/borders; gold-deep = accent *text* → mustard-400 on dark (11:1) */
+  --gold: #f0b028;
+  --gold-soft: #f5c04a;
+  --gold-deep: #f5c04a;
+  --danger: #f87171;
+  --success: #4ade80;
+  --border: rgba(255, 244, 232, 0.12);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* 3 ── POS component classes */
+html[data-pos-theme="dark"] .app-shell-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(240, 176, 40, 0.06), transparent 55%),
+    var(--pd-base);
+}
+
+html[data-pos-theme="dark"] .input {
+  background-color: var(--pd-raised);
+}
+
+html[data-pos-theme="dark"] select.input {
+  background-color: var(--pd-raised);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b39a88' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+html[data-pos-theme="dark"] .panel {
+  background: var(--pd-surface);
+}
+
+/* Counter staff branch picker (shown on /pos before the till) */
+html[data-pos-theme="dark"] .login-page .panel {
+  background: rgba(31, 16, 11, 0.94);
+}
+
+html[data-pos-theme="dark"] .badge {
+  background: var(--pd-raised);
+}
+
+html[data-pos-theme="dark"] .toast-error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+/* Header — same brown chrome, one step deeper so it sits above the page */
+html[data-pos-theme="dark"] .pos-header {
+  background:
+    radial-gradient(ellipse 42% 160% at 0% 0%, rgba(215, 54, 43, 0.16), transparent 62%),
+    linear-gradient(180deg, #24120c 0%, var(--bb-brown-900) 100%);
+  border-bottom-color: rgba(240, 176, 40, 0.75);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+html[data-pos-theme="dark"][dir="rtl"] .pos-header {
+  background:
+    radial-gradient(ellipse 42% 160% at 100% 0%, rgba(215, 54, 43, 0.16), transparent 62%),
+    linear-gradient(180deg, #24120c 0%, var(--bb-brown-900) 100%);
+}
+
+/* Menu: category rail */
+html[data-pos-theme="dark"] .pos-cats {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-sunken);
+}
+html[data-pos-theme="dark"] .pos-cats-title {
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-cat-btn {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+  color: var(--ink);
+  box-shadow: none;
+}
+html[data-pos-theme="dark"] .pos-cat-btn:hover {
+  border-color: rgba(240, 176, 40, 0.5);
+  background: var(--pd-raised);
+}
+html[data-pos-theme="dark"] .pos-cat-btn:focus-visible {
+  outline-color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-cat-label {
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-cat-count {
+  color: var(--muted);
+}
+/* Active: mustard fill (DESIGN: "active chip fill"), brown-900 text, brown icon tile */
+html[data-pos-theme="dark"] .pos-cat-btn.is-active {
+  border-color: var(--bb-mustard-500);
+  background: linear-gradient(180deg, var(--bb-mustard-400) 0%, var(--bb-mustard-500) 100%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+html[data-pos-theme="dark"] .pos-cat-btn.is-active .pos-cat-label {
+  color: var(--bb-brown-900);
+}
+html[data-pos-theme="dark"] .pos-cat-btn.is-active .pos-cat-count {
+  color: var(--bb-brown-700);
+}
+html[data-pos-theme="dark"] .pos-cat-btn.is-active .pos-cat-img {
+  box-shadow: 0 0 0 2px var(--bb-brown-900);
+}
+html[data-pos-theme="dark"] .pos-cat-icon-all,
+html[data-pos-theme="dark"] .pos-cat-img.pos-cat-fallback {
+  background: var(--pd-raised);
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-cat-btn.is-active .pos-cat-icon-all,
+html[data-pos-theme="dark"] .pos-cat-btn.is-active .pos-cat-img.pos-cat-fallback {
+  background: var(--bb-brown-900);
+  color: var(--bb-mustard-500);
+}
+
+html[data-pos-theme="dark"] .pos-cat-img,
+html[data-pos-theme="dark"] .pos-product-media,
+html[data-pos-theme="dark"] .pos-cart-thumb,
+html[data-pos-theme="dark"] .pos-size-thumb {
+  background: var(--pd-raised);
+}
+
+/* Menu: search + grid */
+html[data-pos-theme="dark"] .pos-menu-search-bar .input.pos-menu-search {
+  background-color: var(--pd-surface);
+  box-shadow: none;
+}
+html[data-pos-theme="dark"] .pos-menu-search-icon {
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-grid-title {
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-grid-count {
+  color: var(--muted);
+}
+html[data-pos-theme="dark"] .pos-menu-note {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+  color: var(--muted);
+}
+
+html[data-pos-theme="dark"] .pos-product-card {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+@media (hover: hover) {
+  html[data-pos-theme="dark"] .pos-product-card:hover {
+    border-color: rgba(240, 176, 40, 0.5);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  }
+}
+html[data-pos-theme="dark"] .pos-product-card:focus-visible {
+  outline-color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-product-name {
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] :is(.pos-product-from, .pos-product-deal) {
+  color: var(--muted);
+}
+html[data-pos-theme="dark"] .pos-product-amount {
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-product-add {
+  box-shadow: 0 2px 0 #5e140e;
+}
+
+/* Cart */
+html[data-pos-theme="dark"] .pos-cart-aside,
+html[data-pos-theme="dark"] .pos-cart-foot,
+html[data-pos-theme="dark"] .pos-cart-sheet {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] :is(.pos-cart-head, .pos-sheet-head) {
+  border-color: var(--pd-line);
+}
+html[data-pos-theme="dark"] .pos-cart-title {
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-cart-clear {
+  color: #fca5a5;
+}
+html[data-pos-theme="dark"] .pos-cart-clear:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+html[data-pos-theme="dark"] .pos-cart-empty {
+  color: var(--muted);
+}
+html[data-pos-theme="dark"] .pos-cart-empty-icon {
+  background: var(--pd-raised);
+  color: var(--bb-mustard-500);
+  box-shadow: inset 0 0 0 1px var(--pd-line-strong);
+}
+html[data-pos-theme="dark"] .pos-cart-line {
+  border-color: var(--pd-line);
+  background: var(--pd-raised);
+}
+html[data-pos-theme="dark"] .pos-cart-line-name,
+html[data-pos-theme="dark"] .pos-qty-value,
+html[data-pos-theme="dark"] .pos-cart-total {
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-variant-chip {
+  background: rgba(240, 176, 40, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(240, 176, 40, 0.35);
+  color: var(--bb-mustard-300);
+}
+html[data-pos-theme="dark"] .pos-cart-note-btn {
+  color: var(--muted);
+}
+html[data-pos-theme="dark"] .pos-cart-note-btn:hover {
+  color: var(--bb-mustard-400);
+}
+html[data-pos-theme="dark"] .pos-cart-note-input {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-sunken);
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-cart-note-input:focus {
+  outline-color: rgba(240, 176, 40, 0.35);
+  border-color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] :is(.pos-cart-line-price, .pos-cart-total-amount, .pos-foot-total) {
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-cart-sums {
+  color: var(--muted);
+}
+html[data-pos-theme="dark"] .pos-qty {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] .pos-qty-btn {
+  background: var(--pd-hover);
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-qty-btn:hover {
+  background: var(--pd-active);
+}
+html[data-pos-theme="dark"] .pos-qty-btn.is-plus {
+  background: var(--bb-red-500);
+  color: #fff;
+}
+html[data-pos-theme="dark"] .pos-qty-btn.is-plus:hover {
+  background: var(--bb-red-600);
+}
+html[data-pos-theme="dark"] .pos-cart-delete {
+  color: var(--muted);
+}
+html[data-pos-theme="dark"] .pos-cart-delete:hover {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+}
+/* Cart focus rings: solid mustard on the brown ladder (red-700 is light-only). */
+html[data-pos-theme="dark"]
+  :is(.pos-qty-btn, .pos-cart-delete, .pos-cart-clear, .pos-cart-note-btn):focus-visible {
+  outline-color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-cart-bar {
+  border-top-color: var(--pd-line-strong);
+  background: rgba(31, 16, 11, 0.96);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
+}
+html[data-pos-theme="dark"] .pos-sheet-grip {
+  background: var(--pd-line-strong);
+}
+
+/* Size picker */
+html[data-pos-theme="dark"] .pos-size-sheet {
+  background: var(--pd-sunken);
+}
+html[data-pos-theme="dark"] .pos-size-head {
+  border-color: var(--pd-line);
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] .pos-size-eyebrow {
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-size-opt {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+  color: var(--ink);
+  box-shadow: none;
+}
+html[data-pos-theme="dark"] .pos-size-opt:hover {
+  border-color: rgba(240, 176, 40, 0.55);
+  background: var(--pd-raised);
+}
+html[data-pos-theme="dark"] .pos-size-opt:focus-visible {
+  outline-color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-size-price {
+  color: var(--bb-mustard-500);
+}
+
+/* Review bill (checkout) */
+html[data-pos-theme="dark"] .pos-rail {
+  background: var(--pd-sunken);
+}
+html[data-pos-theme="dark"] .pos-rail-title {
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-receipt-stage {
+  background: var(--pd-sunken); /* ReceiptPreview paints the iframe stage with --pd-sunken too */
+}
+html[data-pos-theme="dark"] .pos-opt {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+html[data-pos-theme="dark"] .pos-opt:hover {
+  border-color: rgba(240, 176, 40, 0.55);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+html[data-pos-theme="dark"] .pos-opt-icon {
+  background: rgba(240, 176, 40, 0.1);
+  color: var(--bb-mustard-500);
+  box-shadow: inset 0 0 0 1px rgba(240, 176, 40, 0.2);
+}
+html[data-pos-theme="dark"] .pos-opt.is-active {
+  border-color: var(--bb-mustard-500);
+  background:
+    radial-gradient(ellipse 90% 80% at 50% 0%, rgba(240, 176, 40, 0.22), transparent 70%),
+    var(--pd-hover);
+  color: var(--bb-mustard-400);
+  box-shadow:
+    0 0 0 2px var(--bb-mustard-500),
+    0 10px 24px rgba(0, 0, 0, 0.45);
+}
+html[data-pos-theme="dark"] .pos-opt.is-active .pos-opt-icon {
+  background: var(--bb-mustard-500);
+  color: var(--bb-brown-900);
+  box-shadow: none;
+}
+html[data-pos-theme="dark"] .pos-foot {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] .pos-switch {
+  background: var(--pd-active);
+}
+html[data-pos-theme="dark"] .pos-switch.is-on {
+  background: var(--bb-red-500);
+}
+/* Switch knob is a Tailwind bg-white — keep it light on both tracks */
+html[data-pos-theme="dark"] .pos-switch > span {
+  background-color: var(--bb-cream-100);
+}
+
+/* Dialog shells */
+html[data-pos-theme="dark"] .pos-scrim {
+  background: rgba(0, 0, 0, 0.66);
+}
+html[data-pos-theme="dark"] .pos-dialog {
+  background: var(--pd-surface);
+  box-shadow: 0 0 0 1px var(--pd-line-strong), 0 30px 80px rgba(0, 0, 0, 0.7);
+}
+
+/* Sheets */
+html[data-pos-theme="dark"] .pos-sheet-body {
+  background: var(--pd-base);
+}
+html[data-pos-theme="dark"] .pos-seg-on {
+  background: var(--bb-mustard-500);
+  color: var(--bb-brown-900);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+html[data-pos-theme="dark"] .pos-logs-link {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] .pos-logs-link:hover {
+  border-color: rgba(240, 176, 40, 0.4);
+  background: var(--pd-raised);
+}
+html[data-pos-theme="dark"] .pos-logs-icon {
+  background: rgba(240, 176, 40, 0.12);
+  color: var(--bb-mustard-500);
+  box-shadow: inset 0 0 0 1px rgba(240, 176, 40, 0.25);
+}
+@media (hover: hover) {
+  html[data-pos-theme="dark"] .order-list-card:hover {
+    border-color: rgba(240, 176, 40, 0.45);
+  }
+}
+
+/* 4 ── Tailwind colour utilities → dark
+   Same layer and specificity as Tailwind's own (`:where` adds none), so these
+   win only by coming later — hover / focus variants keep working. */
+@layer utilities {
+  /* Surfaces: white cards → surface, cream page tints → sunken / raised */
+  :where(html[data-pos-theme="dark"]) .bg-white {
+    background-color: var(--pd-surface);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-white\/90 {
+    background-color: rgba(31, 16, 11, 0.92);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-white\/80 {
+    background-color: rgba(42, 20, 14, 0.8);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-white\/70 {
+    background-color: rgba(31, 16, 11, 0.7);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-white\/60 {
+    background-color: rgba(31, 16, 11, 0.6);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.bg-stone-50, .bg-stone-100, .bg-\[\#f6e6d4\], .bg-\[\#fff6ea\]) {
+    background-color: var(--pd-raised);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.bg-\[\#fff4e8\], .bg-\[\#fff7ee\], .bg-\[\#fffaf3\], .bg-\[\#efe2d3\]) {
+    background-color: var(--pd-sunken);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-\[\#f8ead9\] {
+    background-color: var(--pd-base);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-\[\#fff4e8\]\/60 {
+    background-color: rgba(23, 11, 7, 0.6);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-\[\#fdeccb\] {
+    background-color: rgba(240, 176, 40, 0.12);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-\[\#f2e0cc\] {
+    background-color: rgba(255, 244, 232, 0.08);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-\[\#f5c650\]\/25 {
+    background-color: rgba(245, 198, 80, 0.08);
+  }
+  /* Report "net in hand" / final-total bands: dark on a white card in light
+     mode, so lift them to warm espresso to stay distinct from the dark card. */
+  :where(html[data-pos-theme="dark"]) .bg-\[\#2a140e\]:not(.inv-cat-chip) {
+    background-color: #22110b;
+    background-image: linear-gradient(160deg, #2f170e 0%, #190c08 100%);
+  }
+
+  /* Segmented control: the white active segment sits on a stone-100 track */
+  :where(html[data-pos-theme="dark"]) .bg-stone-100 > .bg-white {
+    background-color: var(--pd-active);
+  }
+  /* Active filter chip (ink pill, white text) → cream pill, dark text */
+  :where(html[data-pos-theme="dark"]) .bg-\[var\(--ink\)\].text-white {
+    color: #2a140e;
+  }
+  :where(html[data-pos-theme="dark"]) .bg-\[var\(--ink\)\] .bg-white\/20 {
+    background-color: rgba(42, 20, 14, 0.14);
+  }
+
+  /* Status tints */
+  :where(html[data-pos-theme="dark"]) .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.13);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-red-50\/40 {
+    background-color: rgba(239, 68, 68, 0.07);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-red-100 {
+    background-color: rgba(239, 68, 68, 0.18);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-rose-50 {
+    background-color: rgba(244, 63, 94, 0.13);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-orange-50 {
+    background-color: rgba(249, 115, 22, 0.12);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-amber-50 {
+    background-color: rgba(245, 158, 11, 0.12);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.bg-amber-50\/70, .bg-amber-50\/60, .bg-amber-50\/50) {
+    background-color: rgba(245, 158, 11, 0.08);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-yellow-50 {
+    background-color: rgba(234, 179, 8, 0.12);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.12);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-emerald-100 {
+    background-color: rgba(16, 185, 129, 0.18);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-sky-50 {
+    background-color: rgba(14, 165, 233, 0.13);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.14);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-violet-50 {
+    background-color: rgba(139, 92, 246, 0.15);
+  }
+  :where(html[data-pos-theme="dark"]) .bg-pink-50 {
+    background-color: rgba(236, 72, 153, 0.13);
+  }
+
+  /* Text: stone greys → light greys, deep status colours → their light shades */
+  :where(html[data-pos-theme="dark"]) .text-stone-900 {
+    color: var(--ink);
+  }
+  :where(html[data-pos-theme="dark"]) .text-stone-800 {
+    color: #e9d5c1;
+  }
+  :where(html[data-pos-theme="dark"]) .text-stone-700 {
+    color: var(--pd-ink-2);
+  }
+  :where(html[data-pos-theme="dark"]) .text-stone-600 {
+    color: var(--pd-ink-3);
+  }
+  :where(html[data-pos-theme="dark"]) .text-stone-500 {
+    color: var(--muted);
+  }
+  :where(html[data-pos-theme="dark"]) .text-stone-400 {
+    color: var(--pd-faint);
+  }
+  :where(html[data-pos-theme="dark"]) .text-stone-300 {
+    color: var(--pd-fainter);
+  }
+  /* …except inside surfaces that are dark in both themes */
+  :where(html[data-pos-theme="dark"]) :is(.modal-dark-head, .modal-dark-zone, .bg-\[\#2a140e\]) .text-stone-300 {
+    color: var(--color-stone-300);
+  }
+  :where(html[data-pos-theme="dark"]) .placeholder\:text-stone-400::placeholder {
+    color: #9a8172;
+  }
+  :where(html[data-pos-theme="dark"]) .text-red-600 {
+    color: #f87171;
+  }
+  :where(html[data-pos-theme="dark"]) .text-red-700 {
+    color: #fca5a5;
+  }
+  :where(html[data-pos-theme="dark"]) .text-rose-600 {
+    color: #fb7185;
+  }
+  :where(html[data-pos-theme="dark"]) .text-rose-700 {
+    color: #fda4af;
+  }
+  :where(html[data-pos-theme="dark"]) .text-orange-600 {
+    color: #fb923c;
+  }
+  :where(html[data-pos-theme="dark"]) .text-orange-700 {
+    color: #fdba74;
+  }
+  :where(html[data-pos-theme="dark"]) .text-amber-700 {
+    color: #fbbf24;
+  }
+  :where(html[data-pos-theme="dark"]) .text-amber-800 {
+    color: #fcd34d;
+  }
+  :where(html[data-pos-theme="dark"]) .text-amber-900 {
+    color: #fde68a;
+  }
+  :where(html[data-pos-theme="dark"]) .text-amber-950 {
+    color: #fef3c7;
+  }
+  :where(html[data-pos-theme="dark"]) .text-yellow-600 {
+    color: #facc15;
+  }
+  :where(html[data-pos-theme="dark"]) .text-emerald-600 {
+    color: #34d399;
+  }
+  :where(html[data-pos-theme="dark"]) .text-emerald-700 {
+    color: #6ee7b7;
+  }
+  :where(html[data-pos-theme="dark"]) .text-emerald-800 {
+    color: #a7f3d0;
+  }
+  :where(html[data-pos-theme="dark"]) .text-sky-600 {
+    color: #38bdf8;
+  }
+  :where(html[data-pos-theme="dark"]) .text-sky-700 {
+    color: #7dd3fc;
+  }
+  :where(html[data-pos-theme="dark"]) .text-blue-600 {
+    color: #60a5fa;
+  }
+  :where(html[data-pos-theme="dark"]) .text-violet-600 {
+    color: #a78bfa;
+  }
+  :where(html[data-pos-theme="dark"]) .text-violet-700 {
+    color: #c4b5fd;
+  }
+  :where(html[data-pos-theme="dark"]) .text-pink-600 {
+    color: #f472b6;
+  }
+
+  /* Borders, rings, dividers */
+  :where(html[data-pos-theme="dark"]) :is(.border-stone-100, .border-\[\#f0dcc6\], .max-xl\:border-\[\#f0dcc6\], .border-\[\#efdcc6\]) {
+    border-color: var(--pd-line);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.border-stone-200, .border-stone-200\/80, .border-\[\#e7d0b8\]) {
+    border-color: var(--pd-line-strong);
+  }
+  :where(html[data-pos-theme="dark"]) .border-stone-300 {
+    border-color: rgba(255, 244, 232, 0.2);
+  }
+  :where(html[data-pos-theme="dark"]) .border-red-200 {
+    border-color: rgba(248, 113, 113, 0.3);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.border-amber-200, .border-amber-300\/80) {
+    border-color: rgba(251, 191, 36, 0.32);
+  }
+  :where(html[data-pos-theme="dark"]) .border-orange-300 {
+    border-color: rgba(251, 146, 60, 0.4);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.ring-stone-200, .ring-stone-200\/80, .ring-\[\#f0dcc6\]) {
+    --tw-ring-color: var(--pd-line-strong);
+  }
+  /* Pending dot's cut-out ring matches the tile behind it */
+  :where(html[data-pos-theme="dark"]) .ring-white {
+    --tw-ring-color: var(--pd-surface);
+  }
+  :where(html[data-pos-theme="dark"]) .ring-red-200 {
+    --tw-ring-color: rgba(248, 113, 113, 0.3);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.ring-amber-200, .ring-amber-200\/70) {
+    --tw-ring-color: rgba(251, 191, 36, 0.28);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.ring-emerald-100, .ring-emerald-200, .ring-emerald-200\/70) {
+    --tw-ring-color: rgba(52, 211, 153, 0.25);
+  }
+  :where(html[data-pos-theme="dark"]) :is(.ring-sky-200, .ring-sky-200\/70) {
+    --tw-ring-color: rgba(56, 189, 248, 0.28);
+  }
+  :where(html[data-pos-theme="dark"]) .ring-violet-200\/70 {
+    --tw-ring-color: rgba(167, 139, 250, 0.28);
+  }
+  :where(html[data-pos-theme="dark"] :is(.divide-stone-100, .divide-\[\#f3e2cf\]) > :not(:last-child)) {
+    border-color: var(--pd-line);
+  }
+  :where(html[data-pos-theme="dark"] .divide-stone-200\/80 > :not(:last-child)) {
+    border-color: rgba(255, 244, 232, 0.1);
+  }
+  :where(html[data-pos-theme="dark"]) .focus-visible\:outline-stone-700:focus-visible {
+    outline-color: var(--pd-ink-2);
+  }
+
+  @media (hover: hover) {
+    :where(html[data-pos-theme="dark"]) .hover\:bg-white:hover {
+      background-color: var(--pd-hover);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:bg-stone-100:hover {
+      background-color: var(--pd-hover);
+    }
+    :where(html[data-pos-theme="dark"]) :is(.hover\:bg-stone-50, .hover\:bg-\[\#fff4e8\], .hover\:bg-\[\#fff7ee\], .hover\:bg-\[\#fff6ea\]):hover {
+      background-color: var(--pd-raised);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:bg-\[\#fff7ee\]\/80:hover {
+      background-color: rgba(42, 20, 14, 0.8);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:bg-stone-200\/60:hover {
+      background-color: rgba(78, 42, 29, 0.6);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:bg-\[\#fff1df\]:hover {
+      background-color: rgba(240, 176, 40, 0.09);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:bg-red-50:hover {
+      background-color: rgba(239, 68, 68, 0.14);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:bg-amber-50:hover {
+      background-color: rgba(245, 158, 11, 0.16);
+    }
+    :where(html[data-pos-theme="dark"]) .enabled\:hover\:bg-amber-50\/60:enabled:hover {
+      background-color: rgba(245, 158, 11, 0.1);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:bg-emerald-100:hover {
+      background-color: rgba(16, 185, 129, 0.22);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:bg-orange-100:hover {
+      background-color: rgba(249, 115, 22, 0.2);
+    }
+    :where(html[data-pos-theme="dark"]) :is(.hover\:text-stone-800, .hover\:text-stone-900):hover {
+      color: var(--ink);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:text-red-600:hover {
+      color: #f87171;
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:text-red-700:hover {
+      color: #fca5a5;
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:border-stone-300:hover {
+      border-color: rgba(255, 244, 232, 0.24);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:border-stone-400:hover {
+      border-color: rgba(255, 244, 232, 0.32);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:border-red-300:hover {
+      border-color: rgba(248, 113, 113, 0.45);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:border-amber-300:hover {
+      border-color: rgba(251, 191, 36, 0.45);
+    }
+    :where(html[data-pos-theme="dark"]) .hover\:border-orange-400:hover {
+      border-color: rgba(251, 146, 60, 0.6);
+    }
+  }
+}

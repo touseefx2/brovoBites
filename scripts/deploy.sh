@@ -10,13 +10,13 @@
 #   pnpm deploy:live:customer    # LIVE menu only (asks confirm)
 #
 # Tokens: deploy/targets.local.env  (DEV_VERCEL_TOKEN + LIVE_VERCEL_TOKEN)
-# Save a Bravo Bites Vercel login → token (repo-local auth dirs, never the global login):
+# Save a Brovo Bites Vercel login → token (repo-local auth dirs, never the global login):
 #   bash scripts/save-vercel-token.sh live .tools/vercel-live-auth
 #   bash scripts/save-vercel-token.sh dev  .tools/vercel-dev-auth
 #
 # Env on Vercel (already set per project — not uploaded by this script):
 #   LIVE projects → production Firebase + live ImageKit (.env.production.local values)
-#   DEV  projects → bravobites-dev Firebase + dev ImageKit (.env.development.local)
+#   DEV  projects → brovodev Firebase + dev ImageKit (.env.development.local)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -50,7 +50,7 @@ deploy_one() {
       TOKEN_KEY="DEV_VERCEL_TOKEN"
       ORG="${DEV_VERCEL_ORG_ID:-}"
       PROJECT="${DEV_VERCEL_PROJECT_ID_ADMIN:-}"
-      FIREBASE="${DEV_FIREBASE_PROJECT:-bravobites-dev}"
+      FIREBASE="${DEV_FIREBASE_PROJECT:-brovodev}"
       LABEL="DEV admin/staff"
       ;;
     dev-customer)
@@ -58,7 +58,7 @@ deploy_one() {
       TOKEN_KEY="DEV_VERCEL_TOKEN"
       ORG="${DEV_VERCEL_ORG_ID:-}"
       PROJECT="${DEV_VERCEL_PROJECT_ID_CUSTOMER:-}"
-      FIREBASE="${DEV_FIREBASE_PROJECT:-bravobites-dev}"
+      FIREBASE="${DEV_FIREBASE_PROJECT:-brovodev}"
       LABEL="DEV customer landing"
       ;;
     live)
@@ -66,7 +66,7 @@ deploy_one() {
       TOKEN_KEY="LIVE_VERCEL_TOKEN"
       ORG="${LIVE_VERCEL_ORG_ID:-}"
       PROJECT="${LIVE_VERCEL_PROJECT_ID_ADMIN:-}"
-      FIREBASE="${LIVE_FIREBASE_PROJECT:-bravobites-live}"
+      FIREBASE="${LIVE_FIREBASE_PROJECT:-borovo-ffc56}"
       LABEL="LIVE admin/staff"
       ;;
     live-customer)
@@ -74,7 +74,7 @@ deploy_one() {
       TOKEN_KEY="LIVE_VERCEL_TOKEN"
       ORG="${LIVE_VERCEL_ORG_ID:-}"
       PROJECT="${LIVE_VERCEL_PROJECT_ID_CUSTOMER:-}"
-      FIREBASE="${LIVE_FIREBASE_PROJECT:-bravobites-live}"
+      FIREBASE="${LIVE_FIREBASE_PROJECT:-borovo-ffc56}"
       LABEL="LIVE customer landing"
       ;;
     *)
@@ -90,7 +90,7 @@ deploy_one() {
 
   if [[ -z "$TOKEN" ]]; then
     echo "Missing $TOKEN_KEY in deploy/targets.local.env"
-    echo "Log in to that Bravo Bites Vercel account into a repo-local auth dir, then:"
+    echo "Log in to that Brovo Bites Vercel account into a repo-local auth dir, then:"
     if [[ "$target" == live* ]]; then
       echo "  bash scripts/save-vercel-token.sh live .tools/vercel-live-auth"
     else
@@ -136,7 +136,8 @@ deploy_one() {
   fi
 
   local ARGS=(deploy --prod --yes --token "$TOKEN")
-  echo "Running: vercel ${ARGS[*]/ --token ***}"
+  # Never echo ARGS: the last element is the account token.
+  echo "Running: vercel deploy --prod --yes --token ***"
   if [[ -n "$VERCEL_BIN" ]]; then
     "$VERCEL_BIN" "${ARGS[@]}"
   else
@@ -152,7 +153,7 @@ case "$TARGET" in
     deploy_one dev
     deploy_one dev-customer
     echo ""
-    echo "All DEV domains deployed (Firebase: ${DEV_FIREBASE_PROJECT:-bravobites-dev})."
+    echo "All DEV domains deployed (Firebase: ${DEV_FIREBASE_PROJECT:-brovodev})."
     ;;
   live-all)
     if [[ "${CONFIRM_LIVE:-}" != "1" ]]; then
@@ -167,7 +168,7 @@ case "$TARGET" in
     deploy_one live
     deploy_one live-customer
     echo ""
-    echo "All LIVE domains deployed (Firebase: ${LIVE_FIREBASE_PROJECT:-bravobites-live})."
+    echo "All LIVE domains deployed (Firebase: ${LIVE_FIREBASE_PROJECT:-borovo-ffc56})."
     ;;
   dev|dev-customer|live|live-customer)
     deploy_one "$TARGET"

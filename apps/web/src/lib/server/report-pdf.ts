@@ -57,7 +57,7 @@ export async function htmlsToPdf(htmls: string[]): Promise<Buffer[]> {
         displayHeaderFooter: true,
         headerTemplate: "<span></span>",
         footerTemplate:
-          '<div style="width:100%;font-size:8px;color:#a8a29e;text-align:center;font-family:Arial"><span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+          '<div style="width:100%;font-size:8px;color:#b39a8a;text-align:center;font-family:Arial"><span class="pageNumber"></span> / <span class="totalPages"></span></div>',
         margin: { top: "12mm", bottom: "14mm", left: "12mm", right: "12mm" },
       });
       out.push(Buffer.from(pdf));

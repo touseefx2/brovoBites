@@ -18,7 +18,7 @@ export type Mail = {
   text: string;
   html: string;
   attachments: MailAttachment[];
-  /** Shown as the sender's name ("Bravo Bites <shop@gmail.com>"). */
+  /** Shown as the sender's name ("Brovo Bites <shop@gmail.com>"). */
   fromName: string;
 };
 
@@ -33,10 +33,10 @@ export class MailerNotConfiguredError extends Error {
   }
 }
 
-/** Emails from the dev Firebase project (bravobites-dev) are marked DEV; live ones are untouched. */
+/** Emails from the dev Firebase project (brovodev) are marked DEV; live ones are untouched. */
 function isDevProject(): boolean {
   const project = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "";
-  return project.endsWith("-dev");
+  return project.endsWith("dev");
 }
 
 export async function sendMail(mail: Mail): Promise<void> {
@@ -115,18 +115,18 @@ export function reportEmailBody(o: { shopName: string; parts: ReportEmailPart[] 
   const line = (body: string, style = "") => `<div style="${style}">${body}</div>`;
   const parts = o.parts
     .map(
-      (p, i) => `<div dir="${p.dir}" style="text-align:${p.dir === "rtl" ? "right" : "left"};${i > 0 ? "margin-top:14px;padding-top:14px;border-top:1px solid #f0e9dc;" : ""}">
+      (p, i) => `<div dir="${p.dir}" style="text-align:${p.dir === "rtl" ? "right" : "left"};${i > 0 ? "margin-top:14px;padding-top:14px;border-top:1px solid #f0dcc6;" : ""}">
 ${line(escapeHtml(p.title), "font-weight:700")}
 ${p.branchLabel ? line(noAutoLink(p.branchLabel)) : ""}
 ${line(noAutoLink(p.periodLabel), "font-style:italic")}
 ${p.note ? line(escapeHtml(p.note), "margin-top:8px;color:#92400e") : ""}
-${p.attached ? line(escapeHtml(p.attached), "margin-top:8px;color:#78716c;font-size:13px") : ""}
+${p.attached ? line(escapeHtml(p.attached), "margin-top:8px;color:#7a5a4c;font-size:13px") : ""}
 </div>`,
     )
     .join("\n");
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="format-detection" content="telephone=no,address=no,email=no,date=no"></head>
-<body style="margin:0;padding:16px;background:#faf7f2">
-<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e8dfcf;border-radius:12px;padding:18px 20px;font-family:Segoe UI,Roboto,Arial,'Noto Naskh Arabic',sans-serif;font-size:15px;line-height:1.6;color:#1c1917">
+<body style="margin:0;padding:16px;background:#fff4e8">
+<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e7d0b8;border-radius:12px;padding:18px 20px;font-family:Segoe UI,Roboto,Arial,'Noto Naskh Arabic',sans-serif;font-size:15px;line-height:1.6;color:#2a140e">
 ${line(escapeHtml(o.shopName.toUpperCase()), "font-weight:700;margin-bottom:10px")}
 ${parts}
 </div></body></html>`;

@@ -124,16 +124,24 @@ function CartPanel({
 }) {
   const { t } = useLocale();
   const hasCharges = taxAmount > 0 || dlvCharges > 0;
+  const itemCount = cart.reduce((n, l) => n + l.qty, 0);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       {!hideTitle ? (
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] p-3 sm:p-4">
-          <h2 className="font-bold text-[var(--ink)]">{t("currentOrder")}</h2>
+        <div className="pos-cart-head">
+          <h2 className="pos-cart-title">
+            {t("currentOrder")}
+            {itemCount > 0 ? (
+              <span className="pos-cart-count" dir="ltr">
+                {itemCount}
+              </span>
+            ) : null}
+          </h2>
           {cart.length > 0 ? (
             <button
               type="button"
-              className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+              className="pos-cart-clear"
               disabled={busy}
               onClick={onClear}
               aria-label={t("clearCart")}
@@ -148,125 +156,136 @@ function CartPanel({
       ) : null}
       <div className="min-h-0 flex-1 overflow-auto p-3">
         {cart.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">{t("addItems")}</p>
+          <div className="pos-cart-empty">
+            <span className="pos-cart-empty-icon" aria-hidden>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 7h12l-1 13H7L6 7Z" />
+                <path d="M9 7V5a3 3 0 0 1 6 0v2" />
+                <path d="M12 11v5M9.5 13.5h5" />
+              </svg>
+            </span>
+            <p className="m-0">{t("addItems")}</p>
+          </div>
         ) : (
-          cart.map((line) => (
-            <div
-              key={line.key}
-              className="mb-3 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[#faf7f2] p-2.5"
-            >
-              <img
-                src={getItemImage(line)}
-                alt=""
-                className="pos-cart-thumb"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold leading-snug">{line.productName}</p>
-                {line.variationLabel ? (
-                  <span className="mt-0.5 inline-flex max-w-full truncate rounded-md bg-[rgba(184,134,11,0.12)] px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-[var(--gold-deep)] ring-1 ring-[rgba(184,134,11,0.28)]">
-                    {line.variationLabel}
-                  </span>
-                ) : null}
-                <p className="mt-0.5 text-sm font-bold text-[var(--gold-deep)]" dir="ltr">
-                  {formatPkr(line.unitPrice * line.qty)}
-                </p>
-                {noteEditKey === line.key ? (
-                  <input
-                    type="text"
-                    defaultValue={line.note ?? ""}
-                    placeholder={t("addNote")}
-                    autoFocus
-                    className="mt-1 w-full rounded border border-[var(--border)] px-2 py-1 text-xs"
-                    onBlur={(e) => {
-                      onNoteChange(line.key, e.target.value.trim());
-                      onNoteEditKey(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        onNoteChange(line.key, (e.target as HTMLInputElement).value.trim());
+          <div className="pos-cart-list">
+            {cart.map((line) => (
+              <div key={line.key} className="pos-cart-line">
+                <img
+                  src={getItemImage(line)}
+                  alt=""
+                  className="pos-cart-thumb"
+                />
+                <div className="pos-cart-line-body">
+                  <div className="pos-cart-line-top">
+                    <p className="pos-cart-line-name">{line.productName}</p>
+                    <button
+                      type="button"
+                      className="pos-cart-delete"
+                      onClick={() => onRemove(line.key)}
+                      aria-label={t("remove")}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                  </div>
+                  {line.variationLabel ? (
+                    <span className="pos-variant-chip">{line.variationLabel}</span>
+                  ) : null}
+                  {noteEditKey === line.key ? (
+                    <input
+                      type="text"
+                      defaultValue={line.note ?? ""}
+                      placeholder={t("addNote")}
+                      aria-label={t("addNote")}
+                      autoFocus
+                      className="pos-cart-note-input"
+                      onBlur={(e) => {
+                        onNoteChange(line.key, e.target.value.trim());
                         onNoteEditKey(null);
-                      }
-                    }}
-                  />
-                ) : line.note ? (
-                  <button
-                    type="button"
-                    className="mt-0.5 text-[11px] italic text-[var(--muted)] hover:text-[var(--ink)]"
-                    onClick={() => onNoteEditKey(line.key)}
-                  >
-                    {"↳"} {line.note}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="mt-0.5 text-[11px] text-[var(--muted)] hover:text-[var(--gold-deep)]"
-                    onClick={() => onNoteEditKey(line.key)}
-                  >
-                    {t("addNote")}
-                  </button>
-                )}
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          onNoteChange(line.key, (e.target as HTMLInputElement).value.trim());
+                          onNoteEditKey(null);
+                        }
+                      }}
+                    />
+                  ) : line.note ? (
+                    <button
+                      type="button"
+                      className="pos-cart-note-btn has-note"
+                      onClick={() => onNoteEditKey(line.key)}
+                    >
+                      {"↳"} {line.note}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="pos-cart-note-btn"
+                      onClick={() => onNoteEditKey(line.key)}
+                    >
+                      + {t("addNote")}
+                    </button>
+                  )}
+                  <div className="pos-cart-line-foot">
+                    <span className="pos-cart-line-price" dir="ltr">
+                      {formatPkr(line.unitPrice * line.qty)}
+                    </span>
+                    <div className="pos-qty" dir="ltr">
+                      <button
+                        type="button"
+                        className="pos-qty-btn"
+                        onClick={() => onQty(line.key, line.qty - 1)}
+                        aria-label="−"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden><path d="M5 12h14" /></svg>
+                      </button>
+                      <span className="pos-qty-value">{line.qty}</span>
+                      <button
+                        type="button"
+                        className="pos-qty-btn is-plus"
+                        onClick={() => onQty(line.key, line.qty + 1)}
+                        aria-label="+"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  className="pos-qty-btn"
-                  onClick={() => onQty(line.key, line.qty - 1)}
-                  aria-label="−"
-                >
-                  −
-                </button>
-                <span className="min-w-5 text-center text-sm font-bold tabular-nums">{line.qty}</span>
-                <button
-                  type="button"
-                  className="pos-qty-btn"
-                  onClick={() => onQty(line.key, line.qty + 1)}
-                  aria-label="+"
-                >
-                  +
-                </button>
-              </div>
-              <button
-                type="button"
-                className="pos-cart-delete"
-                onClick={() => onRemove(line.key)}
-                aria-label={t("remove")}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-              </button>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
-      <div className="shrink-0 border-t border-[var(--border)] p-3 sm:p-4">
+      <div className="pos-cart-foot">
         {hasCharges && cart.length > 0 ? (
-          <div className="mb-2 space-y-0.5 text-xs text-[var(--muted)]">
-            <div className="flex justify-between">
+          <div className="pos-cart-sums">
+            <div>
               <span>{t("subtotal")}</span>
               <span className="tabular-nums" dir="ltr">{formatPkr(subtotal)}</span>
             </div>
             {taxAmount > 0 ? (
-              <div className="flex justify-between">
+              <div>
                 <span>{t("tax")} ({taxPercent}%)</span>
                 <span className="tabular-nums" dir="ltr">{formatPkr(taxAmount)}</span>
               </div>
             ) : null}
             {dlvCharges > 0 ? (
-              <div className="flex justify-between">
+              <div>
                 <span>{t("deliveryCharges")}</span>
                 <span className="tabular-nums" dir="ltr">{formatPkr(dlvCharges)}</span>
               </div>
             ) : null}
           </div>
         ) : null}
-        <div className="mb-3 flex justify-between text-lg font-bold">
+        <div className="pos-cart-total">
           <span>{t("total")}</span>
-          <span className="text-[var(--gold-deep)]" dir="ltr">
+          <span className="pos-cart-total-amount" dir="ltr">
             {formatPkr(total)}
           </span>
         </div>
         <button
           type="button"
-          className="btn w-full py-3"
+          className="btn pos-cta w-full"
           disabled={busy || isCartEmpty(cart)}
           onClick={onReview}
         >
@@ -274,6 +293,86 @@ function CartPanel({
         </button>
       </div>
     </div>
+  );
+}
+
+/** Stroke icons for the checkout option cards (no emoji — docs/DESIGN.md §3). */
+function OptIcon({ kind }: { kind: OrderType | PaymentMethod }) {
+  const common = {
+    width: "1em",
+    height: "1em",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.9,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  switch (kind) {
+    case "dine-in":
+      return (
+        <svg {...common}>
+          <path d="M4 3v7a3 3 0 0 0 3 3v8M10 3v7a3 3 0 0 1-3 3M7 3v6" />
+          <path d="M20 15V3a5 5 0 0 0-4 5v6a1 1 0 0 0 1 1h3Zm0 0v6" />
+        </svg>
+      );
+    case "takeaway":
+      return (
+        <svg {...common}>
+          <path d="M5 8h14l-1.2 12.1a1 1 0 0 1-1 .9H7.2a1 1 0 0 1-1-.9L5 8Z" />
+          <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+        </svg>
+      );
+    case "delivery":
+      return (
+        <svg {...common}>
+          <circle cx="6" cy="17" r="3" />
+          <circle cx="18" cy="17" r="3" />
+          <path d="M9 17h6l-2-7h-3M15 6h2l3.5 8.5M13 10h4" />
+          <path d="M3 10h5v4" />
+        </svg>
+      );
+    case "cash":
+      return (
+        <svg {...common}>
+          <rect x="2.5" y="6" width="19" height="12" rx="2" />
+          <circle cx="12" cy="12" r="2.6" />
+          <path d="M6 9.5v.01M18 14.5v.01" />
+        </svg>
+      );
+    case "card":
+      return (
+        <svg {...common}>
+          <rect x="2.5" y="5" width="19" height="14" rx="2.2" />
+          <path d="M2.5 10h19M6.5 15h4" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...common}>
+          <rect x="6.5" y="2.5" width="11" height="19" rx="2.2" />
+          <path d="M11 18.5h2" />
+          <path d="m9.5 10 2 2 3.5-3.5" />
+        </svg>
+      );
+  }
+}
+
+/** Category photo; on a missing file it tries the next source, then shows the initial. */
+function CategoryThumb({ srcs, name }: { srcs: string[]; name: string }) {
+  const [idx, setIdx] = useState(0);
+  const src = srcs[idx];
+  if (!src) {
+    return (
+      <span className="pos-cat-img pos-cat-fallback" aria-hidden>
+        {name.trim().charAt(0)}
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" className="pos-cat-img" onError={() => setIdx((i) => i + 1)} />
   );
 }
 
@@ -692,15 +791,38 @@ function PosApp() {
 
   const visibleProducts = useMemo(() => {
     const q = menuQuery.trim().toLowerCase();
-    return products.filter((p) => {
-      if (categoryId !== "all" && p.categoryId !== categoryId) return false;
-      if (!q) return true;
-      if (p.name.toLowerCase().includes(q)) return true;
-      if (p.variations.some((v) => v.label.toLowerCase().includes(q))) return true;
-      if (p.dealItems.some((d) => d.label.toLowerCase().includes(q))) return true;
-      return false;
-    });
-  }, [products, categoryId, menuQuery]);
+    // Menu order: category sortOrder, then product sortOrder, then name — so
+    // "All" lists Burgers…Drinks in the rail's order instead of interleaving
+    // every category's #1, #2, … (products only carry a per-category sortOrder).
+    const catRank = new Map<string, [number, number]>();
+    categories.forEach((c, i) => catRank.set(c.id, [c.sortOrder ?? 0, i]));
+    const missing: [number, number] = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER];
+    return products
+      .filter((p) => {
+        if (categoryId !== "all" && p.categoryId !== categoryId) return false;
+        if (!q) return true;
+        if (p.name.toLowerCase().includes(q)) return true;
+        if (p.variations.some((v) => v.label.toLowerCase().includes(q))) return true;
+        if (p.dealItems.some((d) => d.label.toLowerCase().includes(q))) return true;
+        return false;
+      })
+      .sort((a, b) => {
+        const ca = catRank.get(a.categoryId) ?? missing;
+        const cb = catRank.get(b.categoryId) ?? missing;
+        return (
+          ca[0] - cb[0] ||
+          ca[1] - cb[1] ||
+          (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+          a.name.localeCompare(b.name)
+        );
+      });
+  }, [products, categories, categoryId, menuQuery]);
+
+  const productCountByCategory = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products) counts.set(p.categoryId, (counts.get(p.categoryId) ?? 0) + 1);
+    return counts;
+  }, [products]);
 
   const liveTaxPercent = settings?.taxPercent ?? 0;
   const liveDlvCharges = settings?.deliveryCharges ?? 0;
@@ -756,7 +878,7 @@ function PosApp() {
         ...(orderType === "dine-in" ? { tableNumber: tableNumber.trim() } : {}),
         createdByName: profile ? profile.displayName || profile.email : "",
       },
-      shopName: settings?.shopName ?? "Bravo Bites",
+      shopName: settings?.shopName ?? "Brovo Bites",
       branchName: activeBranchName?.trim() || undefined,
       softwareCompanyName,
       softwareCompanyPhone,
@@ -876,7 +998,7 @@ function PosApp() {
   function printOrderTicket(order: Order): boolean {
     return printReceipt({
       order,
-      shopName: settings?.shopName ?? "Bravo Bites",
+      shopName: settings?.shopName ?? "Brovo Bites",
       branchName:
         order.branchName ||
         branches.find((b) => b.id === order.branchId)?.name,
@@ -1096,9 +1218,11 @@ function PosApp() {
         <div className="pos-bar">
           {/* Brand + active branch */}
           <div className="pos-brand flex min-w-0 items-center gap-2.5">
-            <BrandLogo size="sm" />
+            <span className="pos-brand-badge">
+              <BrandLogo size="sm" />
+            </span>
             <div className="min-w-0 leading-tight">
-              <p className="pos-brand-name truncate">Bravo Bites</p>
+              <p className="pos-brand-name truncate">Brovo Bites</p>
               <div className="pos-branch">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                 {profile?.role === "owner" && branches.length > 1 ? (
@@ -1118,7 +1242,7 @@ function PosApp() {
                 ) : branches.length === 1 ? (
                   <span className="truncate">{branches[0]!.name}</span>
                 ) : (
-                  <span className="truncate text-[var(--danger)]">{t("branch")}</span>
+                  <span className="pos-branch-missing truncate">{t("branch")}</span>
                 )}
               </div>
             </div>
@@ -1246,14 +1370,14 @@ function PosApp() {
               {(profile?.displayName || profile?.email || "?").trim().charAt(0).toUpperCase()}
             </span>
             <div className="pos-user-text min-w-0 leading-tight">
-              <p className="truncate text-[13px] font-semibold capitalize text-[var(--ink)]">
+              <p className="pos-user-name truncate capitalize">
                 {profile?.displayName || profile?.email?.split("@")[0] || "—"}
                 <span className="pos-user-role">
                   {profile?.role === "owner" ? t("roleOwner") : t("counter")}
                 </span>
               </p>
               {profile?.email ? (
-                <p className="truncate text-[11px] text-[var(--muted)]" dir="ltr">
+                <p className="pos-user-email truncate" dir="ltr">
                   {profile.email}
                 </p>
               ) : null}
@@ -1286,34 +1410,50 @@ function PosApp() {
 
       {error ? <div className="toast-error m-3 shrink-0">{error}</div> : null}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[220px_1fr_340px]">
-        <aside className="pos-cats shrink-0 border-b border-[var(--border)] p-2 lg:overflow-auto lg:border-b-0 lg:border-e lg:p-3">
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[208px_minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)] xl:grid-cols-[232px_minmax(0,1fr)_360px]">
+        <aside className="pos-cats shrink-0 p-2 lg:overflow-auto lg:p-3" aria-label={t("menu")}>
+          <p className="pos-cats-title">{t("menu")}</p>
           <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:gap-2 lg:overflow-visible lg:pb-0">
             <button
               type="button"
               className={`pos-cat-btn ${categoryId === "all" ? "is-active" : ""}`}
+              aria-pressed={categoryId === "all"}
               onClick={() => setCategoryId("all")}
             >
-              <span className="pos-cat-icon-all">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span className="pos-cat-icon-all" aria-hidden>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
               </span>
-              <span className="pos-cat-label">{t("all")}</span>
+              <span className="pos-cat-text">
+                <span className="pos-cat-label">{t("all")}</span>
+                <span className="pos-cat-count">
+                  {products.length} {t("itemsCount")}
+                </span>
+              </span>
             </button>
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className={`pos-cat-btn ${categoryId === c.id ? "is-active" : ""}`}
-                onClick={() => setCategoryId(c.id)}
-              >
-                <img
-                  src={resolveCategoryImage(c.imageUrl, c.name)}
-                  alt=""
-                  className="pos-cat-img"
-                />
-                <span className="pos-cat-label">{c.name}</span>
-              </button>
-            ))}
+            {categories.map((c) => {
+              const firstProduct = products.find((p) => p.categoryId === c.id);
+              const thumbs = [resolveCategoryImage(c.imageUrl, c.name)];
+              if (firstProduct) {
+                thumbs.push(resolveProductImage(firstProduct.imageUrl, firstProduct.name, c.name));
+              }
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`pos-cat-btn ${categoryId === c.id ? "is-active" : ""}`}
+                  aria-pressed={categoryId === c.id}
+                  onClick={() => setCategoryId(c.id)}
+                >
+                  <CategoryThumb key={`${thumbs.join("|")}-${imgEpoch}`} srcs={thumbs} name={c.name} />
+                  <span className="pos-cat-text">
+                    <span className="pos-cat-label">{c.name}</span>
+                    <span className="pos-cat-count">
+                      {productCountByCategory.get(c.id) ?? 0} {t("itemsCount")}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </aside>
 
@@ -1322,11 +1462,11 @@ function PosApp() {
             <label className="relative block">
               <span className="sr-only">{t("searchMenu")}</span>
               <svg
-                className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]"
+                className="pos-menu-search-icon pointer-events-none absolute start-3.5 top-1/2 size-[18px] -translate-y-1/2"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden
@@ -1348,54 +1488,73 @@ function PosApp() {
 
           <div className="min-h-0 flex-1 overflow-auto">
             {loadingMenu ? (
-              <p className="text-[var(--muted)]">{t("menuLoading")}</p>
+              <p className="pos-menu-note">{t("menuLoading")}</p>
             ) : visibleProducts.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-[var(--border)] bg-white/70 px-4 py-8 text-center text-sm text-[var(--muted)]">
+              <p className="pos-menu-note">
                 {menuQuery.trim() ? t("noSearchResults") : t("emptyMenu")}
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
-                {visibleProducts.map((p) => {
-                  const cat = categoryMap.get(p.categoryId);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => onPickProduct(p)}
-                      className="pos-product-card"
-                    >
-                      <div className="pos-product-media">
-                        <img
-                          src={resolveProductImage(p.imageUrl, p.name, cat?.name)}
-                          alt=""
-                          loading="lazy"
-                        />
-                        <span className="pos-product-add" aria-hidden="true">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                        </span>
-                      </div>
-                      <div className="pos-product-info">
-                        <p className="pos-product-name">{p.name}</p>
-                        <p className="pos-product-price" dir="ltr">
-                          {p.type === "sized"
-                            ? `${t("from")} ${formatPkr(Math.min(...p.variations.map((v) => v.price)))}`
-                            : formatPkr(p.basePrice)}
-                        </p>
-                        {p.type === "bundle" && p.dealItems.length > 0 ? (
-                          <p className="pos-product-deal">
-                            {p.dealItems.map((d) => `${d.qty}× ${d.label}`).join(", ")}
-                          </p>
-                        ) : null}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              <>
+                <div className="pos-grid-head">
+                  <h2 className="pos-grid-title">
+                    {categoryId === "all" ? t("all") : categoryMap.get(categoryId)?.name ?? t("all")}
+                  </h2>
+                  <span className="pos-grid-count">
+                    {visibleProducts.length} {t("itemsCount")}
+                  </span>
+                </div>
+                <div className="pos-product-grid">
+                  {visibleProducts.map((p) => {
+                    const cat = categoryMap.get(p.categoryId);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => onPickProduct(p)}
+                        className="pos-product-card"
+                      >
+                        <div className="pos-product-media">
+                          <img
+                            src={resolveProductImage(p.imageUrl, p.name, cat?.name)}
+                            alt=""
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="pos-product-info">
+                          <p className="pos-product-name">{p.name}</p>
+                          {p.type === "bundle" && p.dealItems.length > 0 ? (
+                            <p className="pos-product-deal">
+                              {p.dealItems.map((d) => `${d.qty}× ${d.label}`).join(", ")}
+                            </p>
+                          ) : null}
+                          <div className="pos-product-foot">
+                            <p className="pos-product-price">
+                              {p.type === "sized" ? (
+                                <span className="pos-product-from">{t("from")}</span>
+                              ) : null}
+                              <span className="pos-product-amount" dir="ltr">
+                                {formatPkr(
+                                  p.type === "sized"
+                                    ? Math.min(...p.variations.map((v) => v.price))
+                                    : p.basePrice,
+                                )}
+                              </span>
+                            </p>
+                            <span className="pos-product-add" aria-hidden="true">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         </section>
 
-        <aside className="hidden min-h-0 flex-col border-s border-[var(--border)] bg-white lg:flex">
+        <aside className="pos-cart-aside hidden min-h-0 flex-col lg:flex">
           <CartPanel
             cart={cart}
             subtotal={subtotal}
@@ -1411,15 +1570,19 @@ function PosApp() {
       </div>
 
       {/* Mobile sticky cart bar */}
-      <div className="pos-cart-bar fixed inset-x-0 bottom-0 z-40 border-t border-[var(--border)] bg-white p-3 lg:hidden">
+      <div className="pos-cart-bar fixed inset-x-0 bottom-0 z-40 lg:hidden">
         <button
           type="button"
-          className="btn flex w-full items-center justify-between gap-3 py-3"
+          className="btn pos-cta flex w-full items-center justify-between gap-3 px-4"
           onClick={() => setMobileCartOpen(true)}
         >
-          <span>
+          <span className="inline-flex items-center">
             {t("viewOrder")}
-            {cartCount > 0 ? ` · ${cartCount}` : ""}
+            {cartCount > 0 ? (
+              <span className="pos-cta-count" dir="ltr">
+                {cartCount}
+              </span>
+            ) : null}
           </span>
           <span dir="ltr">{formatPkr(total)}</span>
         </button>
@@ -1430,18 +1593,26 @@ function PosApp() {
         <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden" role="dialog" aria-modal="true">
           <button
             type="button"
-            className="absolute inset-0 bg-stone-900/40"
+            className="pos-scrim absolute inset-0"
             aria-label={t("close")}
             onClick={() => setMobileCartOpen(false)}
           />
-          <div className="pos-cart-sheet relative z-10 flex h-[min(85dvh,40rem)] max-h-[85dvh] flex-col rounded-t-2xl bg-white shadow-xl">
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
-              <h2 className="font-bold text-[var(--ink)]">{t("currentOrder")}</h2>
+          <div className="pos-cart-sheet relative z-10 flex h-[min(85dvh,40rem)] max-h-[85dvh] flex-col rounded-t-2xl shadow-xl">
+            <span className="pos-sheet-grip" aria-hidden />
+            <div className="pos-sheet-head pt-4">
+              <h2 className="pos-cart-title">
+                {t("currentOrder")}
+                {cartCount > 0 ? (
+                  <span className="pos-cart-count" dir="ltr">
+                    {cartCount}
+                  </span>
+                ) : null}
+              </h2>
               <div className="flex items-center gap-1">
                 {cart.length > 0 ? (
                   <button
                     type="button"
-                    className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700"
+                    className="pos-cart-clear"
                     onClick={() => setConfirmClearCart(true)}
                     aria-label={t("clearCart")}
                   >
@@ -1483,13 +1654,13 @@ function PosApp() {
         >
           <button
             type="button"
-            className="absolute inset-0 bg-stone-900/40"
+            className="pos-scrim absolute inset-0"
             aria-label={t("close")}
             onClick={() => setPendingProduct(null)}
           />
-          <div className="relative z-10 w-full max-w-[22rem] overflow-hidden rounded-t-2xl bg-[#faf8f5] shadow-2xl sm:rounded-2xl">
-            <div className="flex items-center gap-3 border-b border-stone-200/80 bg-white px-3.5 py-3 sm:px-4">
-              <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-stone-100 ring-1 ring-stone-200/80">
+          <div className="pos-size-sheet relative z-10 w-full max-w-[22rem] overflow-hidden rounded-t-2xl shadow-2xl sm:rounded-2xl">
+            <div className="pos-size-head flex items-center gap-3 px-3.5 py-3 sm:px-4">
+              <div className="pos-size-thumb shrink-0 overflow-hidden">
                 <img
                   src={resolveProductImage(
                     pendingProduct.imageUrl,
@@ -1501,12 +1672,12 @@ function PosApp() {
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-500">
+                <p className="pos-size-eyebrow">
                   {t("chooseSize")}
                 </p>
                 <h3
                   id="choose-size-title"
-                  className="truncate text-base font-bold leading-snug text-stone-900"
+                  className="truncate text-base font-bold leading-snug text-[var(--ink)]"
                 >
                   {pendingProduct.name}
                 </h3>
@@ -1528,13 +1699,13 @@ function PosApp() {
                 <button
                   key={v.id}
                   type="button"
-                  className="flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-stone-200 bg-white px-2 py-3 text-center shadow-[0_1px_2px_rgba(28,25,23,0.04)] transition hover:border-stone-400 hover:shadow-md active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700"
+                  className="pos-size-opt"
                   onClick={() => confirmVariation(v.id)}
                 >
-                  <span className="text-2xl font-bold tracking-tight text-stone-900">
+                  <span className="pos-size-label">
                     {v.label}
                   </span>
-                  <span className="text-sm font-semibold tabular-nums text-stone-600" dir="ltr">
+                  <span className="pos-size-price" dir="ltr">
                     {formatPkr(v.price)}
                   </span>
                 </button>
@@ -1544,7 +1715,7 @@ function PosApp() {
             <div className="px-3.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-0 sm:px-4 sm:pb-4">
               <button
                 type="button"
-                className="flex min-h-11 w-full items-center justify-center rounded-xl border border-stone-200 bg-white text-sm font-semibold text-stone-700 transition hover:bg-stone-50"
+                className="btn btn-ghost min-h-11 w-full"
                 onClick={() => setPendingProduct(null)}
               >
                 {t("cancel")}
@@ -1568,12 +1739,12 @@ function PosApp() {
             disabled={busy}
             onClick={() => closeCheckoutPreview()}
           />
-          <div className="relative z-10 flex max-h-[min(95dvh,42rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl border border-stone-200/80 bg-white shadow-[0_25px_80px_rgba(0,0,0,0.45)] ring-1 ring-black/5 sm:rounded-2xl">
+          <div className="pos-dialog relative z-10 flex max-h-[min(95dvh,42rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:rounded-2xl">
             {/* Header — title + customer + discount */}
             <div className="modal-dark-head shrink-0 px-4 pb-3.5 pt-4 sm:px-5 sm:pt-[1.125rem]">
               <h2
                 id="checkout-preview-title"
-                className="text-base font-bold tracking-tight text-[#f5efe6] sm:text-lg"
+                className="pos-dialog-title text-xl sm:text-[1.375rem]"
               >
                 {t("receiptPreview")}
               </h2>
@@ -1603,20 +1774,22 @@ function PosApp() {
                       type="text"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="h-10 w-full modal-dark-input rounded-xl pe-9 ps-3 text-base outline-none transition sm:text-sm"
+                      className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base outline-none transition sm:text-sm"
                       autoComplete="name"
                       maxLength={80}
                     />
                     {customerName ? (
                       <button
                         type="button"
-                        className="absolute end-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full modal-dark-clear"
+                        className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
                         aria-label={t("clear")}
                         onClick={() => setCustomerName("")}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
-                          <path d="M18 6 6 18M6 6l12 12" />
-                        </svg>
+                        <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+                            <path d="M18 6 6 18M6 6l12 12" />
+                          </svg>
+                        </span>
                       </button>
                     ) : null}
                   </div>
@@ -1639,7 +1812,7 @@ function PosApp() {
                       inputMode="tel"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="h-10 w-full modal-dark-input rounded-xl pe-9 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
+                      className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
                       autoComplete="tel"
                       maxLength={20}
                       dir="ltr"
@@ -1647,13 +1820,15 @@ function PosApp() {
                     {customerPhone ? (
                       <button
                         type="button"
-                        className="absolute end-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full modal-dark-clear"
+                        className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
                         aria-label={t("clear")}
                         onClick={() => setCustomerPhone("")}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
-                          <path d="M18 6 6 18M6 6l12 12" />
-                        </svg>
+                        <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+                            <path d="M18 6 6 18M6 6l12 12" />
+                          </svg>
+                        </span>
                       </button>
                     ) : null}
                   </div>
@@ -1677,7 +1852,7 @@ function PosApp() {
                         inputMode="numeric"
                         value={tableNumber}
                         onChange={(e) => setTableNumber(e.target.value)}
-                        className="h-10 w-full modal-dark-input rounded-xl pe-9 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
+                        className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
                         autoComplete="off"
                         maxLength={12}
                         dir="ltr"
@@ -1685,13 +1860,15 @@ function PosApp() {
                       {tableNumber ? (
                         <button
                           type="button"
-                          className="absolute end-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full modal-dark-clear"
+                          className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
                           aria-label={t("clear")}
                           onClick={() => setTableNumber("")}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
-                            <path d="M18 6 6 18M6 6l12 12" />
-                          </svg>
+                          <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+                              <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                          </span>
                         </button>
                       ) : null}
                     </div>
@@ -1715,7 +1892,7 @@ function PosApp() {
                         type="text"
                         value={deliveryAddress}
                         onChange={(e) => setDeliveryAddress(e.target.value)}
-                        className="h-10 w-full modal-dark-input rounded-xl pe-9 ps-3 text-base outline-none transition sm:text-sm"
+                        className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base outline-none transition sm:text-sm"
                         autoComplete="street-address"
                         maxLength={160}
                         placeholder={t("deliveryAddressPlaceholder")}
@@ -1723,13 +1900,15 @@ function PosApp() {
                       {deliveryAddress ? (
                         <button
                           type="button"
-                          className="absolute end-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full modal-dark-clear"
+                          className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
                           aria-label={t("clear")}
                           onClick={() => setDeliveryAddress("")}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
-                            <path d="M18 6 6 18M6 6l12 12" />
-                          </svg>
+                          <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+                              <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                          </span>
                         </button>
                       ) : null}
                     </div>
@@ -1746,7 +1925,7 @@ function PosApp() {
                         <button
                           key={dt}
                           type="button"
-                          className={`modal-dark-seg-btn h-9 min-w-9 rounded-md px-2 text-sm font-extrabold transition ${
+                          className={`modal-dark-seg-btn h-11 min-w-11 rounded-md px-2 text-sm font-extrabold transition ${
                             discountType === dt ? "is-active" : ""
                           }`}
                           onClick={() => {
@@ -1772,20 +1951,22 @@ function PosApp() {
                               : Math.min(subtotal, n);
                           setDiscountValue(capped);
                         }}
-                        className="h-10 w-full modal-dark-input rounded-xl pe-9 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
+                        className="h-full min-h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
                         dir="ltr"
                         aria-label={t("discount")}
                       />
                       {discountValue ? (
                         <button
                           type="button"
-                          className="absolute end-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full modal-dark-clear"
+                          className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
                           aria-label={t("clear")}
                           onClick={() => setDiscountValue(0)}
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
-                            <path d="M18 6 6 18M6 6l12 12" />
-                          </svg>
+                          <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+                              <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                          </span>
                         </button>
                       ) : null}
                     </div>
@@ -1812,7 +1993,6 @@ function PosApp() {
                   <div className="grid grid-cols-3 gap-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2.5">
                     {(["dine-in", "takeaway", "delivery"] as const).map((ot) => {
                       const selected = orderType === ot;
-                      const icon = ot === "dine-in" ? "🍽️" : ot === "takeaway" ? "🥡" : "🛵";
                       const label =
                         ot === "dine-in" ? t("dineIn") : ot === "takeaway" ? t("takeaway") : t("delivery");
                       return (
@@ -1837,10 +2017,10 @@ function PosApp() {
                             </span>
                           ) : null}
                           <span
-                            className="pos-opt-icon size-9 text-[1.25rem] leading-none lg:size-16 lg:text-[2.1rem]"
+                            className="pos-opt-icon size-9 text-[1.25rem] leading-none lg:size-16 lg:text-[2rem]"
                             aria-hidden
                           >
-                            {icon}
+                            <OptIcon kind={ot} />
                           </span>
                           <span className="text-xs font-bold tracking-wide lg:text-sm">{label}</span>
                         </button>
@@ -1850,7 +2030,7 @@ function PosApp() {
                 </div>
 
                 {/* Center — receipt preview: the exact document that prints (only this scrolls) */}
-                <div className="order-last min-h-0 min-w-0 flex-1 overflow-y-auto bg-[#efebe4] px-2 py-3 lg:order-none sm:px-3">
+                <div className="pos-receipt-stage order-last min-h-0 min-w-0 flex-1 overflow-y-auto px-2 py-3 lg:order-none sm:px-3">
                   <ReceiptPreview html={previewReceiptHtml} title={t("receiptPreview")} />
                 </div>
 
@@ -1860,7 +2040,6 @@ function PosApp() {
                   <div className="grid grid-cols-3 gap-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2.5">
                     {(["cash", "card", "digital"] as const).map((pm) => {
                       const selected = paymentMethod === pm;
-                      const icon = pm === "cash" ? "💵" : pm === "card" ? "💳" : "📲";
                       const label = pm === "cash" ? t("cash") : pm === "card" ? t("card") : t("digital");
                       return (
                         <button
@@ -1881,10 +2060,10 @@ function PosApp() {
                             </span>
                           ) : null}
                           <span
-                            className="pos-opt-icon size-9 text-[1.25rem] leading-none lg:size-16 lg:text-[2.1rem]"
+                            className="pos-opt-icon size-9 text-[1.25rem] leading-none lg:size-16 lg:text-[2rem]"
                             aria-hidden
                           >
-                            {icon}
+                            <OptIcon kind={pm} />
                           </span>
                           <span className="text-xs font-bold tracking-wide lg:text-sm">{label}</span>
                         </button>
@@ -1905,7 +2084,7 @@ function PosApp() {
                     onClick={() => setAutoPrint((v) => !v)}
                     className={`pos-switch relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${autoPrint ? "is-on" : ""}`}
                   >
-                    <span className={`inline-block size-[1.125rem] rounded-full bg-white shadow transition-transform ${autoPrint ? "translate-x-[1.375rem]" : "translate-x-[0.1875rem]"}`} />
+                    <span className={`inline-block size-[1.125rem] rounded-full bg-white shadow transition-transform ${autoPrint ? "translate-x-[1.375rem] rtl:-translate-x-[1.375rem]" : "translate-x-[0.1875rem] rtl:-translate-x-[0.1875rem]"}`} />
                   </button>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-stone-500" aria-hidden><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                   <span className="text-sm font-medium text-stone-700">{t("printBill")}</span>
@@ -1914,7 +2093,7 @@ function PosApp() {
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">
                     {t("total")}
                   </p>
-                  <p className="text-xl font-extrabold leading-tight tabular-nums text-[var(--ink)] sm:text-2xl" dir="ltr">
+                  <p className="pos-foot-total text-2xl leading-tight sm:text-[1.75rem]" dir="ltr">
                     {formatPkr(total)}
                   </p>
                 </div>
@@ -1929,7 +2108,7 @@ function PosApp() {
                   </button>
                   <button
                     type="button"
-                    className="btn min-h-12 text-base sm:min-w-[10rem] sm:px-8"
+                    className="btn pos-cta min-h-12 text-base sm:min-w-[10rem] sm:px-8"
                     disabled={
                       isCartEmpty(cart) ||
                       !discountAllowed ||
@@ -2014,20 +2193,21 @@ function PosApp() {
           className="fixed inset-0 z-50 flex flex-col justify-end sm:items-center sm:justify-center sm:p-4"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="recent-orders-title"
         >
           <button
             type="button"
-            className="absolute inset-0 bg-stone-900/40"
+            className="pos-scrim absolute inset-0"
             aria-label={t("close")}
             onClick={() => setRecentOpen(false)}
           />
-          <div className="relative z-10 flex max-h-[min(90dvh,44rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
-            <div className="modal-dark-head flex shrink-0 items-center justify-between gap-3 px-4 pb-3.5 pt-4">
+          <div className="pos-dialog relative z-10 flex max-h-[min(90dvh,44rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl shadow-2xl sm:rounded-2xl">
+            <div className="modal-dark-head flex shrink-0 items-center justify-between gap-3 px-4 pb-3.5 pt-4 sm:px-5">
               <div>
-                <p className="modal-dark-gold text-[10px] font-bold uppercase tracking-[0.16em]">
+                <p className="modal-dark-gold text-[11px] font-bold uppercase tracking-[0.14em]">
                   {t("orders")}
                 </p>
-                <h2 className="text-base font-bold text-[#f5efe6]">{t("recentOrders")}</h2>
+                <h2 id="recent-orders-title" className="pos-dialog-title text-xl">{t("recentOrders")}</h2>
               </div>
               <button
                 type="button"
@@ -2041,7 +2221,7 @@ function PosApp() {
               {recentLoading ? (
                 <p className="py-8 text-center text-sm text-[var(--muted)]">{t("loading")}</p>
               ) : recentOrders.length === 0 && localPendingOrders.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-[var(--border)] bg-[#faf7f2]/60 px-4 py-10 text-center text-sm text-[var(--muted)]">
+                <p className="pos-menu-note">
                   {t("noOrders")}
                 </p>
               ) : (

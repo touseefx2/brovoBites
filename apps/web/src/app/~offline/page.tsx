@@ -1,8 +1,15 @@
 "use client";
 
+/**
+ * PWA offline fallback (next-pwa `fallbacks.document`). Kept dependency-light:
+ * plain <img> (no /_next/image round-trip while offline), CSS in styles/07-loader.css.
+ */
 import { useEffect } from "react";
+import { useLocale } from "@/i18n/locale-context";
 
 export default function OfflineFallback() {
+  const { t } = useLocale();
+
   useEffect(() => {
     const handler = () => window.location.reload();
     window.addEventListener("online", handler);
@@ -10,19 +17,37 @@ export default function OfflineFallback() {
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#1a1206] px-6 text-center">
-      <img src="/logo-full.png" alt="Bravo Bites" className="h-40 w-auto" />
-      <h1 className="text-xl font-bold text-[#d4a843]">You are offline</h1>
-      <p className="max-w-sm text-sm text-stone-400">
-        Internet connection lost. The page will reload automatically when you&apos;re back online.
-      </p>
+    <main className="offline-page">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo-full.png"
+        alt="Brovo Bites"
+        width={720}
+        height={835}
+        className="offline-page-logo"
+      />
+      <h1 className="offline-page-title">{t("offlinePageTitle")}</h1>
+      <p className="offline-page-text">{t("offlinePageBody")}</p>
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="mt-2 rounded-lg bg-[#d4a843] px-6 py-2 text-sm font-semibold text-[#1a1206] transition hover:bg-[#c49a3a]"
+        className="offline-page-retry"
       >
-        Retry
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+          <path d="M21 3v6h-6" />
+        </svg>
+        {t("retry")}
       </button>
-    </div>
+    </main>
   );
 }

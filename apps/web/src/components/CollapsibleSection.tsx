@@ -22,13 +22,13 @@ export function CollapsibleSection({
 
   return (
     <section
-      className={`overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-sm ${className}`}
+      className={`admin-section-card ${className}`}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-start justify-between gap-3 bg-[#faf8f5] px-4 py-3.5 text-start transition hover:bg-[#f5f1eb] sm:px-5"
+        className="collapsible-head flex w-full items-start justify-between gap-3 px-4 py-3.5 text-start sm:px-5"
       >
         <div className="min-w-0">
           <h2 className="text-base font-bold tracking-tight text-[var(--ink)] sm:text-lg">
@@ -40,12 +40,12 @@ export function CollapsibleSection({
         </div>
         <div className="flex shrink-0 items-center gap-2 pt-0.5">
           {typeof count === "number" && count > 0 ? (
-            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold tabular-nums text-[var(--gold-deep)] ring-1 ring-[var(--border)]">
+            <span className="collapsible-count rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums">
               {count}
             </span>
           ) : null}
           <span
-            className="inline-flex size-8 items-center justify-center rounded-full bg-white text-[var(--muted)] ring-1 ring-[var(--border)]"
+            className="collapsible-chevron inline-flex size-8 items-center justify-center rounded-full"
             aria-hidden
           >
             <svg

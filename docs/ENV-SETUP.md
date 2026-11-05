@@ -1,4 +1,4 @@
-# Dev vs Live env (Bravo Bites)
+# Dev vs Live env (Brovo Bites)
 
 ## Files (secrets never in git)
 
@@ -6,8 +6,8 @@
 |---|---|---|
 | `apps/web/.env.example` | template, no secrets (see note) | Template only — copy into the `.local` files below |
 | `apps/web/.env.local` | no | **DEV** — what `pnpm --filter web dev` uses |
-| `apps/web/.env.development.local` | no | **DEV** Firebase `bravobites-dev` (+ seed/create-owner default) |
-| `apps/web/.env.production.local` | no | **LIVE** Firebase `bravobites-live` (+ LIVE ImageKit) |
+| `apps/web/.env.development.local` | no | **DEV** Firebase `brovodev` (+ seed/create-owner default) |
+| `apps/web/.env.production.local` | no | **LIVE** Firebase `borovo-ffc56` (+ LIVE ImageKit) |
 | `deploy/targets.local.env` | no | Vercel org/project IDs + tokens for `pnpm deploy:*` |
 
 > Keep `.env.local` = same world as `.env.development.local` (dev). Never paste live keys into `.env.local`.
@@ -18,13 +18,13 @@ Note: the `.env.example` templates are committed (placeholders only); every real
 
 ## Worlds
 
-Bravo Bites' own accounts — nothing shared with any other shop/project.
+Brovo Bites' own accounts — nothing shared with any other shop/project.
 
 | | DEV | LIVE |
 |---|---|---|
-| Firebase | `bravobites-dev` | `bravobites-live` |
-| ImageKit | Bravo Bites DEV keys (`https://ik.imagekit.io/<dev_id>`) | Bravo Bites LIVE keys (`https://ik.imagekit.io/<live_id>`) |
-| Vercel | Bravo Bites DEV account (admin + menu projects) | Bravo Bites LIVE account (admin + menu projects) |
+| Firebase | `brovodev` | `borovo-ffc56` |
+| ImageKit | Brovo Bites DEV keys (`https://ik.imagekit.io/<dev_id>`) | Brovo Bites LIVE keys (`https://ik.imagekit.io/<live_id>`) |
+| Vercel | Brovo Bites DEV account (admin + menu projects) | Brovo Bites LIVE account (admin + menu projects) |
 | Local commands | `pnpm --filter web dev` | `SEED_ENV=production` scripts only |
 | Deploy | `pnpm deploy:dev` | `pnpm deploy:live` (type LIVE) |
 
@@ -41,9 +41,9 @@ DEV and LIVE ImageKit: separate accounts are safest (a delete on DEV then can ne
 ## Fill the local env files
 
 ```bash
-cp apps/web/.env.example apps/web/.env.development.local   # DEV keys (Firebase bravobites-dev, DEV ImageKit)
+cp apps/web/.env.example apps/web/.env.development.local   # DEV keys (Firebase brovodev, DEV ImageKit)
 cp apps/web/.env.example apps/web/.env.local               # same DEV values
-cp apps/web/.env.example apps/web/.env.production.local    # LIVE keys (Firebase bravobites-live, LIVE ImageKit)
+cp apps/web/.env.example apps/web/.env.production.local    # LIVE keys (Firebase borovo-ffc56, LIVE ImageKit)
 ```
 
 In `.env.production.local` also set `NEXT_PUBLIC_APP_ENV=production` and `NEXT_PUBLIC_APP_URL=https://<your live admin>.vercel.app`.
@@ -73,7 +73,7 @@ pnpm create-owner -- --email=dev@mail.com --password='...' --name='Owner' --prim
 # LIVE — must match project id
 SEED_ENV=production pnpm create-owner -- \
   --email=you@mail.com --password='...' --name='Owner' \
-  --confirm=bravobites-live --primary
+  --confirm=borovo-ffc56 --primary
 ```
 
 ### Full menu seed
@@ -83,7 +83,7 @@ SEED_ENV=production pnpm create-owner -- \
 pnpm seed -- --ownerUid=UID --ownerEmail=... --ownerName=Owner
 
 # LIVE (dangerous if data already exists)
-SEED_ENV=production pnpm seed -- --ownerUid=UID ... --confirm=bravobites-live
+SEED_ENV=production pnpm seed -- --ownerUid=UID ... --confirm=borovo-ffc56
 ```
 
 Scripts print the Firebase project id before writing. Read that line every time.
@@ -92,7 +92,7 @@ Scripts print the Firebase project id before writing. Read that line every time.
 
 ## Deploy
 
-See [DEPLOYMENT.md](../DEPLOYMENT.md) for Bravo Bites' Vercel projects + `deploy/targets.local.env`.
+See [DEPLOYMENT.md](../DEPLOYMENT.md) for Brovo Bites' Vercel projects + `deploy/targets.local.env`.
 
 ```bash
 pnpm deploy:dev

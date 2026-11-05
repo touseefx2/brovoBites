@@ -20,7 +20,7 @@ export default function ActivityLayout({
       <BranchGate>
         <ActionProvider>
           <div className="min-h-dvh bg-[var(--bg)]">
-            <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[#faf8f5]/95 backdrop-blur-sm">
+            <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[#fff7ee]/95 backdrop-blur-sm">
               <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-5">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <BrandLogo size="sm" />

@@ -366,13 +366,13 @@ export default function OrdersPage() {
   return (
     <div>
       <div className="mb-4 sm:mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gold-deep)]">
+        <p className="admin-page-eyebrow">
           {t("orders")}
         </p>
-        <h1 className="text-xl font-bold tracking-tight text-[var(--ink)] sm:text-2xl">
+        <h1 className="admin-page-title">
           {t("ordersHistory")}
         </h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="admin-page-sub">
           {profile?.role === "owner" ? t("ordersHint") : t("ordersHintStaff")}
         </p>
       </div>
@@ -382,7 +382,7 @@ export default function OrdersPage() {
           {/* Search */}
           <span className="relative block">
             <svg
-              className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[#e4c15a]/80"
+              className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[#f0b028]/80"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -479,7 +479,7 @@ export default function OrdersPage() {
             </select>
           ) : (
             <div className="flex items-center">
-              <span className="inline-flex items-center rounded-lg border border-[rgba(228,193,90,0.28)] bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-[#f5efe6]">
+              <span className="inline-flex items-center rounded-lg border border-[rgba(240,176,40,0.28)] bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-[#fff4e8]">
                 {branches.find((b) => b.id === branchId)?.name ?? t("branch")}
               </span>
             </div>
@@ -533,11 +533,11 @@ export default function OrdersPage() {
           <div className="flex flex-wrap items-end gap-x-5 gap-y-2 sm:gap-x-6">
             <div>
               <p className="admin-filter-muted text-[11px]">{t("totalOrders")}</p>
-              <p className="mt-0.5 text-2xl font-bold tabular-nums leading-none tracking-tight text-[#f5efe6]">
+              <p className="mt-0.5 text-2xl font-bold tabular-nums leading-none tracking-tight text-[#fff4e8]">
                 {filtered.length}
               </p>
             </div>
-            <div className="hidden h-8 w-px bg-[rgba(228,193,90,0.2)] sm:block" aria-hidden />
+            <div className="hidden h-8 w-px bg-[rgba(240,176,40,0.2)] sm:block" aria-hidden />
             <div>
               <p className="admin-filter-muted text-[11px]">{t("filteredTotal")}</p>
               <p
@@ -547,7 +547,7 @@ export default function OrdersPage() {
                 {formatPkr(filteredTotalAmount)}
               </p>
             </div>
-            <div className="hidden h-8 w-px bg-[rgba(228,193,90,0.2)] sm:block" aria-hidden />
+            <div className="hidden h-8 w-px bg-[rgba(240,176,40,0.2)] sm:block" aria-hidden />
             <div>
               <p className="admin-filter-muted text-[11px]">{t("filteredRefunds")}</p>
               <p
@@ -557,7 +557,7 @@ export default function OrdersPage() {
                 {formatPkr(filteredRefunds)}
               </p>
             </div>
-            <div className="hidden h-8 w-px bg-[rgba(228,193,90,0.2)] sm:block" aria-hidden />
+            <div className="hidden h-8 w-px bg-[rgba(240,176,40,0.2)] sm:block" aria-hidden />
             <div>
               <p className="admin-filter-muted text-[11px]">{t("filteredCancelled")}</p>
               <p

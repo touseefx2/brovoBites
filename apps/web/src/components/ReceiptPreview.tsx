@@ -9,7 +9,7 @@ import { usePosTheme } from "@/lib/pos-theme";
  * the cream one. The paper stays white and the printed copy never sees this.
  */
 function darkStageCss(stage: string) {
-  return `@media screen{html{background:${stage}}.receipt{box-shadow:0 1px 2px rgba(0,0,0,.5),0 10px 28px rgba(0,0,0,.45)}.receipt+.receipt::before{border-top-color:rgba(255,237,213,.3)}.receipt+.receipt::after{background:${stage};color:#a1998e}}`;
+  return `@media screen{html{background:${stage}}.receipt{box-shadow:0 1px 2px rgba(0,0,0,.5),0 10px 28px rgba(0,0,0,.45)}.receipt+.receipt::before{border-top-color:rgba(255,237,213,.3)}.receipt+.receipt::after{background:${stage};color:#a8907f}}`;
 }
 
 /**
@@ -37,7 +37,7 @@ export function ReceiptPreview({ html, title }: { html: string; title: string })
       // Same colour as the column around the frame (--pd-sunken in globals.css).
       const stage = getComputedStyle(document.documentElement).getPropertyValue("--pd-sunken").trim();
       const style = doc.createElement("style");
-      style.textContent = darkStageCss(stage || "#12100e");
+      style.textContent = darkStageCss(stage || "#140a07");
       doc.head.appendChild(style);
     }
     let alive = true;

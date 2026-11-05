@@ -9,14 +9,15 @@ import { useLocale } from "@/i18n/locale-context";
 import { saveCategory } from "@/lib/firestore";
 import { getImageUploadProvider, uploadCategoryImage, deleteUploadedImage } from "@/lib/storage";
 import { useAction } from "@/components/ActionProvider";
+import { isBundledPlaceholder } from "@/lib/menu-images";
 import { ImageUploadField } from "@/components/ImageUpload";
 
 function newId(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** Central menu — branchId arg ignored. */
-export function emptyCategory(_branchId?: string): Category {
+/** Central menu — every category lives in the shared menu. */
+export function emptyCategory(): Category {
   return {
     id: newId("cat"),
     branchId: SHARED_MENU_ID,
@@ -51,7 +52,7 @@ export function CategoryForm({
       return;
     }
     const result = await runAction(
-      async (_ctx) => {
+      async () => {
         const oldImageUrl = initial.imageUrl;
         let imageUrl = form.imageUrl;
         if (pendingImage) {
@@ -85,11 +86,11 @@ export function CategoryForm({
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+        <div className="min-w-0">
+          <p className="admin-page-eyebrow">
             {mode === "edit" ? t("editCategory") : t("addCategory")}
           </p>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">
+          <h1 className="admin-page-title break-words">
             {mode === "edit" ? form.name || t("editCategory") : t("addCategory")}
           </h1>
         </div>
@@ -113,17 +114,17 @@ export function CategoryForm({
         <ImageUploadField
           label={t("categoryImage")}
           hint={t("categoryImageHint")}
-          remoteUrl={form.imageUrl}
+          remoteUrl={isBundledPlaceholder(form.imageUrl) ? "" : form.imageUrl}
           pendingFile={pendingImage}
           disabled={actionBusy}
           onPendingFile={setPendingImage}
           onClearRemote={() => setForm((f) => ({ ...f, imageUrl: "" }))}
         />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <button className="btn" type="submit" disabled={actionBusy}>
             {actionBusy ? t("saving") : t("save")}
           </button>
-          <Link href={menuHref} className="btn btn-ghost btn-sm self-center">
+          <Link href={menuHref} className="btn btn-ghost">
             {t("cancel")}
           </Link>
         </div>

@@ -1,15 +1,15 @@
 ---
-description: Never copy DEV Firebase data into LIVE — LIVE is Bravo Bites' real shop
+description: Never copy DEV Firebase data into LIVE — LIVE is Brovo Bites' real shop
 alwaysApply: true
 ---
 
 # Never mix DEV data into LIVE (required)
 
-LIVE Firebase project **`bravobites-live`** is Bravo Bites' **real shop with real orders/money**. Treat it as production.
+LIVE Firebase project **`borovo-ffc56`** is Brovo Bites' **real shop with real orders/money**. Treat it as production.
 
-DEV Firebase project **`bravobites-dev`** is for experiments, tests, and safe mistakes.
+DEV Firebase project **`brovodev`** is for experiments, tests, and safe mistakes.
 
-This repo is **Bravo Bites only**. Never point it at — or read/write — any other shop's Firebase projects, Vercel account or ImageKit account, DEV or LIVE.
+This repo is **Brovo Bites only**. Never point it at — or read/write — any other shop's Firebase projects, Vercel account or ImageKit account, DEV or LIVE.
 
 ## Hard bans (agent + anyone using this repo)
 
@@ -25,7 +25,7 @@ This repo is **Bravo Bites only**. Never point it at — or read/write — any o
 | Action | OK? |
 |--------|-----|
 | `pnpm ship:dev` / `pnpm ship:live` (code + Firestore **rules/indexes** only) | Yes — does **not** copy collection data |
-| Test / seed / wipe data on **DEV** (`bravobites-dev`) | Yes |
+| Test / seed / wipe data on **DEV** (`brovodev`) | Yes |
 | Real sales & admin work on the LIVE site (LIVE env) | Yes — live ops, not DEV import |
 | Paste env vars from `.env.production.local` into **LIVE** Vercel only | Yes |
 | Paste env vars from `.env.development.local` into **DEV** Vercel only | Yes |
@@ -36,10 +36,10 @@ Confirm the Firebase **project id**:
 
 | World | Project id |
 |-------|------------|
-| DEV | `bravobites-dev` |
-| LIVE | `bravobites-live` |
+| DEV | `brovodev` |
+| LIVE | `borovo-ffc56` |
 
-These ids come from `.firebaserc`. A fresh clone ships placeholder ids; they are swapped for the real Bravo Bites project ids once with `bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>`. If the printed project id is not one of Bravo Bites' two projects → **stop**.
+These ids come from `.firebaserc`. A fresh clone ships placeholder ids; they are swapped for the real Brovo Bites project ids once with `bash scripts/set-firebase-ids.sh <dev-project-id> <live-project-id>`. If the printed project id is not one of Brovo Bites' two projects → **stop**.
 
 If unsure which world you are in → **default to DEV**. Do not write to LIVE until the user explicitly said **live** / **ship:live** / LIVE project id is confirmed.
 

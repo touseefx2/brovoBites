@@ -88,13 +88,13 @@ export default function NewOwnerPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--gold-deep)]">
+          <p className="admin-page-eyebrow">
             {t("addOwner")}
           </p>
-          <h1 className="text-xl font-bold text-[var(--ink)] sm:text-2xl">
+          <h1 className="admin-page-title">
             {t("createOwner")}
           </h1>
-          <p className="mt-1 max-w-lg text-sm text-[var(--muted)]">{t("createOwnerHint")}</p>
+          <p className="admin-page-sub max-w-lg">{t("createOwnerHint")}</p>
         </div>
         <Link href="/admin/staff" className="btn btn-ghost btn-sm">
           {t("backToStaff")}

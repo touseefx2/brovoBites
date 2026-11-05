@@ -29,25 +29,35 @@ type NavIconName =
   | "cashDrawer"
   | "ownerReport";
 
+type NavGroup = "main" | "sales" | "shop" | "manage";
+
 /** Primary nav — POS is rendered separately as a top CTA */
 const links: {
   href: string;
   key: MessageKey;
   icon: NavIconName;
   roles: UserRole[];
+  group: NavGroup;
 }[] = [
-  { href: "/admin", key: "dashboard", icon: "dash", roles: ["owner", "counter"] },
-  { href: "/admin/orders", key: "orders", icon: "orders", roles: ["owner", "counter"] },
-  { href: "/admin/menu", key: "menu", icon: "menu", roles: ["owner", "counter"] },
-  { href: "/admin/item-sales", key: "itemSales", icon: "itemSales", roles: ["owner", "counter"] },
-  { href: "/admin/expenses", key: "expenses", icon: "expenses", roles: ["owner", "counter"] },
-  { href: "/admin/inventory", key: "inventory", icon: "inventory", roles: ["owner", "counter"] },
-  { href: "/admin/day-report", key: "dayEndReport", icon: "dayReport", roles: ["owner", "counter"] },
-  { href: "/admin/cash-drawer", key: "cashDrawer", icon: "cashDrawer", roles: ["owner", "counter"] },
-  { href: "/admin/owner-report", key: "ownerReport", icon: "ownerReport", roles: ["owner", "counter"] },
-  { href: "/admin/branches", key: "branches", icon: "branch", roles: ["owner"] },
-  { href: "/admin/staff", key: "staff", icon: "staff", roles: ["owner"] },
-  { href: "/admin/landing", key: "landingPage", icon: "landing", roles: ["owner"] },
+  { href: "/admin", key: "dashboard", icon: "dash", roles: ["owner", "counter"], group: "main" },
+  { href: "/admin/orders", key: "orders", icon: "orders", roles: ["owner", "counter"], group: "sales" },
+  { href: "/admin/item-sales", key: "itemSales", icon: "itemSales", roles: ["owner", "counter"], group: "sales" },
+  { href: "/admin/day-report", key: "dayEndReport", icon: "dayReport", roles: ["owner", "counter"], group: "sales" },
+  { href: "/admin/owner-report", key: "ownerReport", icon: "ownerReport", roles: ["owner", "counter"], group: "sales" },
+  { href: "/admin/menu", key: "menu", icon: "menu", roles: ["owner", "counter"], group: "shop" },
+  { href: "/admin/inventory", key: "inventory", icon: "inventory", roles: ["owner", "counter"], group: "shop" },
+  { href: "/admin/expenses", key: "expenses", icon: "expenses", roles: ["owner", "counter"], group: "shop" },
+  { href: "/admin/cash-drawer", key: "cashDrawer", icon: "cashDrawer", roles: ["owner", "counter"], group: "shop" },
+  { href: "/admin/branches", key: "branches", icon: "branch", roles: ["owner"], group: "manage" },
+  { href: "/admin/staff", key: "staff", icon: "staff", roles: ["owner"], group: "manage" },
+  { href: "/admin/landing", key: "landingPage", icon: "landing", roles: ["owner"], group: "manage" },
+];
+
+const GROUPS: { id: NavGroup; label: MessageKey | null }[] = [
+  { id: "main", label: null },
+  { id: "sales", label: "navGroupSales" },
+  { id: "shop", label: "navGroupShop" },
+  { id: "manage", label: "navGroupManage" },
 ];
 
 function NavIcon({ name }: { name: NavIconName }) {
@@ -187,63 +197,120 @@ function roleLabel(role: UserRole | undefined, t: (k: MessageKey) => string) {
   return t("roleStaff");
 }
 
+function isActiveHref(pathname: string, href: string) {
+  return href === "/admin"
+    ? pathname === "/admin"
+    : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Red sticker CTA to the till — always visible above the nav. */
+function OpenPosLink({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useLocale();
+  return (
+    <Link href="/pos" onClick={onNavigate} className="admin-nav-pos">
+      <span className="admin-nav-pos-icon" aria-hidden>
+        <NavIcon name="pos" />
+      </span>
+      <span className="min-w-0 flex-1 truncate">{t("openPos")}</span>
+      <svg
+        className="admin-nav-pos-arrow"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <path d="M5 12h14M13 6l6 6-6 6" />
+      </svg>
+    </Link>
+  );
+}
+
 function NavLinks({
   pathname,
   onNavigate,
+  idPrefix,
 }: {
   pathname: string;
   onNavigate?: () => void;
+  idPrefix: string;
 }) {
   const { t } = useLocale();
   const { profile } = useAuth();
   const role = profile?.role ?? "counter";
   const visible = links.filter((l) => l.roles.includes(role));
-  const showPos = role === "owner" || role === "counter";
+  const navRef = useRef<HTMLElement>(null);
+
+  // Short screens scroll the nav: keep the current page's link in view.
+  useEffect(() => {
+    navRef.current
+      ?.querySelector<HTMLElement>(".admin-nav-link.is-active")
+      ?.scrollIntoView({ block: "nearest" });
+  }, [pathname]);
 
   return (
-    <nav className="admin-nav flex flex-col gap-1">
-      {showPos ? (
-        <Link
-          href="/pos"
-          onClick={onNavigate}
-          className="admin-nav-pos mb-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold shadow-md transition hover:brightness-110"
-        >
-          <NavIcon name="pos" />
-          {t("openPos")}
-        </Link>
-      ) : null}
-
-      {visible.map((l) => {
-        const active =
-          l.href === "/admin"
-            ? pathname === "/admin"
-            : pathname === l.href || pathname.startsWith(`${l.href}/`);
+    <nav ref={navRef} className="admin-nav">
+      {GROUPS.map((g) => {
+        const items = visible.filter((l) => l.group === g.id);
+        if (!items.length) return null;
+        const labelId = `${idPrefix}-nav-${g.id}`;
         return (
-          <Link
-            key={l.href}
-            href={l.href}
-            onClick={onNavigate}
-            className={`admin-nav-link group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-semibold transition ${
-              active ? "is-active" : ""
-            }`}
+          <div
+            key={g.id}
+            className="admin-nav-group"
+            role={g.label ? "group" : undefined}
+            aria-labelledby={g.label ? labelId : undefined}
           >
-            <span className="admin-nav-icon flex size-8 shrink-0 items-center justify-center rounded-lg">
-              <NavIcon name={l.icon} />
-            </span>
-            <span className="min-w-0 truncate">{t(l.key)}</span>
-          </Link>
+            {g.label ? (
+              <p id={labelId} className="admin-nav-group-label">
+                {t(g.label)}
+              </p>
+            ) : null}
+            {items.map((l) => {
+              const active = isActiveHref(pathname, l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={`admin-nav-link${active ? " is-active" : ""}`}
+                >
+                  <span className="admin-nav-icon" aria-hidden>
+                    <NavIcon name={l.icon} />
+                  </span>
+                  <span className="min-w-0 truncate">{t(l.key)}</span>
+                </Link>
+              );
+            })}
+          </div>
         );
       })}
     </nav>
   );
 }
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "B";
+  const first = Array.from(parts[0]!)[0] ?? "";
+  const second = parts.length > 1 ? (Array.from(parts[parts.length - 1]!)[0] ?? "") : "";
+  return (first + second).toUpperCase();
+}
+
 function SidebarBody({
   pathname,
   onNavigate,
+  idPrefix,
 }: {
   pathname: string;
   onNavigate?: () => void;
+  /** Unique per rendered copy (desktop rail / phone drawer) for aria ids. */
+  idPrefix: string;
 }) {
   const { profile, logout, activeBranchId } = useAuth();
   const { t } = useLocale();
@@ -322,68 +389,75 @@ function SidebarBody({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="admin-side-brand shrink-0 px-0.5 pb-4">
-        <div className="flex items-center gap-3">
+      <div className="admin-side-brand">
+        <span className="admin-side-badge">
           <BrandLogo size="sm" />
-          <div className="min-w-0">
-            <p className="admin-side-eyebrow truncate text-[10px] font-bold uppercase tracking-[0.16em]">
-              Bravo Bites
-            </p>
-            <h1 className="truncate text-base font-bold leading-tight">
-              {profile?.role === "owner" ? t("admin") : t("counter")}
-            </h1>
-            {profile?.role !== "owner" && branchName ? (
-              <p className="admin-side-muted truncate text-xs">{branchName}</p>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto pe-0.5">
-        <NavLinks pathname={pathname} onNavigate={onNavigate} />
-      </div>
-
-      <div className="admin-side-foot mt-3 shrink-0 space-y-2.5 border-t pt-3">
-        <div className="admin-user-strip px-1">
-          <p className="admin-side-eyebrow text-[10px] font-bold uppercase tracking-[0.16em]">
-            {role}
+        </span>
+        <div className="min-w-0">
+          <p className="admin-side-wordmark" id={`${idPrefix}-side-wordmark`}>
+            Brovo Bites
           </p>
-          <p className="mt-1 truncate text-[15px] font-semibold capitalize leading-tight">
-            {displayName || "—"}
-          </p>
-          {email ? (
-            <p
-              className="admin-side-muted mt-0.5 truncate text-[12px] leading-snug"
-              dir="ltr"
-              title={email}
-            >
-              {email}
+          <h1 className="admin-side-role" id={`${idPrefix}-side-role`}>
+            {profile?.role === "owner" ? t("admin") : t("counter")}
+          </h1>
+          {profile?.role !== "owner" && branchName ? (
+            <p className="admin-side-branch">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <span className="truncate">{branchName}</span>
             </p>
           ) : null}
         </div>
+      </div>
 
-        <LanguageToggle className="w-full" menuPlacement="up" />
-        <button
-          className="admin-logout-btn inline-flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition"
-          type="button"
-          onClick={() => void tryLogout()}
-        >
-          <svg
-            className="size-4 shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
+      <OpenPosLink onNavigate={onNavigate} />
+
+      <div className="admin-side-scroll">
+        <NavLinks pathname={pathname} onNavigate={onNavigate} idPrefix={idPrefix} />
+      </div>
+
+      <div className="admin-side-foot">
+        <div className="admin-user-card">
+          <span className="admin-user-avatar" aria-hidden>
+            {initials(displayName || role)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="admin-user-role">{role}</p>
+            <p className="admin-user-name">{displayName || "—"}</p>
+            {email ? (
+              <p className="admin-user-email" dir="ltr" title={email}>
+                {email}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="admin-side-actions">
+          <LanguageToggle className="w-full" menuPlacement="up" />
+          <button
+            className="admin-logout-btn"
+            type="button"
+            onClick={() => void tryLogout()}
           >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          <span className="min-w-0 flex-1 text-start">{t("logout")}</span>
-        </button>
+            <svg
+              className="size-4 shrink-0 rtl:-scale-x-100"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>{t("logout")}</span>
+          </button>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -425,6 +499,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { profile, activeBranchId } = useAuth();
   const [open, setOpen] = useState(false);
   const [mobileBranchName, setMobileBranchName] = useState<string | null>(null);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setOpen(false);
@@ -446,66 +523,128 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       if (e.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
+    // The drawer is phone/tablet only: close it if the window grows to the desktop rail,
+    // so the (inert) page behind it never stays locked.
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const onDesktop = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    onDesktop();
+    desktop.addEventListener("change", onDesktop);
     document.body.style.overflow = "hidden";
+    // Start keyboard / screen-reader users inside the drawer.
+    closeBtnRef.current?.focus();
+    const menuBtn = menuBtnRef.current;
     return () => {
       window.removeEventListener("keydown", onKey);
+      desktop.removeEventListener("change", onDesktop);
       document.body.style.overflow = "";
+      // Back to the hamburger, unless something else already took focus.
+      const active = document.activeElement;
+      if (menuBtn?.isConnected && (!active || active === document.body)) {
+        menuBtn.focus({ preventScroll: true });
+      }
     };
   }, [open]);
 
+  /** Keep Tab inside the drawer (or inside a dialog opened from it, e.g. "Log out?"). */
+  function trapDrawerTab(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "Tab") return;
+    const root = drawerRef.current;
+    if (!root) return;
+    const scope = root.querySelector<HTMLElement>('[role="alertdialog"], [role="dialog"]') ?? root;
+    const items = Array.from(
+      scope.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => el.getClientRects().length > 0 && !el.classList.contains("admin-drawer-backdrop"));
+    if (items.length === 0) return;
+    const first = items[0]!;
+    const last = items[items.length - 1]!;
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || !scope.contains(active))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && (active === last || !scope.contains(active))) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  const fullBleed = pathname === "/admin/menu" || pathname === "/admin/view-menu";
+
   return (
-    <div className="app-shell-bg flex h-dvh overflow-hidden">
+    <div className="admin-shell app-shell-bg flex h-dvh overflow-hidden">
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>
-      <aside className="admin-sidebar hidden h-dvh w-[16.5rem] shrink-0 flex-col p-3.5 md:flex">
-        <SidebarBody pathname={pathname} />
+      <aside className="admin-sidebar admin-rail hidden h-dvh shrink-0 flex-col md:flex">
+        <SidebarBody pathname={pathname} idPrefix="rail" />
       </aside>
 
       {open ? (
-        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+        <div
+          ref={drawerRef}
+          className="admin-drawer fixed inset-0 z-50 md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="drawer-side-wordmark drawer-side-role"
+          onKeyDown={trapDrawerTab}
+        >
           <button
             type="button"
-            className="absolute inset-0 bg-black/50"
+            className="admin-drawer-backdrop absolute inset-0"
             aria-label={t("close")}
+            tabIndex={-1}
             onClick={() => setOpen(false)}
           />
-          <aside className="admin-sidebar absolute inset-y-0 start-0 flex h-dvh w-[min(18.5rem,88vw)] flex-col overflow-hidden p-3.5 pt-[max(1rem,env(safe-area-inset-top,0px))] pb-[max(1rem,env(safe-area-inset-bottom,0px))] shadow-2xl">
+          <aside className="admin-sidebar admin-drawer-panel absolute inset-y-0 start-0 flex h-dvh flex-col overflow-hidden">
             <div className="mb-1 flex shrink-0 justify-end">
               <button
+                ref={closeBtnRef}
                 type="button"
-                className="admin-side-close rounded-lg px-2.5 py-1.5 text-sm font-semibold"
+                className="admin-side-close"
                 onClick={() => setOpen(false)}
               >
-                {t("close")}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+                <span>{t("close")}</span>
               </button>
             </div>
             <div className="min-h-0 flex-1">
-              <SidebarBody pathname={pathname} onNavigate={() => setOpen(false)} />
+              <SidebarBody
+                pathname={pathname}
+                idPrefix="drawer"
+                onNavigate={() => setOpen(false)}
+              />
             </div>
           </aside>
         </div>
       ) : null}
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center gap-2.5 border-b border-[var(--border)] bg-white px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:gap-3 sm:px-4 md:hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col" inert={open}>
+        <header className="admin-topbar shrink-0 md:hidden">
           <button
+            ref={menuBtnRef}
             type="button"
-            className="inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-white text-[var(--ink)]"
+            className="admin-topbar-menu"
             aria-label={t("openNav")}
+            aria-expanded={open}
             onClick={() => setOpen(true)}
           >
             <span className="flex w-5 flex-col gap-1" aria-hidden>
               <span className="h-0.5 w-full rounded bg-current" />
-              <span className="h-0.5 w-full rounded bg-current" />
+              <span className="h-0.5 w-3/4 rounded bg-current" />
               <span className="h-0.5 w-full rounded bg-current" />
             </span>
           </button>
-          <div className="admin-mobile-brand min-w-0 flex-1 py-0.5">
-            <p className="truncate text-sm font-bold leading-snug text-[var(--ink)]">
-              Bravo Bites
-            </p>
-            <p className="admin-mobile-role text-xs text-[var(--muted)]">
+          <span className="admin-side-badge admin-topbar-badge">
+            <BrandLogo size="sm" />
+          </span>
+          <div className="admin-mobile-brand min-w-0 flex-1">
+            <p className="admin-topbar-wordmark">Brovo Bites</p>
+            <p className="admin-mobile-role truncate">
               {profile?.role === "owner" ? t("admin") : t("counter")}
               {profile?.role !== "owner" && mobileBranchName
                 ? ` · ${mobileBranchName}`
@@ -513,14 +652,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <LanguageToggle />
-          <BrandLogo size="sm" />
         </header>
 
         <main
           className={
-            pathname === "/admin/menu" || pathname === "/admin/view-menu"
-              ? "flex min-h-0 flex-1 flex-col overflow-hidden"
-              : "min-h-0 flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:p-6 md:p-8"
+            fullBleed
+              ? "admin-main flex min-h-0 flex-1 flex-col overflow-hidden"
+              : "admin-main min-h-0 flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:p-6 lg:p-8"
           }
         >
           {children}

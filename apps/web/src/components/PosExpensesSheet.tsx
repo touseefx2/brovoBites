@@ -235,14 +235,14 @@ export function PosExpensesSheet({
         aria-label={t("close")}
         onClick={onClose}
       />
-      <div className="relative z-10 flex max-h-[min(94dvh,50rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-[#faf7f2] shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:rounded-3xl">
+      <div className="relative z-10 flex max-h-[min(94dvh,50rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-[#fff4e8] shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:rounded-3xl">
         {/* Header — title + today's total (always visible) */}
         <div className="modal-dark-head is-flush flex shrink-0 items-start justify-between gap-3 px-5 pb-4 pt-5">
           <div className="min-w-0">
             <h2 id="pos-expenses-title" className="modal-dark-gold text-[11px] font-bold uppercase tracking-[0.18em]">
               {t("expenses")}
             </h2>
-            <p className="mt-2 text-[1.9rem] font-extrabold leading-none tabular-nums text-[#f5efe6]" dir="ltr">
+            <p className="pos-kpi mt-2 text-[2.125rem] leading-none text-[var(--bb-cream-100)]" dir="ltr">
               {formatPkr(todayTotal)}
             </p>
             <p className="modal-dark-muted mt-2 text-xs font-medium">
@@ -272,11 +272,11 @@ export function PosExpensesSheet({
               void handleAdd();
             }}
           >
-            <div className="flex min-h-9 flex-wrap items-center justify-between gap-2 border-t border-[rgba(228,193,90,0.14)] pt-4">
-              <p className="text-sm font-bold text-[#f5efe6]">{t("expenseNewEntry")}</p>
+            <div className="flex min-h-9 flex-wrap items-center justify-between gap-2 border-t border-[rgba(240,176,40,0.14)] pt-4">
+              <p className="text-sm font-bold text-[#fff4e8]">{t("expenseNewEntry")}</p>
               <div className="flex items-center gap-2">
                 <input
-                  className="modal-dark-input h-9 rounded-lg px-2.5 text-sm tabular-nums outline-none transition [color-scheme:dark]"
+                  className="modal-dark-input h-9 rounded-lg px-2.5 text-sm tabular-nums outline-none transition [color-scheme:dark] pointer-coarse:h-11 pointer-coarse:text-base"
                   type="date"
                   dir="ltr"
                   aria-label={t("expenseDate")}
@@ -308,7 +308,7 @@ export function PosExpensesSheet({
                     Rs
                   </span>
                   <input
-                    className="modal-dark-input h-12 w-full rounded-xl pe-3 ps-11 text-lg font-bold tabular-nums outline-none transition [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="modal-dark-input h-12 w-full rounded-xl pl-11 pr-3 text-lg font-bold tabular-nums outline-none transition [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     type="number"
                     inputMode="decimal"
                     min="1"
@@ -353,17 +353,17 @@ export function PosExpensesSheet({
           </form>
 
           {/* List — light sheet tucked over the dark zone */}
-          <div className="relative -mt-5 rounded-t-3xl bg-[#faf7f2] px-4 pb-5 pt-5 sm:px-5 dark:shadow-[0_-1px_0_rgba(228,193,90,0.22)]">
+          <div className="relative -mt-5 rounded-t-3xl bg-[#fff4e8] px-4 pb-5 pt-5 sm:px-5 dark:shadow-[0_-1px_0_rgba(240,176,40,0.22)]">
             {/* Day filter — today by default; yesterday / any past day on demand. */}
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="inline-flex shrink-0 rounded-xl bg-stone-100 p-1 text-xs font-semibold">
+              <div className="inline-flex shrink-0 rounded-xl bg-stone-100 p-0.5 text-xs font-semibold">
                 {(["today", "yesterday"] as const).map((m) => (
                   <button
                     key={m}
                     type="button"
                     aria-pressed={listMode === m}
                     onClick={() => setListPicked(m === "today" ? null : yesterdayKey)}
-                    className={`rounded-lg px-3.5 py-1.5 transition ${
+                    className={`inline-flex min-h-9 min-w-11 items-center justify-center rounded-lg px-3.5 transition pointer-coarse:min-h-11 ${
                       listMode === m ? "bg-white text-[var(--ink)] shadow-sm" : "text-stone-600 hover:text-stone-800"
                     }`}
                   >
@@ -380,7 +380,7 @@ export function PosExpensesSheet({
                   if (/^\d{4}-\d{2}-\d{2}$/.test(v) && v <= todayKey) setListPicked(v === todayKey ? null : v);
                 }}
                 onClick={(e) => openDatePicker(e.currentTarget)}
-                className={`h-9 rounded-xl border bg-white px-3 text-xs font-semibold tabular-nums outline-none transition focus:border-[var(--gold)] ${
+                className={`h-9 rounded-xl border bg-white px-3 text-xs font-semibold tabular-nums outline-none transition focus:border-[var(--gold)] pointer-coarse:h-11 pointer-coarse:text-base ${
                   listMode === "custom" ? "border-[var(--ink)] text-[var(--ink)]" : "border-[var(--border)] text-stone-600"
                 }`}
                 dir="ltr"
@@ -402,7 +402,7 @@ export function PosExpensesSheet({
                     {formatPkr(dayTotal)}
                   </span>
                 </div>
-                <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(28,25,23,0.04)]">
+                <ul className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(42,20,14,0.04)]">
                   {dayItems.map((e) => {
                     const pending = localIds.has(e.id);
                     const isEditing = editing?.id === e.id;
@@ -449,7 +449,7 @@ export function PosExpensesSheet({
                             {mayEdit ? (
                               <button
                                 type="button"
-                                className={`flex h-10 w-10 items-center justify-center rounded-lg transition hover:bg-stone-100 hover:text-[var(--ink)] ${
+                                className={`flex size-10 items-center justify-center rounded-lg transition hover:bg-stone-100 hover:text-[var(--ink)] pointer-coarse:size-11 ${
                                   isEditing ? "text-[var(--gold-deep)]" : "text-stone-400"
                                 }`}
                                 onClick={() => startEdit(e)}
@@ -462,7 +462,7 @@ export function PosExpensesSheet({
                             {mayDelete ? (
                               <button
                                 type="button"
-                                className="flex h-10 w-10 items-center justify-center rounded-lg text-stone-400 transition hover:bg-red-50 hover:text-red-600"
+                                className="flex size-10 items-center justify-center rounded-lg text-stone-400 transition hover:bg-red-50 hover:text-red-600 pointer-coarse:size-11"
                                 onClick={() => setConfirmDelete(e)}
                                 aria-label={t("delete")}
                                 title={t("delete")}
@@ -795,7 +795,7 @@ export function EditExpenseDialog({
         onClick={() => !busy && onClose()}
       />
       <form
-        className="relative z-10 w-full max-w-md rounded-t-3xl bg-[#faf7f2] p-5 shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:rounded-3xl"
+        className="relative z-10 w-full max-w-md rounded-t-3xl bg-[#fff4e8] p-5 shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:rounded-3xl"
         onSubmit={(e) => {
           e.preventDefault();
           void save();
@@ -810,7 +810,7 @@ export function EditExpenseDialog({
           </div>
           <button
             type="button"
-            className="-me-1.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-stone-500 transition hover:bg-stone-200/60 hover:text-[var(--ink)]"
+            className="-me-1.5 flex size-10 shrink-0 items-center justify-center rounded-full pointer-coarse:size-11 text-stone-500 transition hover:bg-stone-200/60 hover:text-[var(--ink)]"
             onClick={() => !busy && onClose()}
             aria-label={t("close")}
             title={t("close")}

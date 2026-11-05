@@ -375,8 +375,8 @@ function ActivityPageInner() {
       ) : null}
 
       {!loading && !loadError ? (
-        <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(28,25,23,0.04)]">
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[#faf8f5] px-3.5 py-3 sm:px-4">
+        <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(42,20,14,0.04)]">
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[#fff7ee] px-3.5 py-3 sm:px-4">
             <div>
               <h2 className="text-sm font-bold text-[var(--ink)]">{t("activityLog")}</h2>
               <p className="text-[11px] text-[var(--muted)]">
