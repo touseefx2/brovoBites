@@ -264,6 +264,18 @@ const HERO_INTRO_FADE_MS = 1000;
 
 type HeroPhase = "intro" | "fade" | "photos";
 
+/**
+ * Data Saver on, or a 2G-class connection (Chromium's Network Information API; other
+ * browsers → false): the hero downloads one photo ahead instead of the whole set, and the
+ * intro waits for the first photo only.
+ */
+function prefersLightHero(): boolean {
+  const conn = (
+    navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }
+  ).connection;
+  return Boolean(conn?.saveData) || /(^|-)2g$/.test(conn?.effectiveType ?? "");
+}
+
 /** Teardrop (12 × 17): pointed top, round bottom — same shape as the LogoLoader drips. */
 const HERO_DROP_PATH = "M6 0C6 0 0 7.2 0 11a6 6 0 0 0 12 0C12 7.2 6 0 6 0Z";
 /** a + b: the logo's long drip (big drop + small trailing drop), c: the right-hand drip. */
@@ -292,7 +304,8 @@ type LandingHeroProps = {
  * (preloaded, fetchpriority=high) and mustard drips falling from its cheese drip, copy
  * anchored bottom-start. Every hero photo starts downloading from ~1.2s (behind the boot
  * loader); the intro stays until the whole set is ready AND it has been on screen ≥2s,
- * then crossfades into the slideshow. Once per page load.
+ * then crossfades into the slideshow (Data Saver / 2G: first photo only, one ahead).
+ * Once per page load.
  * Memoised: scroll-spy / search renders of the page don't touch it.
  */
 const LandingHero = memo(function LandingHero({
@@ -316,9 +329,12 @@ const LandingHero = memo(function LandingHero({
   const [firstReady, setFirstReady] = useState(false);
   const [allReady, setAllReady] = useState(false);
   const [gaveUp, setGaveUp] = useState(false);
+  /** Data Saver / 2G — set after hydration (the server can't know), long before the photos arm. */
+  const [lightHero, setLightHero] = useState(false);
   const timersRef = useRef<number[]>([]);
 
   useEffect(() => {
+    setLightHero(prefersLightHero());
     const timers = timersRef.current;
     const now = performance.now();
     timers.push(
@@ -355,7 +371,7 @@ const LandingHero = memo(function LandingHero({
 
   // Crossfade once the photos are in (none at all → the intro simply stays) and the intro
   // has had its 2s on screen.
-  const photosReady = firstReady && (allReady || gaveUp);
+  const photosReady = firstReady && (allReady || gaveUp || lightHero);
   const started = phase !== "intro";
   useEffect(() => {
     if (started || introStartAt == null || !photosReady) return;
@@ -383,7 +399,7 @@ const LandingHero = memo(function LandingHero({
           defaultSlides={LANDING_HERO_SLIDES}
           priority={false}
           load={loadPhotos}
-          preloadAll
+          preloadAll={!lightHero}
           onReady={onPhotoReady}
           onAllReady={onAllPhotosReady}
           play={phase !== "intro"}

@@ -111,6 +111,22 @@ const nextConfig: NextConfig = {
   // Server-only: the daily owner-report email (Chromium prints its PDF).
   serverExternalPackages: ["firebase-admin", "puppeteer-core", "@sparticuz/chromium-min", "nodemailer"],
   transpilePackages: ["@bravobites/domain"],
+  // Bundled photos / logo / icons are served with `max-age=0` by default, so
+  // every revisit re-asks for each one, and /_next/image copies of them only
+  // live 60s. A week in the browser (a changed file still shows up: after a
+  // week, or in the background through stale-while-revalidate); the
+  // optimised /_next/image copies inherit the same max-age.
+  async headers() {
+    const longCache = [
+      { key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=2592000" },
+    ];
+    return [
+      { source: "/menu/:path*", headers: longCache },
+      { source: "/logo.png", headers: longCache },
+      { source: "/logo-full.png", headers: longCache },
+      { source: "/icon-:size.png", headers: longCache },
+    ];
+  },
   webpack(config) {
     // The domain package is plain functions and constants, but its barrel
     // (src/index.ts) has no "sideEffects" flag, so every page bundled all of
