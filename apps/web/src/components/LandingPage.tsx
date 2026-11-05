@@ -1128,6 +1128,7 @@ export function LandingPage() {
                           ikWidth={480}
                           quality={80}
                           deferOffscreen
+                          shimmer
                         />
                       </span>
                       <span className="landing-tile-name">{category.name}</span>
@@ -1175,6 +1176,7 @@ export function LandingPage() {
                           ikWidth={160}
                           quality={80}
                           deferOffscreen
+                          shimmer
                         />
                       </div>
                       <div className="landing-cat-header-text">
@@ -1211,6 +1213,7 @@ export function LandingPage() {
                                 ikWidth={640}
                                 quality={80}
                                 deferOffscreen
+                                shimmer
                               />
                             </div>
                             <div className="landing-item-body">

@@ -1315,9 +1315,9 @@ html[dir="rtl"] .landing .landing-cat-header.landing-reveal {
   position: relative;
   border-radius: 16px;
   overflow: hidden;
+  /* Static placeholder: an animated background-position repaints every frame, and on
+     lazy photos that never load it never stops. The photo fades in over it. */
   background: linear-gradient(120deg, var(--bb-cream-200) 0%, var(--bb-cream-100) 45%, var(--bb-cream-200) 100%);
-  background-size: 200% 100%;
-  animation: menu-media-shimmer 1.4s ease-in-out infinite;
   box-shadow: 0 4px 16px rgba(42, 20, 14, 0.08);
 }
 
@@ -1339,7 +1339,6 @@ html[dir="rtl"] .landing .landing-cat-header.landing-reveal {
 }
 
 .landing-cat-header-thumb:has(.menu-media-img.is-loaded) {
-  animation: none;
   background: var(--bb-cream-200);
 }
 
@@ -1483,9 +1482,9 @@ html[dir="rtl"] .landing .landing-cat-header-line {
   aspect-ratio: 5 / 4;
   overflow: hidden;
   border-radius: 0.85rem;
+  /* Static placeholder: an animated background-position repaints every frame, and on
+     lazy photos that never load it never stops. The photo fades in over it. */
   background: linear-gradient(120deg, var(--bb-cream-200) 0%, var(--bb-cream-100) 45%, var(--bb-cream-200) 100%);
-  background-size: 200% 100%;
-  animation: menu-media-shimmer 1.4s ease-in-out infinite;
   box-shadow: 0 6px 18px rgba(42, 20, 14, 0.08);
   transition:
     transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
@@ -1529,7 +1528,6 @@ html[dir="rtl"] .landing .landing-cat-header-line {
 }
 
 .landing-item-media:has(.menu-media-img.is-loaded) {
-  animation: none;
   background: var(--bb-cream-200);
 }
 
@@ -1537,11 +1535,6 @@ html[dir="rtl"] .landing .landing-cat-header-line {
 .menu-media-img.is-fallback {
   object-fit: contain !important;
   padding: 18%;
-}
-
-@keyframes menu-media-shimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
 }
 
 @media (hover: hover) {
@@ -1713,16 +1706,16 @@ html[dir="rtl"] .landing .landing-cat-header-line {
 }
 
 /* Loading shimmer on the photo slots (item cards, category tiles, section thumbs): a soft
-   warm band sweeping across until the photo has loaded. It moves with `transform` only —
+   warm band sweeping across while the photo downloads. It moves with `transform` only —
    composited on the GPU, no repaint per frame (unlike the old background-position
-   shimmer above) — and is removed the moment the photo is in. */
+   shimmer above). The sweep is MenuMediaImage's own .menu-media-shimmer (`shimmer` prop):
+   rendered only from the moment the photo mounts near the viewport until it has loaded,
+   so far-off cards and loaded photos run nothing — in every browser. */
 .landing-tile-media {
   overflow: hidden;
 }
 
-.landing .landing-item-media::before,
-.landing .landing-tile-media::before,
-.landing .landing-cat-header-thumb::before,
+.landing .menu-media-shimmer,
 .landing .landing-skeleton-tile::before,
 .landing .landing-skeleton-media::before,
 .landing .landing-skeleton-thumb::before {
@@ -1745,23 +1738,14 @@ html[dir="rtl"] .landing .landing-cat-header-line {
 }
 
 /* Stagger the cards a little so the grid doesn't flash in lockstep. */
-.landing .landing-item:nth-child(3n + 2) .landing-item-media::before,
-.landing .landing-tile-cell:nth-child(3n + 2) .landing-tile-media::before {
+.landing .landing-item:nth-child(3n + 2) .menu-media-shimmer,
+.landing .landing-tile-cell:nth-child(3n + 2) .menu-media-shimmer {
   animation-delay: 0.15s;
 }
 
-.landing .landing-item:nth-child(3n + 3) .landing-item-media::before,
-.landing .landing-tile-cell:nth-child(3n + 3) .landing-tile-media::before {
+.landing .landing-item:nth-child(3n + 3) .menu-media-shimmer,
+.landing .landing-tile-cell:nth-child(3n + 3) .menu-media-shimmer {
   animation-delay: 0.3s;
-}
-
-/* No sweep once the photo is in, nor while it is still a deferred .menu-media-slot (far
-   below the fold, no <img> yet — MenuMediaImage deferOffscreen): the shimmer only runs
-   on the few photos actually downloading near the viewport. */
-.landing .landing-item-media:has(.menu-media-img.is-loaded, .menu-media-slot)::before,
-.landing .landing-tile-media:has(.menu-media-img.is-loaded, .menu-media-slot)::before,
-.landing .landing-cat-header-thumb:has(.menu-media-img.is-loaded, .menu-media-slot)::before {
-  content: none;
 }
 
 @keyframes landing-photo-shimmer {
@@ -1788,9 +1772,9 @@ html[dir="rtl"] .landing .landing-cat-header-line {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing .landing-item-media::before,
-  .landing .landing-tile-media::before,
-  .landing .landing-cat-header-thumb::before,
+  .landing .menu-media-shimmer {
+    display: none;
+  }
   .landing .landing-skeleton-tile::before,
   .landing .landing-skeleton-media::before,
   .landing .landing-skeleton-thumb::before {

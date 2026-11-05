@@ -30,6 +30,11 @@ type MenuMediaImageProps = {
    * inside Chrome's 1250–2500px lazy distance during page load, competing with the hero.
    */
   deferOffscreen?: boolean;
+  /**
+   * Loading sweep over the slot (website), only while this photo is downloading: none
+   * while deferred, gone the moment it loads (or ends on the brand badge).
+   */
+  shimmer?: boolean;
 };
 
 /* One shared IntersectionObserver for every deferred slot on the page. */
@@ -79,6 +84,7 @@ export function MenuMediaImage({
   className = "",
   fallbackSrc,
   deferOffscreen = false,
+  shimmer = false,
 }: MenuMediaImageProps) {
   const [state, setState] = useState({ for: src, stage: 0, loaded: false });
   const [near, setNear] = useState(!deferOffscreen);
@@ -114,31 +120,35 @@ export function MenuMediaImage({
   const current = candidates[stage] ?? BRAND_FALLBACK;
   const optimized = optimizeMenuImageUrl(current, { width: ikWidth, quality });
 
+  // Always a fragment, so the <Image> keeps its place (no remount) when the sweep goes.
   return (
-    <Image
-      key={current}
-      src={optimized}
-      alt={alt}
-      fill
-      sizes={sizes}
-      quality={quality}
-      priority={priority}
-      className={[
-        "menu-media-img",
-        state.loaded ? "is-loaded" : "",
-        current === BRAND_FALLBACK ? "is-fallback" : "",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      onLoad={() => setState((s) => (s.loaded ? s : { ...s, loaded: true }))}
-      onError={() =>
-        setState((s) =>
-          s.stage + 1 < candidates.length
-            ? { ...s, stage: s.stage + 1, loaded: false }
-            : { ...s, loaded: true },
-        )
-      }
-    />
+    <>
+      {shimmer && !state.loaded ? <span className="menu-media-shimmer" aria-hidden /> : null}
+      <Image
+        key={current}
+        src={optimized}
+        alt={alt}
+        fill
+        sizes={sizes}
+        quality={quality}
+        priority={priority}
+        className={[
+          "menu-media-img",
+          state.loaded ? "is-loaded" : "",
+          current === BRAND_FALLBACK ? "is-fallback" : "",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        onLoad={() => setState((s) => (s.loaded ? s : { ...s, loaded: true }))}
+        onError={() =>
+          setState((s) =>
+            s.stage + 1 < candidates.length
+              ? { ...s, stage: s.stage + 1, loaded: false }
+              : { ...s, loaded: true },
+          )
+        }
+      />
+    </>
   );
 }
