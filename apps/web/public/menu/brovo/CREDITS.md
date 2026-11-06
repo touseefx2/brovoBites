@@ -56,3 +56,39 @@ None come from the previous shop's codebase and none are AI-generated. Owner upl
 | `items/russian-salad.jpg` | Zayed Ahmed Zadu | Unsplash License | https://unsplash.com/photos/creamy-potato-salad-with-herbs-and-spices-y_jQbVClNPE |
 | `items/wings.jpg` | Gennady Zakharin (@gennady107) | Unsplash License | https://unsplash.com/photos/delicious-golden-fried-chicken-is-piled-on-a-plate-xdcr4Z-KTcU |
 | `items/zinger-burger.jpg` | David Foodphototasty (@phototastyfood) | Unsplash License | https://unsplash.com/photos/a-chicken-sandwich-with-lettuce-and-mayonnaise-on-a-black-background-VFVnZfogE7s |
+
+## Menu item photos on ImageKit (November 2026)
+
+These are the images the menu shows now (each product's `imageUrl` in Firestore points at ImageKit,
+folder `brovobites/menu/products/shared`, files `bb-v3-*`). They replace the bundled `items/` photos above
+for every item. All are edited: background removed, colour graded, placed on the brand backdrop.
+The CC BY image (Extra Cheese) also carries its credit printed in the corner of the image.
+The Cola Next and Fizup Next names, logos and pack shots belong to Mezan Beverages.
+
+| Item | Photographer | Licence | Source | Edits beyond the standard ones |
+|---|---|---|---|---|
+| Zinger Burger | chicken mackay | Pexels License | https://www.pexels.com/photo/close-up-shot-of-a-mouth-watering-chicken-burger-5474640/ | |
+| Patty Burger | chicken mackay | Pexels License | https://www.pexels.com/photo/5474691/ | |
+| Beef Burger | Jonathan Borba | Pexels License | https://www.pexels.com/photo/cheeseburger-with-red-onion-tomato-and-lettuce-19247575/ | |
+| Beef Double Patty | Gonzalo Acuña | Pexels License | https://www.pexels.com/photo/close-up-shot-of-a-mouthwatering-burger-10922931/ | |
+| Grilled Wrap | Shameel mukkath | Pexels License | https://www.pexels.com/photo/a-plate-with-a-wrap-and-salad-on-it-14775667/ | |
+| Wings (6 pcs) | Miro Vrlik | Pexels License | https://www.pexels.com/photo/delicious-crispy-fried-chicken-wings-on-plate-32067295/ | Plate removed |
+| BBQ Wings (6 pcs) | Dextar Studio | Pexels License | https://www.pexels.com/photo/meal-on-plate-16444394/ | Plate and two wings removed |
+| Buffalo Wings (6 pcs) | Snappr | Pexels License | https://www.pexels.com/photo/savory-glazed-chicken-wings-platter-29908653/ | Plate removed |
+| Nuggets (6 pcs) | Vilnis Husko | Pexels License | https://www.pexels.com/photo/fried-chicken-nuggets-18188572/ | Three pieces removed |
+| Injected Nuggets (6 pcs) | Valeria Boltneva | Pexels License | https://www.pexels.com/photo/fried-mozzarella-pieces-served-on-paper-18330019/ | Three pieces repeated to make six |
+| Large Fries | Matthew Henry (Burst) | Burst Some Rights Reserved | https://www.shopify.com/stock-photos/photos/classic-french-fries-fast-food | Box extended and recoloured, BB logo added |
+| Loaded Fries (Large) | Alejandro Aznar (plate, fries, cheese); Val Vesa (chicken) | Pexels License; Unsplash License | https://www.pexels.com/photo/loaded-fries-with-cheese-and-jalapenos-on-wooden-table-28525214/ and https://unsplash.com/photos/loaded-fries-with-chicken-coleslaw-and-sauce-_qgMA9qL150 | Beef and chillies replaced with chicken |
+| Fries Bucket | Noman_designer (Pixabay); fries by Matthew Henry (Burst) | Pixabay Content License; Burst Some Rights Reserved | https://pixabay.com/photos/fast-food-chicken-fried-bucket-8922536/ | Chicken replaced with fries, BB logo added |
+| Russian Salad | Karyna Panchenko | Pexels License | https://www.pexels.com/photo/a-delicious-salad-in-a-bowl-10781833/ | |
+| Apple Cabbage Salad | Some Tale | Unsplash License | https://unsplash.com/photos/a-white-bowl-filled-with-coleslaw-on-top-of-a-table-2c-7wjgc4fg | |
+| Macaroni Salad | Alabama Extension; bowl by Some Tale | CC0 1.0; Unsplash License | https://commons.wikimedia.org/w/index.php?curid=102658128 | Salad moved into the coleslaw bowl |
+| Smoky BBQ Dip, Creamy Garlic Dip | cottonbro studio | Pexels License | https://www.pexels.com/photo/bowls-with-different-sauces-5899677/ | Sauce surface only, placed in a drawn tub with a BB label |
+| Creamy Ranch Dip | cottonbro studio | Pexels License | https://www.pexels.com/photo/person-touching-a-bowl-with-sauce-standing-among-other-bowls-5899672/ | Sauce surface only, placed in a drawn tub with a BB label |
+| Spicy Mayo Dip | Valeria Boltneva | Pexels License | https://www.pexels.com/photo/37924779/ | Sauce surface only, placed in a drawn tub with a BB label |
+| Chilli Garlic Dip | cottonbro studio | Pexels License | https://www.pexels.com/photo/a-chili-dip-in-a-mini-bowl-5899674/ | Sauce surface only, placed in a drawn tub with a BB label |
+| Spicy Buffalo Dip | cottonbro studio | Pexels License | https://www.pexels.com/photo/gray-ceramic-bowls-with-different-kinds-of-dips-5899673/ | Sauce surface only, placed in a drawn tub with a BB label |
+| Extra Cheese | Hyeon-Jeong Suk | CC BY 2.0 (https://creativecommons.org/licenses/by/2.0/) | https://commons.wikimedia.org/wiki/File:Processed_cheese_1.jpg | Colour changed |
+| Masala Sprinkle | Bonaventure Fernandez | Pexels License | https://www.pexels.com/photo/vibrant-red-chili-powder-with-whole-chilies-33440714/ | |
+| Cola Next 350ml | Cola Next (Mezan Beverages) official pack shot, 500ml | Not a free licence: colanext.com terms require written consent. Used on the owner's decision; consent still to be obtained | https://colanext.com/ | |
+| Fizzup 350ml | Cola Next (Mezan Beverages) official pack shot, Fizup Next 500ml | Not a free licence: colanext.com terms require written consent. Used on the owner's decision; consent still to be obtained | https://colanext.com/ | |
