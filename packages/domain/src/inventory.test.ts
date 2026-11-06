@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
 import type { InventoryItem, StockMovement } from "./types";
-import { inventoryDocId, movementDelta, stockKey, suggestedStockUnits, summarizeStockDay } from "./inventory";
+import { labelNamesSize, inventoryDocId, movementDelta, stockKey, suggestedStockUnits, summarizeStockDay } from "./inventory";
+
+describe("labelNamesSize", () => {
+  it("finds a size named in deal text", () => {
+    expect(labelNamesSize("Half Litre Bottle", "Half Litre")).toBe(true);
+    expect(labelNamesSize("1.5 Litre Bottle", "1.5 Litre")).toBe(true);
+    expect(labelNamesSize("Pizza L", "L")).toBe(true);
+  });
+
+  it("does not match letters inside other words", () => {
+    expect(labelNamesSize("Chilled Drink", "L")).toBe(false);
+    expect(labelNamesSize("Nuggets", "S")).toBe(false);
+    expect(labelNamesSize("Chicky Fries", "M")).toBe(false);
+  });
+
+  it("treats regex characters in a size as plain text", () => {
+    expect(labelNamesSize("Bottle (1L)", "(1L)")).toBe(true);
+    expect(labelNamesSize("Bottle 1xL", "1.L")).toBe(false);
+  });
+});
 
 const item: InventoryItem = {
   id: "inv1",

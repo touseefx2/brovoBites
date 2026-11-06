@@ -2940,3 +2940,127 @@ html[lang="ur"] .landing-section-copy {
     transform: none !important;
   }
 }
+
+/* ───────────────────────── Deal cards (a category holding only bundles) ─────────────────────────
+   Swipe row on touch phones with the next card peeking; a 2 / 3-column grid everywhere a
+   mouse can't swipe or there is room. The gap equals the gutter so the previous card
+   ends exactly at the screen edge after a snap. */
+.landing-deals {
+  display: flex;
+  gap: var(--landing-pad);
+  margin-inline: calc(-1 * var(--landing-pad));
+  padding: 0.35rem var(--landing-pad) 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--landing-pad);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.landing-deals::-webkit-scrollbar {
+  display: none;
+}
+
+.landing .landing-deal {
+  flex: 0 0 min(84%, 22rem);
+  scroll-snap-align: start;
+}
+
+@media (max-width: 767px) {
+  /* The site-wide reveal rises vertically; in a sideways row that clips the card and reads as an empty slot. */
+  .landing-deals .landing-reveal {
+    transform: none;
+    transition-delay: 0ms;
+  }
+}
+
+/* Always the right corner: the photo isn't mirrored in Urdu, and it is composed to leave that corner free. */
+.landing-deal-price {
+  position: absolute;
+  z-index: 2;
+  bottom: 0.7rem;
+  right: 0.7rem;
+  transform: rotate(-2deg);
+}
+
+.landing .landing-deal-price .landing-price-badge {
+  padding: 0.42rem 0.85rem 0.45rem;
+  border-radius: 12px;
+  font-size: clamp(1.05rem, 4.4vw, 1.35rem);
+}
+
+.landing .landing-deal-body {
+  gap: 0.7rem;
+  padding: 0.95rem 1rem 1.05rem;
+}
+
+.landing .landing-deal-name {
+  font-family: var(--font-brand-stack);
+  font-size: 1.3rem;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.landing-deal-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--bb-muted-on-dark);
+}
+
+.landing-deal-lines li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.landing-deal-check {
+  flex: none;
+  margin-block-start: 0.1rem;
+  color: var(--bb-mustard-500);
+}
+
+.landing-deal-qty {
+  display: inline-block;
+  margin-inline-end: 0.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--bb-cream-100);
+}
+
+.landing .landing-deal-cta {
+  flex: none; /* the phone rule for hero buttons grows them, which would stretch this one */
+  width: 100%;
+  min-height: 46px;
+  margin-block-start: auto;
+  padding: 0 1rem;
+  font-size: 0.9375rem;
+}
+
+@media (min-width: 768px), (hover: hover) and (pointer: fine) {
+  .landing-deals {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-inline: 0;
+    padding: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  .landing .landing-deal {
+    flex: none;
+  }
+}
+
+@media (min-width: 1100px) {
+  .landing-deals {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

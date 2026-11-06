@@ -69,7 +69,7 @@ Dark brand experience (brown-900 + radial glow), professional fast-food layout:
    - **Reduced motion**: no falling drops and no Ken Burns zoom. The intro still switches to the photos with a short plain crossfade.
    - A mustard drip edge leads into the next section.
 3. **Explore the menu**: category tiles (photo, Lilita name, item count) that jump to sections.
-4. **Search** + **menu sections**: category header (round photo, Lilita title, count, drip/underline), item cards (photo 5:4, name, mustard Lilita price badge, size chips, deal lines, strike-through compare price).
+4. **Search** + **menu sections**: category header (round photo, Lilita title, count, drip/underline), item cards (photo 5:4, name, mustard Lilita price badge, size chips, deal lines, strike-through compare price). A category holding only bundles renders as **deal cards** instead: a swipe row on phones (84% wide with the next card peeking), then 2 and 3 columns; photo 5:4 with the price badge on its corner, Lilita deal name, tick list of what's inside, and an "Order this deal" WhatsApp button whose message already names the deal and price. Several deal categories share one "Deals" chip in the header, so the chip row still fits at 1280px.
 5. **Branches & team**, then **footer** (brown-950, full logo, links, copyright, software credit).
 Phone first: 2-column item grid on phones, 3 on tablets, 4 on desktop; no horizontal scroll; 44px targets; safe-area insets; RTL mirrored with logical properties.
 

@@ -124,6 +124,7 @@ export {
   stockKey,
   inventoryDocId,
   inventoryItemName,
+  labelNamesSize,
   stockLevel,
   suggestedStockUnits,
   movementDelta,

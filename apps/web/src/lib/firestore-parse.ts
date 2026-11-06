@@ -55,6 +55,7 @@ export function asDealLineItem(raw: unknown): DealLineItem | null {
     qty,
   };
   if (productId) item.productId = productId;
+  if (d.noStock === true) item.noStock = true;
   return item;
 }
 

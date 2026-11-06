@@ -116,16 +116,21 @@ function scrollLandingTargetIntoView(
 }
 
 /** wa.me link with a ready-made order message, or null when no number is set. */
-function buildWhatsAppUrl(raw: string | undefined, locale: string): string | null {
+function buildWhatsAppUrl(
+  raw: string | undefined,
+  locale: string,
+  customMessage?: string,
+): string | null {
   const phone = (raw ?? "").trim();
   if (!phone) return null;
   const cleaned = phone.replace(/[^\d]/g, "");
   if (!cleaned) return null;
   const waNum = cleaned.startsWith("0") ? "92" + cleaned.slice(1) : cleaned;
   const message =
-    locale === "ur"
+    customMessage ??
+    (locale === "ur"
       ? "السلام علیکم! میں آرڈر کرنا چاہتا/چاہتی ہوں۔"
-      : "Hi! I would like to place an order.";
+      : "Hi! I would like to place an order.");
   return `https://wa.me/${waNum}?text=${encodeURIComponent(message)}`;
 }
 
@@ -237,11 +242,110 @@ function PriceBlock({ product, fromLabel }: { product: Product; fromLabel: strin
   );
 }
 
+/** A category holding only deals gets the larger deal cards instead of the item grid. */
+function isDealCategory(items: Product[]) {
+  return items.length > 0 && items.every((p) => p.type === "bundle");
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      className="landing-deal-check"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+function DealCard({
+  product,
+  src,
+  orderHref,
+  orderLabel,
+  fromLabel,
+  revealDelayMs,
+}: {
+  product: Product;
+  src: string;
+  orderHref: string | null;
+  orderLabel: string;
+  fromLabel: string;
+  revealDelayMs: number;
+}) {
+  return (
+    <article
+      className="landing-item landing-deal landing-reveal"
+      style={{ "--reveal-delay": `${revealDelayMs}ms` } as CSSProperties}
+    >
+      <div className="landing-item-media">
+        <MenuMediaImage
+          src={src}
+          alt={product.name}
+          // Widths match the swipe row on phones and the 2 / 3-column grid above that.
+          sizes="(max-width: 767px) 84vw, (max-width: 1099px) 50vw, 400px"
+          quality={80}
+          deferOffscreen
+          shimmer
+        />
+        <div className="landing-deal-price">
+          <PriceBlock product={product} fromLabel={fromLabel} />
+        </div>
+      </div>
+      <div className="landing-item-body landing-deal-body">
+        <h4 className="landing-item-name landing-deal-name">{product.name}</h4>
+        <ul className="landing-deal-lines">
+          {product.dealItems.map((d, i) => (
+            <li key={`${d.label}-${i}`}>
+              <CheckIcon />
+              <span>
+                {d.qty > 1 ? (
+                  <span className="landing-deal-qty" dir="ltr">
+                    {d.qty}×
+                  </span>
+                ) : null}
+                <bdi>{d.label}</bdi>
+              </span>
+            </li>
+          ))}
+        </ul>
+        {orderHref ? (
+          <a
+            href={orderHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn landing-cta landing-deal-cta"
+            aria-label={`${orderLabel}: ${product.name}`}
+            // On the swipe row, a keyboard user lands on a card that may be mostly off-screen.
+            onFocus={(e) =>
+              e.currentTarget
+                .closest(".landing-deal")
+                ?.scrollIntoView({ inline: "center", block: "nearest" })
+            }
+          >
+            <WhatsAppIcon size={18} />
+            {orderLabel}
+          </a>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 function matchesMenuQuery(product: Product, q: string, categoryName = "") {
   if (!q) return true;
   if (categoryName.toLowerCase().includes(q)) return true;
   const hay = [
     product.name,
+    product.type === "bundle" ? "deal deals ڈیل ڈیلز" : "",
     ...product.variations.map((v) => v.label),
     ...product.dealItems.map((d) => d.label),
   ]
@@ -735,6 +839,21 @@ export function LandingPage() {
       .filter((g) => g.items.length > 0);
   }, [categories, products, menuQ]);
 
+  // Deal categories share one chip in the header (they don't fit otherwise).
+  const dealCatIds = useMemo(
+    () => grouped.filter((g) => isDealCategory(g.items)).map((g) => g.category.id),
+    [grouped],
+  );
+  const dealsShareChip = dealCatIds.length > 1;
+  const activeChip = dealsShareChip && dealCatIds.includes(activeCat) ? dealCatIds[0] : activeCat;
+
+  // A search can shrink a swipe row: start it from its first match, not where it was left.
+  useEffect(() => {
+    document.querySelectorAll(".landing-deals").forEach((row) => {
+      row.scrollLeft = 0;
+    });
+  }, [menuQ]);
+
   const hasAnyProducts = useMemo(
     () => products.length > 0,
     [products.length],
@@ -847,9 +966,9 @@ export function LandingPage() {
 
   // Keep the active category chip visible in the horizontal chip strip
   useEffect(() => {
-    if (!activeCat) return;
+    if (!activeChip) return;
     const link = document.querySelector<HTMLElement>(
-      `.landing-cat-link[data-cat="${CSS.escape(activeCat)}"]`,
+      `.landing-cat-link[data-cat="${CSS.escape(activeChip)}"]`,
     );
     const strip = link?.parentElement;
     if (!link || !strip || strip.scrollWidth <= strip.clientWidth) return;
@@ -859,7 +978,7 @@ export function LandingPage() {
     const delta =
       linkBox.left + linkBox.width / 2 - (stripBox.left + stripBox.width / 2);
     strip.scrollBy({ left: delta, behavior: "auto" });
-  }, [activeCat]);
+  }, [activeChip]);
 
   // Honour a deep link (/#menu-…, /#branches) once, as soon as its section exists with
   // real content (the page itself paints before the menu / branches arrive).
@@ -949,6 +1068,20 @@ export function LandingPage() {
 
   const itemCountLabel = (n: number) =>
     n === 1 ? t("landingItemCountOne") : t("landingItemCount").replace("{n}", String(n));
+  const countLabel = (items: Product[]) =>
+    isDealCategory(items)
+      ? items.length === 1
+        ? t("landingDealCountOne")
+        : t("landingDealCount").replace("{n}", String(items.length))
+      : itemCountLabel(items.length);
+  const dealOrderUrl = (product: Product) =>
+    buildWhatsAppUrl(
+      settings.whatsappNumber,
+      locale,
+      t("landingDealOrderMessage")
+        .replace("{name}", product.name)
+        .replace("{price}", formatPkr(product.basePrice)),
+    );
 
   // Prefer live profile; while auth restores, keep last-known role so CTA stays Admin/POS (not Login).
   const effectiveRole: UserRole | null =
@@ -1002,23 +1135,32 @@ export function LandingPage() {
             className="landing-cats"
             aria-label={t("landingNavCategories")}
           >
-            {grouped.map(({ category }) => (
-              <a
-                key={category.id}
-                href={`#menu-${category.id}`}
-                data-cat={category.id}
-                aria-current={activeCat === category.id ? "true" : undefined}
-                className={`landing-cat-link ${activeCat === category.id ? "is-active" : ""}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  jumpTo(`menu-${category.id}`, { catId: category.id });
-                  // Drop sticky :hover/:focus on phones so only one chip stays highlighted
-                  (e.currentTarget as HTMLElement).blur();
-                }}
-              >
-                {category.name}
-              </a>
-            ))}
+            {grouped
+              .filter(
+                ({ category }) =>
+                  !dealsShareChip ||
+                  !dealCatIds.includes(category.id) ||
+                  category.id === dealCatIds[0],
+              )
+              .map(({ category }) => (
+                <a
+                  key={category.id}
+                  href={`#menu-${category.id}`}
+                  data-cat={category.id}
+                  aria-current={activeChip === category.id ? "true" : undefined}
+                  className={`landing-cat-link ${activeChip === category.id ? "is-active" : ""}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    jumpTo(`menu-${category.id}`, { catId: category.id });
+                    // Drop sticky :hover/:focus on phones so only one chip stays highlighted
+                    (e.currentTarget as HTMLElement).blur();
+                  }}
+                >
+                  {dealsShareChip && category.id === dealCatIds[0]
+                    ? t("landingDealsNav")
+                    : category.name}
+                </a>
+              ))}
           </nav>
 
           <div className="landing-nav-actions">
@@ -1103,7 +1245,8 @@ export function LandingPage() {
             </div>
           ) : null}
 
-          {grouped.length ? (
+          {/* While searching, the results are what matters: no shortcuts above them. */}
+          {grouped.length && !menuQ ? (
             <ul className="landing-tiles">
               {grouped.map(({ category, items }, i) => {
                 const first = items[0];
@@ -1134,7 +1277,7 @@ export function LandingPage() {
                         />
                       </span>
                       <span className="landing-tile-name">{category.name}</span>
-                      <span className="landing-tile-count">{itemCountLabel(items.length)}</span>
+                      <span className="landing-tile-count">{countLabel(items)}</span>
                     </a>
                   </li>
                 );
@@ -1183,11 +1326,26 @@ export function LandingPage() {
                       <div className="landing-cat-header-text">
                         <h3 id={`menu-${category.id}-title`}>{category.name}</h3>
                         <span className="landing-cat-header-meta">
-                          {itemCountLabel(items.length)}
+                          {countLabel(items)}
                         </span>
                       </div>
                       <span className="landing-cat-header-line" aria-hidden />
                     </div>
+                    {isDealCategory(items) ? (
+                      <div className="landing-deals">
+                        {items.map((product, idx) => (
+                          <DealCard
+                            key={product.id}
+                            product={product}
+                            src={resolveProductImage(product.imageUrl, product.name, category.name)}
+                            orderHref={dealOrderUrl(product)}
+                            orderLabel={t("landingDealOrder")}
+                            fromLabel={t("from")}
+                            revealDelayMs={Math.min(idx % 3, 2) * 70}
+                          />
+                        ))}
+                      </div>
+                    ) : (
                     <div className="landing-grid">
                       {items.map((product, idx) => {
                         const src = resolveProductImage(
@@ -1247,6 +1405,7 @@ export function LandingPage() {
                         );
                       })}
                     </div>
+                    )}
                   </section>
                 );
               })}

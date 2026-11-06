@@ -68,6 +68,11 @@ export interface DealLineItem {
   /** Display text on menu / POS (usually product name). */
   label: string;
   qty: number;
+  /**
+   * Never touches stock, whatever the label says. For parts the menu doesn't sell on
+   * their own or sells in other units ("4 Crispy Wings" from a 6-piece item).
+   */
+  noStock?: boolean;
 }
 
 export interface Product {

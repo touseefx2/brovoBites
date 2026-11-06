@@ -161,8 +161,8 @@ export function ProductForm({
       return;
     }
     if (form.type === "bundle") {
-      const linked = form.dealItems.filter((d) => d.productId);
-      if (linked.length === 0) {
+      const lines = form.dealItems.filter((d) => d.productId || d.label.trim());
+      if (lines.length === 0) {
         setError(t("dealNeedsProducts"));
         return;
       }
@@ -195,13 +195,21 @@ export function ProductForm({
           dealItems:
             form.type === "bundle"
               ? form.dealItems
-                  .filter((d) => d.productId)
+                  // A line is a linked menu item (stock deducts), or free text the menu
+                  // doesn't sell on its own, e.g. "Regular Fries" (no stock link).
+                  .filter((d) => d.productId || d.label.trim())
                   .map((d) => {
+                    const qty = Math.max(1, Number(d.qty) || 1);
+                    if (!d.productId) {
+                      const custom: DealLineItem = { label: d.label.trim(), qty };
+                      if (d.noStock) custom.noStock = true;
+                      return custom;
+                    }
                     const p = menuProducts.find((x) => x.id === d.productId);
                     const line: DealLineItem = {
-                      productId: d.productId!,
-                      label: (p?.name || d.label).trim(),
-                      qty: Math.max(1, Number(d.qty) || 1),
+                      productId: d.productId,
+                      label: d.label.trim() || p?.name || "",
+                      qty,
                     };
                     return line;
                   })
@@ -418,49 +426,92 @@ export function ProductForm({
                   <p className="text-sm font-semibold text-[var(--ink)]">{t("dealContents")}</p>
                   <p className="text-xs text-[var(--muted)]">{t("dealContentsHint")}</p>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm shrink-0"
-                  onClick={() =>
-                    setForm((f) => ({
-                      ...f,
-                      dealItems: [
-                        ...f.dealItems,
-                        {
-                          productId: dealComponentOptions[0]?.id,
-                          label: dealComponentOptions[0]?.name ?? "",
-                          qty: 1,
-                        },
-                      ],
-                    }))
-                  }
-                  disabled={dealComponentOptions.length === 0}
-                >
-                  {t("addDealLine")}
-                </button>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        dealItems: [
+                          ...f.dealItems,
+                          {
+                            productId: dealComponentOptions[0]?.id,
+                            label: dealComponentOptions[0]?.name ?? "",
+                            qty: 1,
+                          },
+                        ],
+                      }))
+                    }
+                    disabled={dealComponentOptions.length === 0}
+                  >
+                    {t("addDealLine")}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        dealItems: [...f.dealItems, { label: "", qty: 1, noStock: true }],
+                      }))
+                    }
+                  >
+                    {t("addDealCustomLine")}
+                  </button>
+                </div>
               </div>
               {dealComponentOptions.length === 0 ? (
                 <p className="text-xs text-amber-800">{t("dealNoComponents")}</p>
               ) : null}
               {form.dealItems.map((d: DealLineItem, idx) => (
                 <div key={idx} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_5rem_auto]">
-                  <select
-                    className="input min-h-11 text-base sm:min-h-0 sm:text-sm"
-                    value={d.productId ?? ""}
-                    onChange={(e) => setDealProduct(idx, e.target.value)}
-                    required
-                  >
-                    <option value="">{t("dealPickProduct")}</option>
-                    {dealOptionsByCategory.map((g) => (
-                      <optgroup key={g.key} label={g.label}>
-                        {g.products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
+                  {d.productId === undefined ? (
+                    <input
+                      className="input min-h-11 text-base sm:min-h-0 sm:text-sm"
+                      type="text"
+                      value={d.label}
+                      placeholder={t("dealCustomLinePlaceholder")}
+                      onChange={(e) => {
+                        const dealItems = [...form.dealItems];
+                        dealItems[idx] = { ...d, label: e.target.value };
+                        setForm((f) => ({ ...f, dealItems }));
+                      }}
+                      required
+                    />
+                  ) : (
+                    <div className="grid gap-2">
+                      <select
+                        className="input min-h-11 text-base sm:min-h-0 sm:text-sm"
+                        value={d.productId}
+                        onChange={(e) => setDealProduct(idx, e.target.value)}
+                        required
+                      >
+                        <option value="">{t("dealPickProduct")}</option>
+                        {dealOptionsByCategory.map((g) => (
+                          <optgroup key={g.key} label={g.label}>
+                            {g.products.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                          </optgroup>
                         ))}
-                      </optgroup>
-                    ))}
-                  </select>
+                      </select>
+                      <input
+                        className="input min-h-11 text-base sm:min-h-0 sm:text-sm"
+                        type="text"
+                        value={d.label}
+                        aria-label={t("dealLineLabel")}
+                        placeholder={t("dealLineLabel")}
+                        onChange={(e) => {
+                          const dealItems = [...form.dealItems];
+                          dealItems[idx] = { ...d, label: e.target.value };
+                          setForm((f) => ({ ...f, dealItems }));
+                        }}
+                      />
+                    </div>
+                  )}
                   <input
                     className="input min-h-11 text-base sm:min-h-0 sm:text-sm"
                     type="number"

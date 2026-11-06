@@ -55,6 +55,7 @@ import type {
   StockUnit,
 } from "@bravobites/domain";
 import {
+  labelNamesSize,
   DEFAULT_SETTINGS,
   SHARED_MENU_ID,
   amendOrderTotals,
@@ -2763,8 +2764,7 @@ function expandItemsForStock(
   // whose label it contains — the longest such label, and only if just one.
   const sizeRows = [...invByKey.values()].filter((i) => i.variationId && i.variationLabel);
   const invBySizeText = (label: string) => {
-    const text = normStockName(label);
-    const hits = sizeRows.filter((i) => text.includes(normStockName(i.variationLabel!)));
+    const hits = sizeRows.filter((i) => labelNamesSize(label, i.variationLabel!));
     const longest = Math.max(0, ...hits.map((i) => i.variationLabel!.length));
     const top = hits.filter((i) => i.variationLabel!.length === longest);
     return top.length === 1 ? top[0] : undefined;
@@ -2776,6 +2776,7 @@ function expandItemsForStock(
     if (product?.type === "bundle" && product.dealItems.length > 0) {
       let matched = 0;
       for (const d of product.dealItems) {
+        if (d.noStock) continue;
         let invHit: InventoryItem | undefined;
         if (d.productId) {
           invHit = invFor(d.productId);
@@ -2959,6 +2960,7 @@ async function stockLinesForOrder(
     const product = byId.get(item.productId);
     if (product?.type !== "bundle") continue;
     for (const d of product.dealItems) {
+      if (d.noStock) continue;
       if (d.productId) ids.add(d.productId);
       const named = byName.get(normStockName(d.label));
       if (named) ids.add(named.id);

@@ -18,6 +18,15 @@ export function inventoryDocId(branchId: string, productId: string, variationId?
   return raw.replace(/[/\s]+/g, "_");
 }
 
+/** Deal text naming a stocked size ("1.5 Litre Bottle"): whole words only, so size "L" isn't in "Chilled". */
+export function labelNamesSize(label: string, sizeLabel: string): boolean {
+  const size = sizeLabel.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!size) return false;
+  const text = label.trim().toLowerCase().replace(/\s+/g, " ");
+  const escaped = size.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "u").test(text);
+}
+
 export function inventoryItemName(item: Pick<InventoryItem, "productName" | "variationLabel">): string {
   return item.variationLabel ? `${item.productName} · ${item.variationLabel}` : item.productName;
 }

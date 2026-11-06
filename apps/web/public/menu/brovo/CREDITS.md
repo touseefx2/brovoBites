@@ -92,3 +92,11 @@ The Cola Next and Fizup Next names, logos and pack shots belong to Mezan Beverag
 | Masala Sprinkle | Bonaventure Fernandez | Pexels License | https://www.pexels.com/photo/vibrant-red-chili-powder-with-whole-chilies-33440714/ | |
 | Cola Next 350ml | Cola Next (Mezan Beverages) official pack shot, 500ml | Not a free licence: colanext.com terms require written consent. Used on the owner's decision; consent still to be obtained | https://colanext.com/ | |
 | Fizzup 350ml | Cola Next (Mezan Beverages) official pack shot, Fizup Next 500ml | Not a free licence: colanext.com terms require written consent. Used on the owner's decision; consent still to be obtained | https://colanext.com/ | |
+
+## Deal photos on ImageKit (files `bb-deal-*`)
+
+Each deal photo is built from the item cut-outs in the table above, on the same backdrop. One addition:
+
+| Item | Photographer | Licence | Source | Edits |
+|---|---|---|---|---|
+| Juice pack (Junior / Kids Meals) | Ali Madad | Pexels License | https://www.pexels.com/photo/a-juice-box-on-a-succulent-plant-8453561/ | Background removed. The Slice name and pack belong to their owner. |
