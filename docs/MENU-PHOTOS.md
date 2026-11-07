@@ -59,4 +59,4 @@ Credits / licences: `apps/web/public/menu/brovo/CREDITS.md`.
 | `categories/dip-sauces.jpg` | Category | Several dip sauces in ramekins, square 1:1 |
 | `categories/extras.jpg` | Category | Cheese and spice toppings, square 1:1 |
 | `categories/drinks.jpg` | Category | Cold soft drinks with ice, square 1:1 |
-| `hero/hero-1.jpg` … `hero/hero-4.jpg` | Landing hero | Wide 3:2 dark moody shots (burger + fries, wings, loaded fries, fast-food spread) with empty dark space on the left for text |
+| `hero/hero-1.jpg` … `hero/hero-4.jpg` (+ `-tall`), `people-1`, `wrap-1` | Landing hero | Wide 3:2 shots filling the frame edge to edge, with the main food centre to right (the copy sits lower left under a light overlay), plus a 3:4 `-tall` crop for phones and portrait tablets |

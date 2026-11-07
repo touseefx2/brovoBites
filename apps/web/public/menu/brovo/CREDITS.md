@@ -1,7 +1,8 @@
 # Photo credits — Brovo Bites menu photos
 
 All bundled photos are real photographs under licences that allow free commercial use
-(Unsplash License or Pixabay Content License — no attribution required; listed here anyway).
+(Unsplash, Pexels, Pixabay or Burst licences; listed here anyway), except the Cola Next and Fizup
+pack shots, which are marked in their rows and also show in `hero/hero-4`.
 None come from the previous shop's codebase and none are AI-generated. Owner uploads
 (Admin → Menu / Landing Page, stored on ImageKit) replace these per item.
 
@@ -14,12 +15,12 @@ None come from the previous shop's codebase and none are AI-generated. Owner upl
 | `categories/fries.jpg` | Markus Winkler | Unsplash License | https://unsplash.com/photos/Crispy-fries-and-fried-food-on-a-tray-UiRPPPgjiZA |
 | `categories/salads.jpg` | Jonathan Farber | Unsplash License | https://unsplash.com/photos/vegetable-salad-on-white-and-black-ceramic-bowl-J3bbba1mkH8 |
 | `categories/wings-nuggets.jpg` | Diego Arenas de Rodrigo | Unsplash License | https://unsplash.com/photos/crispy-fried-chicken-wings-with-dipping-sauce-Qx7XfoUnsU0 |
-| `hero/people-1-wide.jpg`, `hero/people-1-tall.jpg` | maryam jahanmehr (small sauce smear added) | Unsplash License | https://unsplash.com/photos/CcYiegAYg3Y |
-| `hero/hero-1.jpg`, `hero/hero-1-tall.jpg` | Jonathan Borba (burger); BB box made for Brovo Bites | Pexels License | https://www.pexels.com/photo/19247575/ |
+| `hero/people-1-wide.jpg`, `hero/people-1-tall.jpg` | Luísa Schetinger (background changed, small sauce smear added) | Unsplash License | https://unsplash.com/photos/XZIdSBM4h2U |
+| `hero/hero-1.jpg`, `hero/hero-1-tall.jpg` | Jonathan Borba (burger); BB box and bucket from the Large Fries and Fries Bucket images | Pexels License; see those rows | https://www.pexels.com/photo/19247575/ |
 | `hero/hero-2.jpg`, `hero/hero-2-tall.jpg` | Ahmed Bhutta | Pexels License | https://www.pexels.com/photo/7169619/ |
 | `hero/wrap-1-wide.jpg`, `hero/wrap-1-tall.jpg` | rajdeepcraft (red BB paper added) | Pexels License | https://www.pexels.com/photo/6416559/ |
-| `hero/hero-3.jpg`, `hero/hero-3-tall.jpg` | 정애 조 (fries); BB box and bucket made for Brovo Bites | Unsplash License | https://unsplash.com/photos/oDzmUuZfntk |
-| `hero/hero-4.jpg`, `hero/hero-4-tall.jpg` | Made for Brovo Bites from the menu's own item images | see the item rows | |
+| `hero/hero-3.jpg`, `hero/hero-3-tall.jpg` | 정애 조 (fries); BB box and bucket from the Large Fries and Fries Bucket images | Unsplash License; see those rows | https://unsplash.com/photos/oDzmUuZfntk |
+| `hero/hero-4.jpg`, `hero/hero-4-tall.jpg` | Made from the menu's own item images, including the Cola Next and Fizup pack shots | see the item rows; the pack shots are **not a free licence**, consent still to be obtained | |
 | `items/apple-cabbage-salad.jpg` | Some Tale | Unsplash License | https://unsplash.com/photos/a-white-bowl-filled-with-coleslaw-on-top-of-a-table-2c-7wjgc4fg |
 | `items/bbq-wings.jpg` | Allen Y (@yanahd) | Unsplash License | https://unsplash.com/photos/glazed-chicken-wings-with-dipping-sauce-celery-and-carrots-QFtgs9cJoWo |
 | `items/beef-burger.jpg` | Giorgi Iremadze (@giorgiiremadze) | Unsplash License | https://unsplash.com/photos/burger-with-lettuce-and-tomato-5ZR4DxAG3RQ |

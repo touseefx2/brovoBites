@@ -1232,6 +1232,8 @@ export const dictionaries = {
     landingEmailName: "Email {name}",
     landingDirections: "Directions",
     landingBackToTop: "Back to top",
+    landingVisitUs: "Visit us",
+    landingGetInTouch: "Get in touch",
     landingMenuLoading: "Loading the menu…",
     // Shared admin UI (theme pass)
     imageNone: "No image",
@@ -2467,6 +2469,8 @@ export const dictionaries = {
     landingEmailName: "{name} کو ای میل کریں",
     landingDirections: "راستہ دیکھیں",
     landingBackToTop: "اوپر جائیں",
+    landingVisitUs: "ہم سے ملیں",
+    landingGetInTouch: "رابطہ کریں",
     landingMenuLoading: "مینو لوڈ ہو رہا ہے…",
     // Shared admin UI (theme pass)
     imageNone: "کوئی تصویر نہیں",

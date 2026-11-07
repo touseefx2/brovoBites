@@ -794,7 +794,7 @@ export function LandingPage() {
   const [catsEl, setCatsEl] = useState<HTMLElement | null>(null);
   const catScrollLockRef = useRef(false);
   const scrollAnimRef = useRef<{ cancelled: boolean } | null>(null);
-  /** Hash from the first load (#menu-…, #branches) — honoured once its target exists. */
+  /** Hash from the first load (#menu-…) — honoured once its target exists. */
   const pendingHashRef = useRef<string | null>(null);
   const [boot, setBoot] = useState<BootPhase>(() => (landingBootDone ? "off" : "on"));
   /** When the hero intro became visible (boot loader lifting) — performance.now(). */
@@ -845,7 +845,7 @@ export function LandingPage() {
   useLayoutEffect(() => {
     const cached = peekBranches();
     if (cached) setBranchesData(cached.branches);
-    // Remember a deep link (#menu-…, #branches) until its section has rendered.
+    // Remember a deep link (#menu-…) until its section has rendered.
     const hash = window.location.hash.slice(1);
     if (hash) pendingHashRef.current = hash;
   }, []);
@@ -1089,8 +1089,8 @@ export function LandingPage() {
     strip.scrollBy({ left: delta, behavior: "auto" });
   }, [activeChip]);
 
-  // Honour a deep link (/#menu-…, /#branches) once, as soon as its section exists with
-  // real content (the page itself paints before the menu / branches arrive).
+  // Honour a deep link (/#menu-…) once, as soon as its section exists with
+  // real content (the page itself paints before the menu arrives).
   useEffect(() => {
     const id = pendingHashRef.current;
     if (!id) return;
@@ -1560,118 +1560,10 @@ export function LandingPage() {
         </section>
       ) : null}
 
-      {branchesData.length > 0 ? (
-        <section id="branches" className="landing-branches">
-          <div className="landing-container landing-branches-layout">
-            <div className="landing-menu-head landing-branches-head landing-reveal">
-              <p className="landing-section-eyebrow">{t("ourBranchesSubtitle")}</p>
-              <h2 className="landing-section-title">{t("ourBranches")}</h2>
-              <p className="landing-section-copy">{t("ourBranchesDesc")}</p>
-            </div>
-
-            <div className="landing-branches-grid">
-              {branchesData.map((branch, idx) => {
-                const mapsUrl = branchMapsUrl(branch);
-                return (
-                  <article
-                    key={branch.id}
-                    className="landing-branch landing-reveal"
-                    style={{ "--reveal-delay": `${idx * 120}ms` } as CSSProperties}
-                  >
-                    <h3 className="landing-branch-name">{branch.name}</h3>
-                    <div className="landing-branch-row">
-                      {branch.address ? (
-                        <div className="landing-branch-fact">
-                          <span className="landing-branch-fact-icon" aria-hidden>
-                            <PinIcon size={20} />
-                          </span>
-                          <div className="landing-branch-fact-text">
-                            <p className="landing-branch-fact-label">{t("address")}</p>
-                            <p className="landing-branch-fact-value">{branch.address}</p>
-                          </div>
-                        </div>
-                      ) : null}
-                      {branch.phone ? (
-                        <div className="landing-branch-fact">
-                          <span className="landing-branch-fact-icon" aria-hidden>
-                            <PhoneIcon size={20} />
-                          </span>
-                          <div className="landing-branch-fact-text">
-                            <p className="landing-branch-fact-label">{t("landingCall")}</p>
-                            <a
-                              href={telHref(branch.phone)}
-                              className="landing-branch-fact-value landing-branch-phone"
-                              aria-label={`${t("landingCall")}: ${branch.phone}`}
-                              dir="ltr"
-                            >
-                              {branch.phone}
-                            </a>
-                          </div>
-                        </div>
-                      ) : null}
-                      {mapsUrl ? (
-                        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="landing-branch-cta">
-                          {t("landingDirections")}
-                          <ArrowIcon />
-                        </a>
-                      ) : null}
-                    </div>
-
-                    {branch.staff.length > 0 ? (
-                      <div className="landing-branch-staff">
-                        <p className="landing-branch-staff-label">{t("counter")}</p>
-                        <ul className="landing-branch-staff-list">
-                          {branch.staff.map((s, i) => (
-                            <li key={i} className="landing-staff-item">
-                              <div className="landing-staff-avatar" aria-hidden>
-                                {(s.displayName || "?").charAt(0).toUpperCase()}
-                              </div>
-                              <p className="landing-staff-name">{s.displayName || "—"}</p>
-                              <div className="landing-staff-actions">
-                                {s.phone ? (
-                                  <a
-                                    href={telHref(s.phone)}
-                                    className="landing-staff-chip"
-                                    aria-label={t("landingCallName").replace("{name}", s.displayName)}
-                                    dir="ltr"
-                                  >
-                                    <PhoneIcon size={13} />
-                                    <span>{s.phone}</span>
-                                  </a>
-                                ) : null}
-                                {s.email ? (
-                                  <a
-                                    href={`mailto:${s.email}`}
-                                    className="landing-staff-chip"
-                                    aria-label={t("landingEmailName").replace("{name}", s.displayName)}
-                                    dir="ltr"
-                                  >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                                      <rect x="2" y="4" width="20" height="16" rx="2" />
-                                      <path d="M22 7l-10 7L2 7" />
-                                    </svg>
-                                    <span>{s.email}</span>
-                                  </a>
-                                ) : null}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
       <footer className="landing-footer">
-        <div className="landing-container landing-footer-grid">
+        <div className="landing-footer-accent" aria-hidden />
+        <div className="landing-container landing-footer-top">
           <div className="landing-footer-brand">
-            {/* Far below the fold: lazy, sized for its 128px box (Brand's BrandFullLogo is
-                `priority`, which would preload a 1920w copy against the hero badge). */}
             <Image
               src={DEFAULT_LOCAL_LOGO_FULL}
               loader={cdnImageLoader}
@@ -1679,42 +1571,10 @@ export function LandingPage() {
               alt={shopName}
               width={720}
               height={835}
-              sizes="120px"
+              sizes="88px"
               className="brand-full-logo"
             />
             <p className="landing-footer-slogan">{slogan}</p>
-            {waUrl ? (
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="landing-nav-order landing-footer-order"
-              >
-                <WhatsAppIcon size={18} />
-                <span>{t("orderWhatsApp")}</span>
-              </a>
-            ) : null}
-            <div className="landing-footer-social">
-              <p className="landing-footer-heading">{t("landingFollowUs")}</p>
-              <ul className="landing-social-list">
-                {SOCIAL_LINKS.map((link) => (
-                  <li key={link.name}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="landing-social-link"
-                      aria-label={link.name}
-                      title={link.name}
-                    >
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" fillRule="evenodd" aria-hidden focusable="false">
-                        <path d={link.path} />
-                      </svg>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
 
           {grouped.length ? (
@@ -1741,35 +1601,73 @@ export function LandingPage() {
 
           {branchesData.length ? (
             <div className="landing-footer-col">
-              <p className="landing-footer-heading">{t("ourBranches")}</p>
-              <ul className="landing-footer-links">
-                {branchesData.map((branch) => (
-                  <li key={branch.id} className="landing-footer-branch">
+              <p className="landing-footer-heading">{t("landingVisitUs")}</p>
+              <ul className="landing-footer-links landing-footer-visit">
+                {branchesData.map((branch) => {
+                  const mapsUrl = branchMapsUrl(branch);
+                  return (
+                    <li key={branch.id} className="landing-footer-place">
+                      <p className="landing-footer-place-name">{branch.name}</p>
+                      {branch.address ? (
+                        <p className="landing-footer-place-addr">
+                          <PinIcon size={14} />
+                          <span>{branch.address}</span>
+                        </p>
+                      ) : null}
+                      {branch.phone ? (
+                        <a href={telHref(branch.phone)} className="landing-footer-place-phone" dir="ltr">
+                          <PhoneIcon size={14} />
+                          <span>{branch.phone}</span>
+                        </a>
+                      ) : null}
+                      {mapsUrl ? (
+                        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="landing-footer-directions">
+                          {t("landingDirections")}
+                          <ArrowIcon />
+                        </a>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="landing-footer-col landing-footer-connect">
+            <p className="landing-footer-heading">{t("landingGetInTouch")}</p>
+            {waUrl ? (
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="landing-nav-order landing-footer-order"
+              >
+                <WhatsAppIcon size={18} />
+                <span>{t("orderWhatsApp")}</span>
+              </a>
+            ) : null}
+            <div className="landing-footer-social">
+              <p className="landing-footer-social-label">{t("landingFollowUs")}</p>
+              <ul className="landing-social-list">
+                {SOCIAL_LINKS.map((link) => (
+                  <li key={link.name}>
                     <a
-                      href="#branches"
-                      className="landing-footer-link"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        jumpTo("branches");
-                      }}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="landing-social-link"
+                      aria-label={link.name}
+                      title={link.name}
                     >
-                      {branch.name}
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" fillRule="evenodd" aria-hidden focusable="false">
+                        <path d={link.path} />
+                      </svg>
                     </a>
-                    {branch.phone ? (
-                      <a
-                        href={telHref(branch.phone)}
-                        className="landing-footer-link landing-footer-phone"
-                        dir="ltr"
-                      >
-                        <PhoneIcon size={14} />
-                        {branch.phone}
-                      </a>
-                    ) : null}
                   </li>
                 ))}
               </ul>
             </div>
-          ) : null}
+          </div>
         </div>
 
         <div className="landing-container">

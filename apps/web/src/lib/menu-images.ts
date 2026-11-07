@@ -20,7 +20,8 @@ export const HERO_SLIDES = [
 
 /**
  * One hero photo with optional art direction: `src` is the wide crop (2400×1600, shown
- * from 768px up), `tall` the portrait crop phones download instead (1200×1600). Without
+ * on landscape screens from 768px up), `tall` the portrait crop phones and portrait tablets
+ * download instead (1200×1600). Without
  * `tall` every screen gets `src` (object-fit: cover, centred).
  */
 export type HeroSlide = {

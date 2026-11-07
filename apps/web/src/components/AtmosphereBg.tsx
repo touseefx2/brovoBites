@@ -16,8 +16,8 @@ export const ATMOSPHERE_SLIDES: readonly string[] = HERO_SLIDES;
 const FOOD_SLIDES: readonly HeroSlide[] = FOOD_HERO_SLIDES;
 
 const HOLD_MS = 4200;
-/** Art direction: the wide crop from this width up, the tall crop below it. */
-const WIDE_MEDIA = "(min-width: 768px)";
+/** Art direction: the wide crop on landscape screens from this width up, the tall crop otherwise. */
+const WIDE_MEDIA = "(min-width: 768px) and (min-aspect-ratio: 1/1)";
 const PHOTO_QUALITY = 75;
 /**
  * `sizes` for object-fit: cover — on screens narrower than the photo the HEIGHT decides
