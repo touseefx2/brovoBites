@@ -15,10 +15,14 @@ None come from the previous shop's codebase and none are AI-generated. Owner upl
 | `categories/fries.jpg` | Markus Winkler | Unsplash License | https://unsplash.com/photos/Crispy-fries-and-fried-food-on-a-tray-UiRPPPgjiZA |
 | `categories/salads.jpg` | Jonathan Farber | Unsplash License | https://unsplash.com/photos/vegetable-salad-on-white-and-black-ceramic-bowl-J3bbba1mkH8 |
 | `categories/wings-nuggets.jpg` | Diego Arenas de Rodrigo | Unsplash License | https://unsplash.com/photos/crispy-fried-chicken-wings-with-dipping-sauce-Qx7XfoUnsU0 |
-| `hero/people-1-wide.jpg`, `hero/people-1-tall.jpg` | Luísa Schetinger (background changed, small sauce smear added) | Unsplash License | https://unsplash.com/photos/XZIdSBM4h2U |
+| `hero/people-1-wide.jpg`, `hero/people-1-tall.jpg` | Nadin Sh (bottle removed, background extended) | Pexels License | https://www.pexels.com/photo/19564500/ |
+| `hero/scene-1-wide.jpg`, `hero/scene-1-tall.jpg` | Vitor Monthay | Pexels License | https://www.pexels.com/photo/8365312/ |
+| `hero/scene-2-wide.jpg`, `hero/scene-2-tall.jpg` | Gonzalo Acuña (background darkened) | Pexels License | https://www.pexels.com/photo/12664804/ |
+| `hero/scene-3-wide.jpg`, `hero/scene-3-tall.jpg` | iram shehzad | Pexels License | https://www.pexels.com/photo/38304929/ |
+| `hero/scene-4-wide.jpg`, `hero/scene-4-tall.jpg` | Karola G (mirrored) | Pexels License | https://www.pexels.com/photo/4198653/ |
+| `hero/scene-5-wide.jpg`, `hero/scene-5-tall.jpg` | Moisés Delgado (background darkened) | Pexels License | https://www.pexels.com/photo/10861704/ |
 | `hero/hero-1.jpg`, `hero/hero-1-tall.jpg` | Jonathan Borba (burger); BB box and bucket from the Large Fries and Fries Bucket images | Pexels License; see those rows | https://www.pexels.com/photo/19247575/ |
 | `hero/hero-2.jpg`, `hero/hero-2-tall.jpg` | Ahmed Bhutta | Pexels License | https://www.pexels.com/photo/7169619/ |
-| `hero/wrap-1-wide.jpg`, `hero/wrap-1-tall.jpg` | rajdeepcraft (red BB paper added) | Pexels License | https://www.pexels.com/photo/6416559/ |
 | `hero/hero-3.jpg`, `hero/hero-3-tall.jpg` | 정애 조 (fries); BB box and bucket from the Large Fries and Fries Bucket images | Unsplash License; see those rows | https://unsplash.com/photos/oDzmUuZfntk |
 | `hero/hero-4.jpg`, `hero/hero-4-tall.jpg` | Made from the menu's own item images, including the Cola Next and Fizup pack shots | see the item rows; the pack shots are **not a free licence**, consent still to be obtained | |
 | `items/apple-cabbage-salad.jpg` | Some Tale | Unsplash License | https://unsplash.com/photos/a-white-bowl-filled-with-coleslaw-on-top-of-a-table-2c-7wjgc4fg |

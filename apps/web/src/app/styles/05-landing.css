@@ -2801,7 +2801,7 @@ html[lang="ur"] .landing-section-copy {
   .landing-hero-scrim {
     /* Photos run edge to edge: a light brand tint over all of it, a little more behind the nav
        and the copy so the links and buttons stay clear.
-       The photos show the BB logo and bottle labels, so they are never mirrored. */
+       The photos are never mirrored. */
     background:
       linear-gradient(
         180deg,
@@ -2817,7 +2817,7 @@ html[lang="ur"] .landing-section-copy {
   .landing-hero .landing-tagline {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 0 14px rgba(18, 9, 6, 0.75);
   }
-  /* Urdu: the main food mostly sits centre to right, so the copy block stays on the left,
+  /* Urdu: the main subject mostly sits centre to right, so the copy block stays on the left,
      reading right to left inside it. */
   html[dir="rtl"] .landing-hero-inner {
     direction: ltr;

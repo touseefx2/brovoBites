@@ -15,7 +15,7 @@ export const ATMOSPHERE_SLIDES: readonly string[] = HERO_SLIDES;
 /** Food shots + their phone crops (branch picker / login default). */
 const FOOD_SLIDES: readonly HeroSlide[] = FOOD_HERO_SLIDES;
 
-const HOLD_MS = 4200;
+const HOLD_MS = 3000;
 /** Art direction: the wide crop on landscape screens from this width up, the tall crop otherwise. */
 const WIDE_MEDIA = "(min-width: 768px) and (min-aspect-ratio: 1/1)";
 const PHOTO_QUALITY = 75;

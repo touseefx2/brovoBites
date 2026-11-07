@@ -31,7 +31,7 @@ export type HeroSlide = {
 
 /**
  * The food shots with their phone crops (hero-N-tall.jpg, 1200×1600): the menu's own items
- * (burger, wings, fries, the full spread). The wide crops fill the frame edge to edge.
+ * (burger, wings, fries, the full spread), used as the login and branch picker backdrop.
  */
 export const FOOD_HERO_SLIDES: readonly HeroSlide[] = HERO_SLIDES.map((src) => ({
   src,
@@ -39,17 +39,17 @@ export const FOOD_HERO_SLIDES: readonly HeroSlide[] = HERO_SLIDES.map((src) => (
 }));
 
 /**
- * Shots shown before a food slide (by its index in FOOD_HERO_SLIDES), each a `<name>-wide.jpg`
- * 2400×1600 + `<name>-tall.jpg` 1200×1600 pair: a woman with a burger (people-1) and the Grilled
- * Wrap in BB paper (wrap-1). Sources in public/menu/brovo/CREDITS.md.
+ * Website hero: six full-width `<name>-wide.jpg` 2400×1600 + `<name>-tall.jpg` 1200×1600 pairs.
+ * A woman with a burger, then scenes rather than menu items (the menu is further down the page):
+ * the grill, melted cheese, a chef's flame, spices, a child enjoying fries. Sources in
+ * public/menu/brovo/CREDITS.md.
  */
-const HERO_SHOTS_BEFORE: Readonly<Record<number, string>> = { 0: "people-1", 2: "wrap-1" };
+const LANDING_SHOTS = ["people-1", "scene-1", "scene-2", "scene-3", "scene-4", "scene-5"] as const;
 
-/** Website hero: people-1, hero-1, hero-2, wrap-1, hero-3, hero-4. */
-export const LANDING_HERO_SLIDES: readonly HeroSlide[] = FOOD_HERO_SLIDES.flatMap((food, i) => {
-  const name = HERO_SHOTS_BEFORE[i];
-  return name ? [{ src: `${HERO}/${name}-wide.jpg`, tall: `${HERO}/${name}-tall.jpg` }, food] : [food];
-});
+export const LANDING_HERO_SLIDES: readonly HeroSlide[] = LANDING_SHOTS.map((name) => ({
+  src: `${HERO}/${name}-wide.jpg`,
+  tall: `${HERO}/${name}-tall.jpg`,
+}));
 
 export const MENU_IMAGE = {
   zinger: `${ITEM}/zinger-burger.jpg`,
