@@ -2987,29 +2987,16 @@ html[lang="ur"] .landing-section-copy {
         var(--bb-brown-900) 100%
       );
   }
-  /* Urdu: copy sits on the right — mirror the photos (no text in them) so the food lands
-     on the open left side instead of under the headline. On the container, so the slides'
-     Ken Burns transform is untouched. */
-  html[dir="rtl"] .landing-hero .atmosphere-bg {
-    transform: scaleX(-1);
+  /* Urdu: the photos show the BB logo and bottle labels, so they are never mirrored. The food
+     stays on the right in every language, so the copy block stays on the open left side and
+     reads right to left inside it. */
+  html[dir="rtl"] .landing-hero-inner {
+    direction: ltr;
   }
-  html[dir="rtl"] .landing-hero-scrim {
-    background:
-      linear-gradient(
-        270deg,
-        rgba(18, 9, 6, 0.9) 0%,
-        rgba(18, 9, 6, 0.7) 30%,
-        rgba(18, 9, 6, 0.2) 60%,
-        rgba(18, 9, 6, 0) 100%
-      ),
-      linear-gradient(
-        180deg,
-        rgba(18, 9, 6, 0.55) 0%,
-        transparent 22%,
-        transparent 46%,
-        rgba(18, 9, 6, 0.7) 80%,
-        var(--bb-brown-900) 100%
-      );
+  html[dir="rtl"] .landing-hero-content {
+    direction: rtl;
+    justify-self: start;
+    width: fit-content;
   }
 }
 

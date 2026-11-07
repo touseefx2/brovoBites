@@ -14,22 +14,14 @@ None come from the previous shop's codebase and none are AI-generated. Owner upl
 | `categories/fries.jpg` | Markus Winkler | Unsplash License | https://unsplash.com/photos/Crispy-fries-and-fried-food-on-a-tray-UiRPPPgjiZA |
 | `categories/salads.jpg` | Jonathan Farber | Unsplash License | https://unsplash.com/photos/vegetable-salad-on-white-and-black-ceramic-bowl-J3bbba1mkH8 |
 | `categories/wings-nuggets.jpg` | Diego Arenas de Rodrigo | Unsplash License | https://unsplash.com/photos/crispy-fried-chicken-wings-with-dipping-sauce-Qx7XfoUnsU0 |
-| `hero/family-1-tall.jpg` | Tyson | Unsplash License | unsplash.com |
-| `hero/family-1-wide.jpg` | Tyson | Unsplash License | unsplash.com |
+| `hero/people-1-wide.jpg`, `hero/people-1-tall.jpg` | maryam jahanmehr (small sauce smear added) | Unsplash License | https://unsplash.com/photos/CcYiegAYg3Y |
+| `hero/hero-1.jpg`, `hero/hero-1-tall.jpg` | Jonathan Borba (burger); BB box made for Brovo Bites | Pexels License | https://www.pexels.com/photo/19247575/ |
+| `hero/hero-2.jpg`, `hero/hero-2-tall.jpg` | Ahmed Bhutta | Pexels License | https://www.pexels.com/photo/7169619/ |
+| `hero/wrap-1-wide.jpg`, `hero/wrap-1-tall.jpg` | rajdeepcraft (red BB paper added) | Pexels License | https://www.pexels.com/photo/6416559/ |
+| `hero/hero-3.jpg`, `hero/hero-3-tall.jpg` | 정애 조 (fries); BB box and bucket made for Brovo Bites | Unsplash License | https://unsplash.com/photos/oDzmUuZfntk |
+| `hero/hero-4.jpg`, `hero/hero-4-tall.jpg` | Made for Brovo Bites from the menu's own item images | see the item rows | |
 | `hero/friends-1-tall.jpg` | Cailin Grant-Jansen | Unsplash License | unsplash.com |
 | `hero/friends-1-wide.jpg` | Cailin Grant-Jansen | Unsplash License | unsplash.com |
-| `hero/hero-1-tall.jpg` | Rajasekhar R | Unsplash License | https://unsplash.com/photos/a-burger-and-fries-8Gy72EGle2U |
-| `hero/hero-1.jpg` | Rajasekhar R | Unsplash License | https://unsplash.com/photos/a-burger-and-fries-8Gy72EGle2U |
-| `hero/hero-2-tall.jpg` | Dextar Studio | Unsplash License | https://unsplash.com/photos/a-white-plate-topped-with-meat-covered-in-sauce-jQ5dXkx7WaM |
-| `hero/hero-2.jpg` | Dextar Studio | Unsplash License | https://unsplash.com/photos/a-white-plate-topped-with-meat-covered-in-sauce-jQ5dXkx7WaM |
-| `hero/hero-3-tall.jpg` | Louis Hansel | Unsplash License | https://unsplash.com/photos/french-fries-vi0kZuoe0-8 |
-| `hero/hero-3.jpg` | Louis Hansel | Unsplash License | https://unsplash.com/photos/french-fries-vi0kZuoe0-8 |
-| `hero/hero-4-tall.jpg` | amin ramezani (@aminrmzni) | Unsplash License | https://unsplash.com/photos/a-table-with-plates-of-food-w2My0OSSi_0 |
-| `hero/hero-4.jpg` | amin ramezani (@aminrmzni) | Unsplash License | https://unsplash.com/photos/a-table-with-plates-of-food-w2My0OSSi_0 |
-| `hero/people-1-tall.jpg` | ALLAN LAINEZ (@17allansfilms) | Unsplash License | https://unsplash.com/photos/pWjYd1y0kPE |
-| `hero/people-1-wide.jpg` | ALLAN LAINEZ (@17allansfilms) | Unsplash License | https://unsplash.com/photos/pWjYd1y0kPE |
-| `hero/wrap-1-tall.jpg` | Eugene Chystiakov | Unsplash License | unsplash.com |
-| `hero/wrap-1-wide.jpg` | Eugene Chystiakov | Unsplash License | unsplash.com |
 | `items/apple-cabbage-salad.jpg` | Some Tale | Unsplash License | https://unsplash.com/photos/a-white-bowl-filled-with-coleslaw-on-top-of-a-table-2c-7wjgc4fg |
 | `items/bbq-wings.jpg` | Allen Y (@yanahd) | Unsplash License | https://unsplash.com/photos/glazed-chicken-wings-with-dipping-sauce-celery-and-carrots-QFtgs9cJoWo |
 | `items/beef-burger.jpg` | Giorgi Iremadze (@giorgiiremadze) | Unsplash License | https://unsplash.com/photos/burger-with-lettuce-and-tomato-5ZR4DxAG3RQ |

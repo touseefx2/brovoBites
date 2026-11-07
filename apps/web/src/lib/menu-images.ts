@@ -29,8 +29,8 @@ export type HeroSlide = {
 };
 
 /**
- * The food shots with their phone crops (hero-N-tall.jpg, 1200×1600, framed on the dish;
- * hero-4-tall is the flat-lay turned 180° so the burger sits above the hero copy).
+ * The food shots with their phone crops (hero-N-tall.jpg, 1200×1600): the menu's own items
+ * (burger, wings, fries, the full spread), framed clear of the hero copy and the nav.
  */
 export const FOOD_HERO_SLIDES: readonly HeroSlide[] = HERO_SLIDES.map((src) => ({
   src,
@@ -38,18 +38,17 @@ export const FOOD_HERO_SLIDES: readonly HeroSlide[] = HERO_SLIDES.map((src) => (
 }));
 
 /**
- * Lifestyle shots (free Unsplash License), each a `<name>-wide.jpg` 2400×1600 + `<name>-tall.jpg`
- * 1200×1600 pair: a woman biting a burger (people-1, Allan Lainez), friends sharing burgers
- * and fries (friends-1, Cailin Grant-Jansen), a wrap at a friends' table (wrap-1, Eugene
- * Chystiakov), a family laughing over nuggets (family-1, Tyson; wide crop mirrored).
+ * Other shots, each a `<name>-wide.jpg` 2400×1600 + `<name>-tall.jpg` 1200×1600 pair (free
+ * Unsplash / Pexels licences, sources in public/menu/brovo/CREDITS.md): a woman with a burger
+ * (people-1), friends sharing burgers and fries (friends-1), the Grilled Wrap in BB paper (wrap-1).
  */
-const LIFESTYLE_HERO = ["people-1", "friends-1", "wrap-1", "family-1"] as const;
+const LIFESTYLE_HERO = ["people-1", "friends-1", "wrap-1"] as const;
 
-/** Website hero: lifestyle and food shots, alternating (people-1, hero-1, friends-1, hero-2, …). */
-export const LANDING_HERO_SLIDES: readonly HeroSlide[] = FOOD_HERO_SLIDES.flatMap((food, i) => [
-  { src: `${HERO}/${LIFESTYLE_HERO[i]}-wide.jpg`, tall: `${HERO}/${LIFESTYLE_HERO[i]}-tall.jpg` },
-  food,
-]);
+/** Website hero: people-1, hero-1, friends-1, hero-2, wrap-1, hero-3, hero-4. */
+export const LANDING_HERO_SLIDES: readonly HeroSlide[] = FOOD_HERO_SLIDES.flatMap((food, i) => {
+  const name = LIFESTYLE_HERO[i];
+  return name ? [{ src: `${HERO}/${name}-wide.jpg`, tall: `${HERO}/${name}-tall.jpg` }, food] : [food];
+});
 
 export const MENU_IMAGE = {
   zinger: `${ITEM}/zinger-burger.jpg`,
