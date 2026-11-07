@@ -1573,61 +1573,49 @@ export function LandingPage() {
               {branchesData.map((branch, idx) => {
                 const mapsUrl = branchMapsUrl(branch);
                 return (
-                  <div
+                  <article
                     key={branch.id}
-                    className="landing-branch-card landing-reveal"
+                    className="landing-branch landing-reveal"
                     style={{ "--reveal-delay": `${idx * 120}ms` } as CSSProperties}
                   >
-                    <div className="landing-branch-header">
-                      <div className="landing-branch-icon" aria-hidden>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 9l1.6-5h14.8L21 9" />
-                          <path d="M3 9h18v1.5a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z" />
-                          <path d="M5 13.5V21h14v-7.5" />
-                          <path d="M10 21v-4h4v4" />
-                        </svg>
-                      </div>
-                      <div className="landing-branch-info">
-                        <h3 className="landing-branch-name">{branch.name}</h3>
-                        {branch.phone ? (
-                          <p className="landing-branch-phone" dir="ltr">
+                    <h3 className="landing-branch-name">{branch.name}</h3>
+                    <div className="landing-branch-row">
+                      {branch.address ? (
+                        <div className="landing-branch-fact">
+                          <span className="landing-branch-fact-icon" aria-hidden>
+                            <PinIcon size={20} />
+                          </span>
+                          <div className="landing-branch-fact-text">
+                            <p className="landing-branch-fact-label">{t("address")}</p>
+                            <p className="landing-branch-fact-value">{branch.address}</p>
+                          </div>
+                        </div>
+                      ) : null}
+                      {branch.phone ? (
+                        <div className="landing-branch-fact">
+                          <span className="landing-branch-fact-icon" aria-hidden>
+                            <PhoneIcon size={20} />
+                          </span>
+                          <div className="landing-branch-fact-text">
+                            <p className="landing-branch-fact-label">{t("landingCall")}</p>
                             <a
                               href={telHref(branch.phone)}
-                              className="landing-phone-chip"
-                              aria-label={t("landingCall")}
+                              className="landing-branch-fact-value landing-branch-phone"
+                              aria-label={`${t("landingCall")}: ${branch.phone}`}
+                              dir="ltr"
                             >
-                              <PhoneIcon size={15} />
-                              <span>{branch.phone}</span>
+                              {branch.phone}
                             </a>
-                          </p>
-                        ) : null}
-                      </div>
+                          </div>
+                        </div>
+                      ) : null}
+                      {mapsUrl ? (
+                        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="landing-branch-cta">
+                          {t("landingDirections")}
+                          <ArrowIcon />
+                        </a>
+                      ) : null}
                     </div>
-
-                    {branch.address ? (
-                      <div className="landing-branch-address">
-                        {mapsUrl ? (
-                          <a
-                            href={mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="landing-branch-map-link"
-                          >
-                            <PinIcon size={18} />
-                            <span className="landing-branch-addr-label">{branch.address}</span>
-                            <span className="landing-branch-directions">
-                              {t("landingDirections")}
-                              <ArrowIcon />
-                            </span>
-                          </a>
-                        ) : (
-                          <p className="landing-branch-addr-text">
-                            <PinIcon size={18} />
-                            <span>{branch.address}</span>
-                          </p>
-                        )}
-                      </div>
-                    ) : null}
 
                     {branch.staff.length > 0 ? (
                       <div className="landing-branch-staff">
@@ -1671,7 +1659,7 @@ export function LandingPage() {
                         </ul>
                       </div>
                     ) : null}
-                  </div>
+                  </article>
                 );
               })}
             </div>

@@ -2295,154 +2295,134 @@ html[dir="rtl"] .landing-order-band {
   }
 }
 
+/* One open row per branch, between thin lines: no box round it. */
 .landing-branches-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
-  gap: 1.25rem;
+  gap: 0;
 }
 
-.landing-branch-card {
-  position: relative;
-  padding: 1.5rem;
-  border-radius: var(--bb-radius-card);
-  border: 1px solid var(--bb-line-on-dark);
-  background: var(--bb-brown-850);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
-  transition:
-    border-color 0.22s var(--bb-ease-out),
-    transform 0.22s var(--bb-ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .landing-branch-card:hover {
-    border-color: var(--landing-mustard-35);
-    transform: translateY(-4px);
-  }
-}
-
-.landing-branch-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.9rem;
-  margin-bottom: 1.1rem;
-}
-
-.landing-branch-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  flex-shrink: 0;
-  border-radius: 14px;
-  background: var(--bb-primary);
-  color: var(--bb-on-primary);
-  box-shadow: 0 3px 0 var(--bb-red-800);
-}
-
-.landing-branch-info {
-  min-width: 0;
-  flex: 1;
-}
-
-.landing-branch-name {
-  margin: 0;
-  font-family: var(--font-brand-stack);
-  font-size: 1.45rem;
-  font-weight: 400;
-  line-height: 1.15;
-  letter-spacing: 0.01em;
-  color: var(--bb-cream-100);
-  text-shadow: var(--bb-text-stamp);
-  overflow-wrap: anywhere;
-}
-
-.landing-branch-phone {
-  margin: 0.5rem 0 0;
-  display: flex;
-}
-
-.landing-phone-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 44px;
-  padding: 0 0.95rem;
-  border-radius: var(--bb-radius-pill);
-  border: 1px solid var(--landing-cream-14);
-  background: var(--landing-cream-08);
-  color: var(--bb-cream-100);
-  font-size: 0.9375rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  transition:
-    border-color 0.18s var(--bb-ease-out),
-    color 0.18s var(--bb-ease-out);
-}
-
-.landing-phone-chip svg {
-  color: var(--bb-mustard-500);
-}
-
-.landing-phone-chip:hover {
-  border-color: var(--bb-mustard-500);
-  color: var(--bb-mustard-300);
-}
-
-.landing-branch-address:not(:last-child) {
-  margin-bottom: 1.1rem;
-  padding-bottom: 1.1rem;
+.landing-branch {
+  padding: 1.75rem 0;
   border-bottom: 1px solid var(--bb-line-on-dark);
 }
 
-.landing-branch-map-link,
-.landing-branch-addr-text {
+.landing-branch:first-child {
+  border-top: 3px solid var(--bb-mustard-500);
+}
+
+.landing-branch-name {
+  margin: 0 0 1.25rem;
+  font-family: var(--font-brand-stack);
+  font-size: clamp(1.5rem, 1.25rem + 1vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--bb-cream-100);
+  text-shadow: var(--bb-text-stamp);
+}
+
+.landing-branch-row {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.landing-branch-fact {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.35rem 0.6rem;
-  margin: 0;
-  min-height: 44px;
-  font-size: 0.9375rem;
-  line-height: 1.5;
-  color: var(--bb-muted-on-dark);
-}
-
-.landing-branch-map-link > svg:first-child,
-.landing-branch-addr-text > svg:first-child {
-  flex-shrink: 0;
-  margin-top: 0.15rem;
-  color: var(--bb-mustard-500);
-}
-
-.landing-branch-addr-label {
-  flex: 1 1 12rem;
+  align-items: center;
+  gap: 0.85rem;
   min-width: 0;
 }
 
-.landing-branch-directions {
+.landing-branch-fact-icon {
+  flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  margin-inline-start: auto;
-  font-size: 0.8125rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--bb-brown-850);
+  border: 1px solid var(--bb-line-on-dark);
   color: var(--bb-mustard-500);
-  white-space: nowrap;
 }
 
-.landing-branch-directions .landing-arrow {
-  width: 14px;
-  height: 14px;
+.landing-branch-fact-text {
+  min-width: 0;
 }
 
-.landing-branch-map-link:hover {
+.landing-branch-fact-label {
+  margin: 0 0 0.1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bb-muted-on-dark);
+}
+
+.landing-branch-fact-value {
+  display: block;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
   color: var(--bb-cream-100);
+  overflow-wrap: anywhere;
 }
 
-.landing-branch-map-link:hover .landing-branch-directions {
-  color: var(--bb-mustard-300);
+a.landing-branch-phone {
+  text-decoration: none;
+  /* the number stays left to right, but sits on the reading side in Urdu */
+  text-align: start;
+  transition: color 0.2s var(--bb-ease-out);
+}
+
+html[dir="rtl"] a.landing-branch-phone {
+  text-align: right;
+}
+
+.landing-branch-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 46px;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--bb-radius-pill);
+  background: var(--bb-mustard-500);
+  color: var(--bb-on-accent);
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s var(--bb-ease-out),
+    transform 0.2s var(--bb-ease-out);
+}
+
+.landing-branch-cta .landing-arrow {
+  transition: transform 0.2s var(--bb-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a.landing-branch-phone:hover {
+    color: var(--bb-mustard-500);
+  }
+  .landing-branch-cta:hover {
+    background: var(--bb-mustard-300);
+  }
+  .landing-branch-cta:hover .landing-arrow {
+    transform: translateX(3px);
+  }
+  html[dir="rtl"] .landing-branch-cta:hover .landing-arrow {
+    transform: scaleX(-1) translateX(3px);
+  }
+}
+
+@media (min-width: 720px) {
+  .landing-branch-row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.5rem;
+  }
 }
 
 .landing-branch-staff-label {
@@ -3183,10 +3163,6 @@ html[lang="ur"] .landing-section-copy {
     padding: 4rem 0;
   }
 
-  .landing-branch-card {
-    padding: 1.15rem;
-  }
-
   .landing-footer {
     padding-top: 2.75rem;
   }
@@ -3229,7 +3205,8 @@ html[lang="ur"] .landing-section-copy {
   .landing-cat-link,
   .landing-item,
   .landing-tile,
-  .landing-branch-card,
+  .landing-social-link,
+  .landing-branch-cta,
   .landing-hero-badge,
   .landing-skeleton {
     animation: none !important;
@@ -3278,8 +3255,7 @@ html[lang="ur"] .landing-section-copy {
     opacity: 1 !important;
   }
 
-  .landing .landing-item:hover,
-  .landing-branch-card:hover {
+  .landing .landing-item:hover {
     transform: none !important;
   }
 }

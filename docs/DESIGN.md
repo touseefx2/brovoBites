@@ -73,6 +73,7 @@ Dark brand experience (brown-900 + radial glow), professional fast-food layout:
 
    Two big Lilita titles in mustard mark the menu's parts: **TOP DEALS** over the first deal category and **ALA-CARTE** over the first other category. Latin letters pop in one by one, then a small wave runs through the word now and then; Urdu moves as one word because its letters join. They only appear when the menu has deals, and they hide while searching.
    The cheese line above the menu and above the order band runs: some of its drips (not all) ooze and let a drop fall, on their own rhythms. Transform and opacity only, paused off screen, off under reduced motion. Drops pass behind text.
+   Branches are open rows, not cards: the name, then address and phone beside round mustard icons, then a mustard Directions button, between thin lines.
    The footer's brand column ends with the shop's Facebook, Instagram, TikTok and YouTube as round 44px icon buttons that open in a new tab.
 5. **Branches & team**, then **footer** (brown-950, full logo, links, copyright, software credit).
 Phone first: 2-column item grid on phones, 3 on tablets, 4 on desktop; no horizontal scroll; 44px targets; safe-area insets; RTL mirrored with logical properties.
