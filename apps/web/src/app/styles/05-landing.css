@@ -2969,34 +2969,19 @@ html[lang="ur"] .landing-section-copy {
     --mark: min(84cqw, 74cqh, 480px);
   }
   .landing-hero-scrim {
-    /* strong dark gradient from the start side + the bottom (copy sits bottom-start) */
+    /* Photos run edge to edge: a light brand tint over all of it, a little more behind the nav
+       and the copy so the links and buttons stay clear. Even left and right, so it suits RTL too.
+       The photos show the BB logo and bottle labels, so they are never mirrored. */
     background:
       linear-gradient(
-        90deg,
-        rgba(18, 9, 6, 0.9) 0%,
-        rgba(18, 9, 6, 0.7) 30%,
-        rgba(18, 9, 6, 0.2) 60%,
-        rgba(18, 9, 6, 0) 100%
-      ),
-      linear-gradient(
         180deg,
-        rgba(18, 9, 6, 0.55) 0%,
-        transparent 22%,
-        transparent 46%,
-        rgba(18, 9, 6, 0.7) 80%,
+        rgba(18, 9, 6, 0.42) 0%,
+        transparent 16%,
+        transparent 56%,
+        rgba(18, 9, 6, 0.5) 84%,
         var(--bb-brown-900) 100%
-      );
-  }
-  /* Urdu: the photos show the BB logo and bottle labels, so they are never mirrored. The food
-     stays on the right in every language, so the copy block stays on the open left side and
-     reads right to left inside it. */
-  html[dir="rtl"] .landing-hero-inner {
-    direction: ltr;
-  }
-  html[dir="rtl"] .landing-hero-content {
-    direction: rtl;
-    justify-self: start;
-    width: fit-content;
+      ),
+      rgba(30, 14, 9, 0.26);
   }
 }
 

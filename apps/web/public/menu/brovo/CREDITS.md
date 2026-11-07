@@ -20,8 +20,6 @@ None come from the previous shop's codebase and none are AI-generated. Owner upl
 | `hero/wrap-1-wide.jpg`, `hero/wrap-1-tall.jpg` | rajdeepcraft (red BB paper added) | Pexels License | https://www.pexels.com/photo/6416559/ |
 | `hero/hero-3.jpg`, `hero/hero-3-tall.jpg` | 정애 조 (fries); BB box and bucket made for Brovo Bites | Unsplash License | https://unsplash.com/photos/oDzmUuZfntk |
 | `hero/hero-4.jpg`, `hero/hero-4-tall.jpg` | Made for Brovo Bites from the menu's own item images | see the item rows | |
-| `hero/friends-1-tall.jpg` | Cailin Grant-Jansen | Unsplash License | unsplash.com |
-| `hero/friends-1-wide.jpg` | Cailin Grant-Jansen | Unsplash License | unsplash.com |
 | `items/apple-cabbage-salad.jpg` | Some Tale | Unsplash License | https://unsplash.com/photos/a-white-bowl-filled-with-coleslaw-on-top-of-a-table-2c-7wjgc4fg |
 | `items/bbq-wings.jpg` | Allen Y (@yanahd) | Unsplash License | https://unsplash.com/photos/glazed-chicken-wings-with-dipping-sauce-celery-and-carrots-QFtgs9cJoWo |
 | `items/beef-burger.jpg` | Giorgi Iremadze (@giorgiiremadze) | Unsplash License | https://unsplash.com/photos/burger-with-lettuce-and-tomato-5ZR4DxAG3RQ |

@@ -30,7 +30,7 @@ export type HeroSlide = {
 
 /**
  * The food shots with their phone crops (hero-N-tall.jpg, 1200×1600): the menu's own items
- * (burger, wings, fries, the full spread), framed clear of the hero copy and the nav.
+ * (burger, wings, fries, the full spread). The wide crops fill the frame edge to edge.
  */
 export const FOOD_HERO_SLIDES: readonly HeroSlide[] = HERO_SLIDES.map((src) => ({
   src,
@@ -38,15 +38,15 @@ export const FOOD_HERO_SLIDES: readonly HeroSlide[] = HERO_SLIDES.map((src) => (
 }));
 
 /**
- * Other shots, each a `<name>-wide.jpg` 2400×1600 + `<name>-tall.jpg` 1200×1600 pair (free
- * Unsplash / Pexels licences, sources in public/menu/brovo/CREDITS.md): a woman with a burger
- * (people-1), friends sharing burgers and fries (friends-1), the Grilled Wrap in BB paper (wrap-1).
+ * Shots shown before a food slide (by its index in FOOD_HERO_SLIDES), each a `<name>-wide.jpg`
+ * 2400×1600 + `<name>-tall.jpg` 1200×1600 pair: a woman with a burger (people-1) and the Grilled
+ * Wrap in BB paper (wrap-1). Sources in public/menu/brovo/CREDITS.md.
  */
-const LIFESTYLE_HERO = ["people-1", "friends-1", "wrap-1"] as const;
+const HERO_SHOTS_BEFORE: Readonly<Record<number, string>> = { 0: "people-1", 2: "wrap-1" };
 
-/** Website hero: people-1, hero-1, friends-1, hero-2, wrap-1, hero-3, hero-4. */
+/** Website hero: people-1, hero-1, hero-2, wrap-1, hero-3, hero-4. */
 export const LANDING_HERO_SLIDES: readonly HeroSlide[] = FOOD_HERO_SLIDES.flatMap((food, i) => {
-  const name = LIFESTYLE_HERO[i];
+  const name = HERO_SHOTS_BEFORE[i];
   return name ? [{ src: `${HERO}/${name}-wide.jpg`, tall: `${HERO}/${name}-tall.jpg` }, food] : [food];
 });
 
