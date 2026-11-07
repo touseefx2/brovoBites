@@ -46,8 +46,22 @@ const lilita = localFont({
 
 export const metadata: Metadata = {
   title: "Brovo Bites",
-  description: "Dip it. Bite it. Brovo it. — Zinger & Beef Burgers, Wraps, Wings, Nuggets, Loaded Fries & Dips",
+  description: "Fresh, loaded & always crispy. — Burgers · Wings · Wraps · Salads",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Brovo Bites",
+    description: "Fresh, loaded & always crispy. — Burgers · Wings · Wraps · Salads",
+    siteName: "Brovo Bites",
+    images: [
+      {
+        url: "https://ik.imagekit.io/elraggyoa/brovobites/static/menu/brovo/hero/hero-1.3351b4e1e6.jpg?tr=w-1200,h-630,fo-auto",
+        width: 1200,
+        height: 630,
+        alt: "Brovo Bites — burger with fries",
+      },
+    ],
+    type: "website",
+  },
   appleWebApp: {
     capable: true,
     // Dark bar with light status icons (suits the dark-brown brand). Not "black-translucent":
