@@ -54,10 +54,10 @@ export const metadata: Metadata = {
     siteName: "Brovo Bites",
     images: [
       {
-        url: "https://ik.imagekit.io/elraggyoa/brovobites/static/menu/brovo/hero/hero-1.3351b4e1e6.jpg?tr=w-1200,h-630,fo-auto",
+        url: "https://ik.imagekit.io/elraggyoa/brovobites/static/menu/brovo/hero/people-1-wide.096d1b0a06.jpg?tr=w-1200,h-630,fo-auto",
         width: 1200,
         height: 630,
-        alt: "Brovo Bites — burger with fries",
+        alt: "Brovo Bites",
       },
     ],
     type: "website",
