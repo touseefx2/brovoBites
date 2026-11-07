@@ -54,9 +54,9 @@ export const metadata: Metadata = {
     siteName: "Brovo Bites",
     images: [
       {
-        url: "https://ik.imagekit.io/elraggyoa/brovobites/static/menu/brovo/hero/people-1-wide.096d1b0a06.jpg?tr=w-1200,h-630,fo-auto",
-        width: 1200,
-        height: 630,
+        url: "https://ik.imagekit.io/elraggyoa/brovobites/static/menu/brovo/og-cover.041a035187.jpg",
+        width: 1386,
+        height: 608,
         alt: "Brovo Bites",
       },
     ],
