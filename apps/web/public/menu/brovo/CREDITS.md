@@ -100,3 +100,52 @@ Each deal photo is built from the item cut-outs in the table above, on the same 
 | Item | Photographer | Licence | Source | Edits |
 |---|---|---|---|---|
 | Juice pack (Junior / Kids Meals) | Ali Madad | Pexels License | https://www.pexels.com/photo/a-juice-box-on-a-succulent-plant-8453561/ | Background removed. The Slice name and pack belong to their owner. |
+
+## Salad, Loaded Fries, Masala and Extra Cheese photos, and category tiles, on ImageKit (files `bb-v6-*`)
+
+These replace the earlier images of those items. The category tiles are built from the item cut-outs in the tables above, on the same backdrop.
+
+| Item | Photographer | Licence | Source | Edits |
+|---|---|---|---|---|
+| Russian Salad | Karyna Panchenko | Pexels License | https://www.pexels.com/photo/a-delicious-salad-in-a-bowl-10781833/ | Food only, placed in a drawn black bowl with a drawn lid and the BB logo |
+| Apple Cabbage Salad | Not shown on the page | Pixabay Content License | https://pixabay.com/photos/food-coleslaw-fork-napkin-board-1206771/ | Same as Russian Salad |
+| Macaroni Salad | Probably HolgersFotografie (the page does not confirm it) | Pixabay Content License | https://pixabay.com/photos/pasta-salad-353111/ | Same as Russian Salad |
+| Loaded Fries (Large), tray | Bunly Hort | Unsplash License | https://unsplash.com/photos/cooked-meat-sausage-and-potatoes-in-a-foil-container-FhvW9wODr6g | Original food removed, foil reflections neutralised |
+| Loaded Fries (Large), fries and cheese | Jonathan Borba | Unsplash License | https://unsplash.com/photos/I-cgCz5DUi4 | Warped to the tray's perspective |
+| Loaded Fries (Large), chicken | Val Vesa | Unsplash License | https://unsplash.com/photos/loaded-fries-with-chicken-coleslaw-and-sauce-_qgMA9qL150 | Piled on the middle of the fries |
+| Masala Sprinkle | Bonaventure Fernandez | Pexels License | https://www.pexels.com/photo/vibrant-red-chili-powder-with-whole-chilies-33440714/ | The falling powder is drawn, using colours from the photo's heap |
+| Extra Cheese | NORTLAUKAU 26088 JP | CC0 1.0, as reported by Openverse (the Commons page could not be opened to confirm) | https://commons.wikimedia.org/w/index.php?curid=184243576 | The slices are drawn; only their fine surface grain comes from this photo |
+
+## Wings & Nuggets section and Grilled Wrap on ImageKit (files `bb-v7-*`)
+
+The tipped BB bucket and the red wrap box are computer-drawn. The food in them comes from these photos. The salad images in this batch reuse the sources in the section above, with a clear lid.
+
+| Item | Photographer | Licence | Source | Edits |
+|---|---|---|---|---|
+| Wings (6 pcs) | Huynh Quyet | Unsplash License | https://unsplash.com/photos/fried-chicken-YgirePmHPZU | Plate removed, colour warmed |
+| BBQ Wings (6 pcs) | Ahmed Bhutta | Pexels License | https://www.pexels.com/photo/fried-meat-on-a-wooden-board-7169619/ | Board removed, colour warmed and lightened |
+| Buffalo Wings (6 pcs) | Scott Eckersley | Unsplash License | https://unsplash.com/photos/fried-chicken-on-black-plate-R-7_ErUOLxw | Bowl and paper removed, drawn chilli flakes added |
+| Nuggets (6 pcs) | Vilnis Husko | Pexels License | https://www.pexels.com/photo/fried-chicken-nuggets-18188572/ | Pieces separated and rearranged |
+| Injected Nuggets (6 pcs) | Valeria Boltneva | Pexels License | https://www.pexels.com/photo/fried-mozzarella-pieces-served-on-paper-18330019/ | Pieces rearranged, drawn sauce drips added |
+| Grilled Wrap | Shameel mukkath | Pexels License | https://www.pexels.com/photo/a-plate-with-a-wrap-and-salad-on-it-14775667/ | One half turned upright, placed in the drawn box |
+
+
+## Grilled Wrap, Beverages tile and rebuilt deal photos on ImageKit (files `bb-v8-*`)
+
+The deal photos now use the same food as the menu's images above. The Grilled Wrap replaces the wrap box in the section above, and its photo credit replaces that row.
+
+| Item | Photographer | Licence | Source | Edits |
+|---|---|---|---|---|
+| Grilled Wrap | rajdeepcraft | Pexels License | https://www.pexels.com/photo/close-up-shot-of-shawarma-6416559/ | The photo's paper recoloured to brand red with BB logos printed on it; drawn toasted spots on the tortilla |
+| Beverages tile, ice | Ray Suarez | Pexels License | https://www.pexels.com/photo/close-up-of-three-ice-cubes-on-wet-surface-34927441/ | Black background removed, colour warmed |
+
+## Hot wings and the new Loaded Fries on ImageKit (files `bb-v9-*`)
+
+These replace the Wings, BBQ Wings, Buffalo Wings and Loaded Fries rows above. The deals with wings use the same wings.
+
+| Item | Photographer | Licence | Source | Edits |
+|---|---|---|---|---|
+| Wings, BBQ Wings and Buffalo Wings (6 pcs each), the Wings tile and the wing deals | Ahmed Bhutta | Pexels License | https://www.pexels.com/photo/fried-meat-on-a-wooden-board-7169619/ | Board removed, colour changed for each item; on Buffalo Wings, drawn chilli flakes added |
+| Loaded Fries, fries behind the top | David Foodphototasty (@phototastyfood) | Unsplash License | https://unsplash.com/photos/a-pile-of-french-fries-sitting-on-top-of-a-table-ZeunO7Zh_ko | Reflection removed, colour warmed |
+| Loaded Fries, chicken and sauces on top | Val Vesa | Unsplash License | https://unsplash.com/photos/loaded-fries-with-chicken-coleslaw-and-sauce-_qgMA9qL150 | Cut out; part of the white sauce recoloured orange |
+| Loaded Fries, foil tray and the cheese fries inside it | Bunly Hort; Jonathan Borba | Unsplash License | https://unsplash.com/photos/cooked-meat-sausage-and-potatoes-in-a-foil-container-FhvW9wODr6g and https://unsplash.com/photos/I-cgCz5DUi4 | Tray's own food removed; the cheese fries warped to fit and lightened |

@@ -100,5 +100,7 @@ describe("suggestedStockUnits", () => {
     expect(suggestedStockUnits({ name: "Soft Drink", variationLabel: "Tin Can" })[0]).toBe("can");
     expect(suggestedStockUnits({ name: "Soft Drink", variationLabel: "1.5 Litre" })[0]).toBe("bottle");
     expect(suggestedStockUnits({ name: "Classic Zinger", categoryName: "Burgers" })[0]).toBe("pcs");
+    // The size says bottle, whatever the category is called.
+    expect(suggestedStockUnits({ name: "Fizzup 350ml", categoryName: "Beverages" })[0]).toBe("bottle");
   });
 });

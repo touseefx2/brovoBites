@@ -127,6 +127,7 @@ const CATEGORY_IMAGE_BY_NAME: Record<string, string> = {
   "Dip Sauces": MENU_IMAGE.catDips,
   Extras: MENU_IMAGE.catExtras,
   Drinks: MENU_IMAGE.catDrinks,
+  Beverages: MENU_IMAGE.catDrinks,
 };
 
 /** Map product display name (+ category) → placeholder image path */

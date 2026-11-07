@@ -22,7 +22,7 @@ import {
   type CheckMark,
   type OwnerSummary,
 } from "@/lib/owner-report-text";
-import { escapeHtml as e, receiptPrintWidthMm } from "@/lib/print-receipt";
+import { escapeHtml as e, receiptPaperMm, receiptPrintWidthMm } from "@/lib/print-receipt";
 import { unitLabelKey } from "@/lib/stock-labels";
 import { changeSummary } from "@/lib/activity-change-text";
 import { LOG_DETAIL_CSS, LOG_DETAIL_SLIP_CSS, logDetailHtml, logDetailSlipHtml } from "@/lib/print-activity-change";
@@ -773,8 +773,8 @@ function eventsHtml(c: Ctx): string {
 
 /* ── Styles ── */
 
-const SLIP_CSS = (widthMm: number) => `
-  @page { margin: 0; }
+const SLIP_CSS = (widthMm: number, paperMm: number) => `
+  @page { size: ${paperMm}mm auto; margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
   body {
@@ -1121,7 +1121,7 @@ export function buildOwnerReportHtml(
 
   const body = [head, ...sections, `<div class="end">${e(opts.shopName)} · ${e(t("ownerReport"))}</div>`].join("\n");
 
-  const css = c.slip ? SLIP_CSS(receiptPrintWidthMm(opts.paper, opts.paperWidthMm)) : A4_CSS;
+  const css = c.slip ? SLIP_CSS(receiptPrintWidthMm(opts.paper, opts.paperWidthMm), receiptPaperMm(opts.paper, opts.paperWidthMm)) : A4_CSS;
   return `<!DOCTYPE html>
 <html dir="${dir}" lang="${opts.locale}">
 <head>

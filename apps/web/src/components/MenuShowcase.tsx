@@ -17,6 +17,7 @@ import {
 import { useLocale } from "@/i18n/locale-context";
 import { usePublicMenu } from "@/lib/menu-context";
 import { resolveProductImage, resolveCategoryImage } from "@/lib/menu-images";
+import { categoryMatchesQuery } from "@/lib/menu-search";
 import { MenuMediaImage } from "@/components/MenuMediaImage";
 import { ButtonSpinner, LoadError, PageSpinner } from "@/components/Loading";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -74,7 +75,7 @@ function PriceBlock({ product, fromLabel }: { product: Product; fromLabel: strin
 
 function matchesQuery(product: Product, q: string, categoryName = "") {
   if (!q) return true;
-  if (categoryName.toLowerCase().includes(q)) return true;
+  if (categoryMatchesQuery(categoryName, q)) return true;
   const hay = [
     product.name,
     ...product.variations.map((v) => v.label),

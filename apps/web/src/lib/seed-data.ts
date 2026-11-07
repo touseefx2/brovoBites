@@ -42,7 +42,7 @@ export const SEED_CATEGORIES: SeedCategory[] = [
   { key: "salads", branchId: SHARED_MENU_ID, name: "Salads", imageUrl: "", sortOrder: 4, isActive: true },
   { key: "dips", branchId: SHARED_MENU_ID, name: "Dip Sauces", imageUrl: "", sortOrder: 5, isActive: true },
   { key: "extras", branchId: SHARED_MENU_ID, name: "Extras", imageUrl: "", sortOrder: 6, isActive: true },
-  { key: "drinks", branchId: SHARED_MENU_ID, name: "Drinks", imageUrl: "", sortOrder: 7, isActive: true },
+  { key: "drinks", branchId: SHARED_MENU_ID, name: "Beverages", imageUrl: "", sortOrder: 7, isActive: true },
 ];
 
 /** [category key, name, price] — every item is a single-price ("simple") product. */

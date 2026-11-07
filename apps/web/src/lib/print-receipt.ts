@@ -137,6 +137,15 @@ export function receiptPrintWidthMm(paper?: ReceiptPaper, customWidthMm?: number
   return 72;
 }
 
+/** Physical paper-roll width for @page size (includes unprintable margins). */
+export function receiptPaperMm(paper?: ReceiptPaper, customWidthMm?: number): number {
+  if (paper === "58mm") return 58;
+  if (paper === "custom" && customWidthMm && customWidthMm > 0) {
+    return Math.min(112, Math.max(48, customWidthMm + 8));
+  }
+  return 80;
+}
+
 /** Below this print width the receipt switches to the narrow (58mm) sizes. */
 const NARROW_BELOW_MM = 60;
 
@@ -331,9 +340,10 @@ function qrSvg(text: string): string {
  * at 16px (shop name, total amount) — smaller bold fills in. Pure black, no
  * grey (it dithers away). Slight tracking keeps neighbouring digits apart.
  */
-function receiptCss(widthMm: number): string {
+function receiptCss(widthMm: number, paperMm: number): string {
   return `
     @page {
+      size: ${paperMm}mm auto;
       margin: 0;
     }
     * { box-sizing: border-box; }
@@ -613,7 +623,7 @@ export function buildReceiptHtml(opts: ReceiptOptions): string {
 <head>
   <meta charset="utf-8" />
   <title>${escapeHtml(title)}</title>
-  <style>${receiptCss(receiptPrintWidthMm(paper, paperWidthMm))}
+  <style>${receiptCss(receiptPrintWidthMm(paper, paperWidthMm), receiptPaperMm(paper, paperWidthMm))}
   </style>
 </head>
 <body>

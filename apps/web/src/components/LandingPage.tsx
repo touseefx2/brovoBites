@@ -24,6 +24,7 @@ import {
 import { getAuthRoleHint } from "@/lib/auth-hint";
 import { useAuthOptional } from "@/lib/auth-optional";
 import { useLocale } from "@/i18n/locale-context";
+import { categoryMatchesQuery } from "@/lib/menu-search";
 import { usePublicMenu } from "@/lib/menu-context";
 import { isCustomerMode } from "@/lib/customer-mode";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -342,7 +343,7 @@ function DealCard({
 
 function matchesMenuQuery(product: Product, q: string, categoryName = "") {
   if (!q) return true;
-  if (categoryName.toLowerCase().includes(q)) return true;
+  if (categoryMatchesQuery(categoryName, q)) return true;
   const hay = [
     product.name,
     product.type === "bundle" ? "deal deals ڈیل ڈیلز" : "",
@@ -392,6 +393,87 @@ function prefersLightHero(): boolean {
 const HERO_DROP_PATH = "M6 0C6 0 0 7.2 0 11a6 6 0 0 0 12 0C12 7.2 6 0 6 0Z";
 /** a + b: the logo's long drip (big drop + small trailing drop), c: the right-hand drip. */
 const HERO_DROPS = ["a", "b", "c"] as const;
+
+/**
+ * Where sauce falls from the cheese line: x = 320px tile × n + that drip's centre, y = its tip,
+ * w = its width (see --landing-drip-mask). Only some drips, each on its own rhythm, so it looks
+ * like sauce running and not like a pattern. The list reaches past the widest screens; the
+ * container clips whatever does not fit.
+ */
+const DRIP_FALLS = [
+  { x: 150, y: 56, w: 18, dur: 4.6, delay: -0.6 },
+  { x: 354, y: 44, w: 14, dur: 5.8, delay: -3.4 },
+  { x: 590, y: 48, w: 16, dur: 5.2, delay: -1.9 },
+  { x: 1110, y: 56, w: 18, dur: 6.2, delay: -4.6 },
+  { x: 1550, y: 48, w: 16, dur: 4.9, delay: -2.6 },
+  { x: 1750, y: 56, w: 18, dur: 5.6, delay: -0.2 },
+  { x: 2190, y: 48, w: 16, dur: 5.1, delay: -3.1 },
+  { x: 2390, y: 56, w: 18, dur: 6, delay: -1.2 },
+] as const;
+
+/** The cheese line between sections, with sauce oozing and falling from some of its drips. */
+function CheeseDrip() {
+  const ref = useRef<HTMLDivElement>(null);
+  // Pause while off screen: a data attribute, no React render (same as the hero). It watches the
+  // box the drops fall in, not the short line: otherwise drops freeze in view as the line leaves.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) delete el.dataset.paused;
+      else el.dataset.paused = "";
+    });
+    io.observe(el.querySelector(".landing-drip-falls") ?? el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="landing-drip" aria-hidden>
+      <div className="landing-drip-falls">
+        {DRIP_FALLS.map((d) => (
+          <span
+            key={d.x}
+            className="landing-drip-fall"
+            style={
+              {
+                "--drip-x": `${d.x}px`,
+                "--drip-y": `${d.y}px`,
+                "--drip-w": `${d.w}px`,
+                "--drip-dur": `${d.dur}s`,
+                "--drip-delay": `${d.delay}s`,
+              } as CSSProperties
+            }
+          >
+            <span className="landing-drip-ooze" />
+            <svg className="landing-drip-drop" viewBox="0 0 12 17">
+              <path d={HERO_DROP_PATH} />
+            </svg>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The big heading over a whole part of the menu (TOP DEALS, ALA-CARTE). Latin letters pop in one
+ * by one; Urdu letters join up, so that word moves as one.
+ */
+function MenuPartTitle({ text, splitLetters }: { text: string; splitLetters: boolean }) {
+  const letters = splitLetters ? Array.from(text) : [text];
+  return (
+    <h2 className="landing-part-title landing-reveal" aria-label={text}>
+      <span className="landing-part-title-line" aria-hidden />
+      <span className="landing-part-title-text" aria-hidden>
+        {letters.map((ch, i) => (
+          <span key={i} className="landing-part-title-ch" style={{ "--i": i } as CSSProperties}>
+            {ch === " " ? "\u00a0" : ch}
+          </span>
+        ))}
+      </span>
+      <span className="landing-part-title-line" aria-hidden />
+    </h2>
+  );
+}
 
 type LandingHeroProps = {
   eyebrow: string;
@@ -844,6 +926,9 @@ export function LandingPage() {
     () => grouped.filter((g) => isDealCategory(g.items)).map((g) => g.category.id),
     [grouped],
   );
+  // The big titles go over the first deal category and the first other category, once each,
+  // wherever the owner has sorted them.
+  const firstOtherCatId = grouped.find((g) => !isDealCategory(g.items))?.category.id;
   const dealsShareChip = dealCatIds.length > 1;
   const activeChip = dealsShareChip && dealCatIds.includes(activeCat) ? dealCatIds[0] : activeCat;
 
@@ -1195,7 +1280,7 @@ export function LandingPage() {
       />
 
       <section id="menu" className="landing-menu" aria-busy={menuPending || undefined}>
-        <div className="landing-drip" aria-hidden />
+        <CheeseDrip />
         <div className="landing-container">
           <div className="landing-menu-head landing-reveal">
             <div className="landing-menu-head-copy">
@@ -1300,6 +1385,14 @@ export function LandingPage() {
               {grouped.map(({ category, items }) => {
                 const catImg = resolveCategoryImage(category.imageUrl, category.name);
                 const first = items[0];
+                // A new part of the menu starts here: deals, then the à la carte items. Inside the
+                // section, so a jump to this category lands with the title in view. Without any
+                // deals there are no parts; while searching, the results are what matters.
+                const isDeal = isDealCategory(items);
+                const startsPart =
+                  !menuQ &&
+                  dealCatIds.length > 0 &&
+                  (category.id === dealCatIds[0] || category.id === firstOtherCatId);
                 return (
                   <section
                     key={category.id}
@@ -1307,6 +1400,12 @@ export function LandingPage() {
                     className="landing-section"
                     aria-labelledby={`menu-${category.id}-title`}
                   >
+                    {startsPart ? (
+                      <MenuPartTitle
+                        text={isDeal ? t("landingTopDeals") : t("landingAlaCarte")}
+                        splitLetters={locale !== "ur"}
+                      />
+                    ) : null}
                     <div className="landing-cat-header landing-reveal">
                       <div className="landing-cat-header-thumb">
                         <MenuMediaImage
@@ -1331,7 +1430,7 @@ export function LandingPage() {
                       </div>
                       <span className="landing-cat-header-line" aria-hidden />
                     </div>
-                    {isDealCategory(items) ? (
+                    {isDeal ? (
                       <div className="landing-deals">
                         {items.map((product, idx) => (
                           <DealCard
@@ -1416,7 +1515,7 @@ export function LandingPage() {
 
       {waUrl ? (
         <section className="landing-order-band" aria-labelledby="landing-order-title">
-          <div className="landing-drip" aria-hidden />
+          <CheeseDrip />
           <div className="landing-container landing-order-inner landing-reveal">
             <div className="landing-order-copy">
               <h2 id="landing-order-title" className="landing-order-title">

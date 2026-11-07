@@ -46,7 +46,7 @@ export function stockLevel(item: Pick<InventoryItem, "currentStock" | "lowStockT
 export function suggestedStockUnits(o: { name: string; categoryName?: string; variationLabel?: string }): StockUnit[] {
   const text = `${o.name} ${o.categoryName ?? ""} ${o.variationLabel ?? ""}`.toLowerCase();
   if (/\b(tin|can)\b/.test(text)) return ["can", "pcs", "box"];
-  if (/bottle|litre|liter|ltr|\bml\b|water|drink|pepsi|coke|cola|sprite|7up|juice|soda/.test(text)) {
+  if (/bottle|litre|liter|ltr|\bml\b|\d\s*ml\b|water|drink|pepsi|coke|cola|sprite|7up|juice|soda/.test(text)) {
     return ["bottle", "can", "pcs", "box"];
   }
   if (/beverage|margarita|shake|lassi|tea|coffee/.test(text)) return ["pcs", "bottle", "ml", "ltr"];

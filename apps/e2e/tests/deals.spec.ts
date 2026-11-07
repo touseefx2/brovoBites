@@ -13,6 +13,12 @@ test.describe("deals", () => {
     await expect(card).toBeVisible();
     await expect(card.locator(".landing-deal-lines li").first()).toBeVisible();
     await expect(card.locator(".landing-price-badge")).toBeVisible();
+
+    // The menu's two parts have their big titles; while searching, only results show.
+    await expect(page.getByRole("heading", { name: "TOP DEALS" }).first()).toBeAttached();
+    await expect(page.getByRole("heading", { name: "ALA-CARTE" }).first()).toBeAttached();
+    await page.locator(".landing-menu-search-input").fill("deal");
+    await expect(page.locator(".landing-part-title")).toHaveCount(0);
   });
 
   test("deal lines that aren't menu items survive an admin edit", async ({ page, request }) => {
