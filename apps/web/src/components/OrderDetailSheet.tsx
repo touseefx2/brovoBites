@@ -43,7 +43,8 @@ import {
   enqueueOrderRefund,
   kickSync,
 } from "@/lib/pos-queue";
-import { printReceipt, receiptLabels } from "@/lib/print-receipt";
+import { buildReceiptHtml, printReceipt, receiptLabels, type ReceiptCopy } from "@/lib/print-receipt";
+import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { reviewUrlOf } from "@/lib/review-request";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
@@ -153,6 +154,17 @@ export function OrderDetailSheet({
     title: string;
     message: string;
   } | null>(null);
+  const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
+  const [printCopies, setPrintCopies] = useState<Set<ReceiptCopy>>(() => {
+    try {
+      const saved = localStorage.getItem("pos:printCopies");
+      if (saved) return new Set(JSON.parse(saved) as ReceiptCopy[]);
+    } catch {}
+    return new Set(["customer", "branch", "kitchen"]);
+  });
+  useEffect(() => {
+    try { localStorage.setItem("pos:printCopies", JSON.stringify([...printCopies])); } catch {}
+  }, [printCopies]);
 
   const resolvedBranch =
     (order.branchName || branchName || "").trim() || null;
@@ -520,12 +532,12 @@ export function OrderDetailSheet({
     }
   }
 
-  function onPrint() {
+  function printSnapshot(): Order {
     const nextTable =
       draftOrderType === "dine-in" ? norm(draftTableNumber) : "";
     const nextAddress =
       draftOrderType === "delivery" ? norm(draftDeliveryAddress) : "";
-    const snapshot: Order = dirty
+    return dirty
       ? {
           ...order,
           items: sanitizeOrderItems(draft),
@@ -546,8 +558,6 @@ export function OrderDetailSheet({
           ...(deliveryCharges > 0
             ? { deliveryCharges }
             : { deliveryCharges: undefined }),
-          // Draft discount, as the sheet shows it — so the printed lines add up
-          // to the printed total.
           ...(discountAmount > 0
             ? {
                 discountType: draftDiscountType,
@@ -562,6 +572,15 @@ export function OrderDetailSheet({
           total: draftTotal,
         }
       : order;
+  }
+
+  function onPrint() {
+    setPrintPreviewOpen(true);
+  }
+
+  function doPrint() {
+    if (printCopies.size === 0) return;
+    const snapshot = printSnapshot();
     printReceipt({
       order: snapshot,
       shopName: settings?.shopName ?? "Brovo Bites",
@@ -576,8 +595,32 @@ export function OrderDetailSheet({
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
+      copies: [...printCopies] as ReceiptCopy[],
     });
+    setPrintPreviewOpen(false);
   }
+
+  const printPreviewHtml = useMemo(() => {
+    if (!printPreviewOpen) return "";
+    const snapshot = printSnapshot();
+    return buildReceiptHtml({
+      order: snapshot,
+      shopName: settings?.shopName ?? "Brovo Bites",
+      branchName: resolvedBranch || undefined,
+      softwareCompanyName:
+        settings?.softwareCompanyName ?? DEFAULT_SETTINGS.softwareCompanyName,
+      softwareCompanyPhone:
+        settings?.softwareCompanyPhone ?? DEFAULT_SETTINGS.softwareCompanyPhone,
+      labels: receiptLabels(t),
+      reviewUrl: reviewUrlOf(settings),
+      showReprint: Boolean(order.updatedAt) || dirty,
+      dir,
+      paper: settings?.receiptPaper,
+      paperWidthMm: settings?.receiptPrintWidthMm,
+      copies: [...printCopies] as ReceiptCopy[],
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [printPreviewOpen, printCopies, dirty, draft, draftOrderType, draftPayment, draftCustomerName, draftCustomerPhone, draftDeliveryAddress, draftTableNumber, draftDiscountType, draftDiscountValue]);
 
   const typeOptions: { id: OrderType; label: string }[] = [
     { id: "dine-in", label: t("dineIn") },
@@ -1410,6 +1453,71 @@ export function OrderDetailSheet({
         onCancel={dismissSuccess}
         onDismiss={dismissSuccess}
       />
+
+      {/* Print preview modal */}
+      {printPreviewOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="absolute inset-0 bg-stone-950/65 backdrop-blur-[3px]"
+            aria-label={t("close")}
+            onClick={() => setPrintPreviewOpen(false)}
+          />
+          <div className="relative z-10 flex max-h-[min(90dvh,38rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
+            <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+              <h3 className="text-base font-bold text-stone-800">{t("printBill")}</h3>
+              <div className="flex items-center gap-3">
+                {(["customer", "branch", "kitchen"] as const).map((copy) => (
+                  <label key={copy} className="flex cursor-pointer items-center gap-1.5 select-none">
+                    <input
+                      type="checkbox"
+                      checked={printCopies.has(copy)}
+                      onChange={() => {
+                        setPrintCopies((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(copy)) next.delete(copy);
+                          else next.add(copy);
+                          return next;
+                        });
+                      }}
+                      className="size-4 rounded accent-amber-600"
+                    />
+                    <span className="text-xs font-medium text-stone-600 capitalize">{copy}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto bg-[#efe2d3] px-3 py-3">
+              {printCopies.size > 0 ? (
+                <ReceiptPreview html={printPreviewHtml} title={t("printBill")} />
+              ) : (
+                <p className="py-8 text-center text-sm text-stone-500">No copies selected</p>
+              )}
+            </div>
+            <div className="flex gap-2 border-t px-4 py-3">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm flex-1"
+                onClick={() => setPrintPreviewOpen(false)}
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm flex-1 gap-2"
+                disabled={printCopies.size === 0}
+                onClick={doPrint}
+              >
+                <svg className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M6 14h12v8H6z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {t("printBill")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

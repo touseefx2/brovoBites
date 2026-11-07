@@ -445,10 +445,18 @@ function PosApp() {
   const [deletedOrderIds, setDeletedOrderIds] = useState<Set<string>>(new Set());
   const catalogRefreshRef = useRef<(() => void) | null>(null);
   const [autoPrint, setAutoPrint] = useState(true);
-  const [printCopies, setPrintCopies] = useState<Set<ReceiptCopy>>(
-    () => new Set(["customer", "branch", "kitchen"]),
-  );
+  const [printCopies, setPrintCopies] = useState<Set<ReceiptCopy>>(() => {
+    try {
+      const saved = localStorage.getItem("pos:printCopies");
+      if (saved) return new Set(JSON.parse(saved) as ReceiptCopy[]);
+    } catch {}
+    return new Set(["customer", "branch", "kitchen"]);
+  });
   const [clockNow, setClockNow] = useState(() => shopNow());
+
+  useEffect(() => {
+    try { localStorage.setItem("pos:printCopies", JSON.stringify([...printCopies])); } catch {}
+  }, [printCopies]);
 
   const [clockWrong, setClockWrong] = useState(false);
 
@@ -980,7 +988,6 @@ function PosApp() {
     setCustomerPhone("");
     setDeliveryAddress("");
     setTableNumber("");
-    setPrintCopies(new Set(["customer", "branch", "kitchen"]));
     setCheckoutPreviewOpen(true);
     void (async () => {
       try {
