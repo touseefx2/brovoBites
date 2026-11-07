@@ -2601,6 +2601,55 @@ html[dir="rtl"] .landing-order-band {
   margin-top: 0.25rem;
 }
 
+/* Social links: round icon buttons under the order button, a full tap target on phones */
+.landing-footer-social {
+  margin-top: 0.5rem;
+}
+
+.landing-social-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+}
+
+.landing-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--bb-line-on-dark);
+  background: var(--bb-brown-850);
+  color: var(--bb-cream-100);
+  transition:
+    background-color 0.2s var(--bb-ease-out),
+    border-color 0.2s var(--bb-ease-out),
+    color 0.2s var(--bb-ease-out),
+    transform 0.2s var(--bb-ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .landing-social-link:hover {
+    background: var(--bb-mustard-500);
+    border-color: var(--bb-mustard-500);
+    color: var(--bb-on-accent);
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-social-link {
+    transition: none;
+  }
+  .landing-social-link:hover {
+    transform: none;
+  }
+}
+
 .landing-footer-heading {
   margin: 0 0 0.5rem;
   font-size: 0.75rem;

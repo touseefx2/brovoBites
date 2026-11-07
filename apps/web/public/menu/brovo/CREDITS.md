@@ -149,3 +149,13 @@ These replace the Wings, BBQ Wings, Buffalo Wings and Loaded Fries rows above. T
 | Loaded Fries, fries behind the top | David Foodphototasty (@phototastyfood) | Unsplash License | https://unsplash.com/photos/a-pile-of-french-fries-sitting-on-top-of-a-table-ZeunO7Zh_ko | Reflection removed, colour warmed |
 | Loaded Fries, chicken and sauces on top | Val Vesa | Unsplash License | https://unsplash.com/photos/loaded-fries-with-chicken-coleslaw-and-sauce-_qgMA9qL150 | Cut out; part of the white sauce recoloured orange |
 | Loaded Fries, foil tray and the cheese fries inside it | Bunly Hort; Jonathan Borba | Unsplash License | https://unsplash.com/photos/cooked-meat-sausage-and-potatoes-in-a-foil-container-FhvW9wODr6g and https://unsplash.com/photos/I-cgCz5DUi4 | Tray's own food removed; the cheese fries warped to fit and lightened |
+
+## Loaded Fries with the red tray (latest file `bb-v9-loaded-fries`)
+
+This replaces the Loaded Fries rows above. The sauces are drawn.
+
+| Part | Photographer | Licence | Source | Edits |
+|---|---|---|---|---|
+| Tray | Bunly Hort | Unsplash License | https://unsplash.com/photos/cooked-meat-sausage-and-potatoes-in-a-foil-container-FhvW9wODr6g | Food removed, recoloured to the fries box's red |
+| Fries | 정애 조 (@jojeongae) | Unsplash License | https://unsplash.com/photos/a-pile-of-french-fries-sitting-on-top-of-a-white-paper-oDzmUuZfntk | Cut out, layered into a heap |
+| Crispy bits | Alankrit Saini | Pexels License | https://www.pexels.com/photo/close-up-of-crispy-fried-chicken-on-plate-33254639/ | Small pieces of the crust, recoloured |

@@ -635,9 +635,31 @@ export function buildReceiptHtml(opts: ReceiptOptions): string {
 /**
  * Prints the receipt — by default THREE pages (customer + branch + kitchen).
  * Each copy is a separate print page so thermal cutters can cut between them.
+ *
+ * When the local print server is available (POS counter Mac with USB printer),
+ * sends ESC/POS commands directly — no browser dialog, correct paper width,
+ * and the auto-cutter fires between copies. Falls back to the browser print
+ * dialog when the server is unreachable (e.g. deployed on Vercel).
  */
 export function printReceipt(opts: ReceiptOptions): boolean {
-  return printHtmlDocument(buildReceiptHtml(opts));
+  printReceiptDirect(opts);
+  return true;
+}
+
+async function printReceiptDirect(opts: ReceiptOptions): Promise<void> {
+  try {
+    const { buildReceiptEscPos } = await import("./escpos");
+    const bytes = buildReceiptEscPos(opts);
+    const res = await fetch("/api/local-print", {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: bytes.buffer as ArrayBuffer,
+    });
+    if (res.ok) return;
+  } catch {
+    // Server unreachable — fall back to browser print.
+  }
+  printHtmlDocument(buildReceiptHtml(opts));
 }
 
 /**

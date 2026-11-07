@@ -19,6 +19,18 @@ test.describe("deals", () => {
     await expect(page.getByRole("heading", { name: "ALA-CARTE" }).first()).toBeAttached();
     await page.locator(".landing-menu-search-input").fill("deal");
     await expect(page.locator(".landing-part-title")).toHaveCount(0);
+
+    // The shop's social accounts are in the footer, opening in a new tab.
+    for (const [name, href] of [
+      ["Facebook", "https://www.facebook.com/brovobites"],
+      ["Instagram", "https://www.instagram.com/brovobites"],
+      ["TikTok", "https://www.tiktok.com/@brovobites"],
+      ["YouTube", "https://www.youtube.com/@brovobites"],
+    ]) {
+      const link = page.getByRole("link", { name, exact: true });
+      await expect(link).toHaveAttribute("href", href);
+      await expect(link).toHaveAttribute("target", "_blank");
+    }
   });
 
   test("deal lines that aren't menu items survive an admin edit", async ({ page, request }) => {

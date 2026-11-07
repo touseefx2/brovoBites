@@ -139,6 +139,30 @@ function telHref(phone: string) {
   return `tel:${phone.replace(/[^+\d]/g, "")}`;
 }
 
+/** The shop's accounts. Same username everywhere; change it here if it ever changes. */
+const SOCIAL_LINKS = [
+  {
+    name: "Facebook",
+    href: "https://www.facebook.com/brovobites",
+    path: "M14 8.5V6.6c0-.8.5-1 .9-1H17V2h-2.9C11 2 9.8 4.2 9.8 6.2v2.3H7.5V12h2.3v10H14V12h2.7l.4-3.5H14Z",
+  },
+  {
+    name: "Instagram",
+    href: "https://www.instagram.com/brovobites",
+    path: "M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2Zm0 2A3.8 3.8 0 0 0 4 7.8v8.4A3.8 3.8 0 0 0 7.8 20h8.4a3.8 3.8 0 0 0 3.8-3.8V7.8A3.8 3.8 0 0 0 16.2 4H7.8ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm5.3-3.6a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6Z",
+  },
+  {
+    name: "TikTok",
+    href: "https://www.tiktok.com/@brovobites",
+    path: "M16.6 2h-3.2v13.4a2.9 2.9 0 1 1-2-2.8V9.3a6.2 6.2 0 1 0 5.2 6.1V8.6a7.6 7.6 0 0 0 4.4 1.4V6.8a4.4 4.4 0 0 1-4.4-4.8Z",
+  },
+  {
+    name: "YouTube",
+    href: "https://www.youtube.com/@brovobites",
+    path: "M22.5 7.2a2.8 2.8 0 0 0-2-2C18.8 4.7 12 4.7 12 4.7s-6.8 0-8.5.5a2.8 2.8 0 0 0-2 2A29 29 0 0 0 1 12a29 29 0 0 0 .5 4.8 2.8 2.8 0 0 0 2 2c1.7.5 8.5.5 8.5.5s6.8 0 8.5-.5a2.8 2.8 0 0 0 2-2A29 29 0 0 0 23 12a29 29 0 0 0-.5-4.8ZM9.8 15.2V8.8l5.7 3.2-5.7 3.2Z",
+  },
+] as const;
+
 function WhatsAppIcon({ size = 18 }: { size?: number }) {
   return (
     <svg
@@ -1682,6 +1706,27 @@ export function LandingPage() {
                 <span>{t("orderWhatsApp")}</span>
               </a>
             ) : null}
+            <div className="landing-footer-social">
+              <p className="landing-footer-heading">{t("landingFollowUs")}</p>
+              <ul className="landing-social-list">
+                {SOCIAL_LINKS.map((link) => (
+                  <li key={link.name}>
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="landing-social-link"
+                      aria-label={link.name}
+                      title={link.name}
+                    >
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" fillRule="evenodd" aria-hidden focusable="false">
+                        <path d={link.path} />
+                      </svg>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {grouped.length ? (
