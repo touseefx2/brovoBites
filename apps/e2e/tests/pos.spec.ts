@@ -33,6 +33,9 @@ test.describe("POS checkout", () => {
   });
 
   test("checkout with Print bill on saves the sale, clears the cart and starts a print job", async ({ page }) => {
+    // The path a shop PC takes on Vercel, where the server has no printer. It also keeps test
+    // slips away from a real printer on a machine that has one.
+    await page.route("**/api/local-print", (r) => r.fulfill({ status: 500, body: "" }));
     await login(page, STAFF_EMAIL, PASSWORD);
     const pos = new Pos(page);
     await pos.goto();
@@ -41,7 +44,7 @@ test.describe("POS checkout", () => {
     await pos.addProduct("Mineral Water 500ml");
     await pos.checkout({ customer }); // print switch left on (default)
 
-    // Receipt goes to a hidden print iframe; the cart is empty again.
+    // The server can't print, so the receipt goes to a hidden print iframe; the cart is empty again.
     await expect(page.locator("iframe[data-print-job]")).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Review bill" })).toBeDisabled();
     const order = await waitForOne("orders", { customerName: customer }, (d) => isTimestamp(d.data.syncedAtServer));

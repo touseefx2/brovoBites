@@ -9,7 +9,7 @@ import { isNoise, newSession, watchErrors, type Role } from "./support";
 type Screen = { path: string; name: string; extra?: (page: Page) => Promise<void> };
 
 async function settle(page: Page) {
-  await expect(page.locator("h1").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("main h1").first()).toBeVisible({ timeout: 30_000 });
   await expect(page.locator(".spinner")).toHaveCount(0, { timeout: 30_000 });
   await page.waitForTimeout(1_500); // late listener errors
 }
