@@ -65,7 +65,7 @@ import {
   writeCachedPosCatalog,
 } from "@/lib/pos-catalog";
 import type { PosCatalogSnapshot } from "@/lib/pos-catalog";
-import { buildReceiptHtml, printReceipt, receiptLabels } from "@/lib/print-receipt";
+import { buildReceiptHtml, printReceipt, receiptLabels, type ReceiptCopy } from "@/lib/print-receipt";
 import { reviewUrlOf } from "@/lib/review-request";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { checkLogout, reloadToLogin, stockChangesUploaded, syncBeforeLogout, type LogoutBlock } from "@/lib/logout-guard";
@@ -445,6 +445,9 @@ function PosApp() {
   const [deletedOrderIds, setDeletedOrderIds] = useState<Set<string>>(new Set());
   const catalogRefreshRef = useRef<(() => void) | null>(null);
   const [autoPrint, setAutoPrint] = useState(true);
+  const [printCopies, setPrintCopies] = useState<Set<ReceiptCopy>>(
+    () => new Set(["customer", "branch", "kitchen"]),
+  );
   const [clockNow, setClockNow] = useState(() => shopNow());
 
   const [clockWrong, setClockWrong] = useState(false);
@@ -887,6 +890,7 @@ function PosApp() {
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
+      copies: [...printCopies] as ReceiptCopy[],
     });
   }, [
     checkoutPreviewOpen,
@@ -915,6 +919,7 @@ function PosApp() {
     activeBranchName,
     softwareCompanyName,
     softwareCompanyPhone,
+    printCopies,
     t,
     dir,
   ]);
@@ -975,6 +980,7 @@ function PosApp() {
     setCustomerPhone("");
     setDeliveryAddress("");
     setTableNumber("");
+    setPrintCopies(new Set(["customer", "branch", "kitchen"]));
     setCheckoutPreviewOpen(true);
     void (async () => {
       try {
@@ -1012,6 +1018,7 @@ function PosApp() {
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
+      copies: [...printCopies] as ReceiptCopy[],
     });
   }
 
@@ -1121,7 +1128,7 @@ function PosApp() {
       setPaymentMethod("cash");
 
       void kickSync();
-      if (autoPrint) printOrderTicket(order);
+      if (autoPrint && printCopies.size > 0) printOrderTicket(order);
     } catch (e) {
       setCheckoutModalError(
         e instanceof PcClockWrongError ? t("pcClockBlocked") : checkoutFailMessage(e),
@@ -1742,15 +1749,42 @@ function PosApp() {
           <div className="pos-dialog relative z-10 flex max-h-[min(95dvh,42rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:rounded-2xl">
             {/* Header — title + customer + discount */}
             <div className="modal-dark-head shrink-0 px-4 pb-3.5 pt-4 sm:px-5 sm:pt-[1.125rem]">
-              <h2
-                id="checkout-preview-title"
-                className="pos-dialog-title text-xl sm:text-[1.375rem]"
-              >
-                {t("receiptPreview")}
-              </h2>
-              <p className="modal-dark-muted mt-0.5 text-[11px] leading-snug sm:text-xs">
-                {t("receiptPreviewHint")}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2
+                    id="checkout-preview-title"
+                    className="pos-dialog-title text-xl sm:text-[1.375rem]"
+                  >
+                    {t("receiptPreview")}
+                  </h2>
+                  <p className="modal-dark-muted mt-0.5 text-[11px] leading-snug sm:text-xs">
+                    {t("receiptPreviewHint")}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3 pt-0.5">
+                  {(["customer", "branch", "kitchen"] as const).map((copy) => {
+                    const checked = printCopies.has(copy);
+                    return (
+                      <label key={copy} className="flex cursor-pointer items-center gap-1.5 select-none">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setPrintCopies((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(copy)) next.delete(copy);
+                              else next.add(copy);
+                              return next;
+                            });
+                          }}
+                          className="size-4 rounded accent-amber-600"
+                        />
+                        <span className="text-xs font-medium text-stone-300 capitalize">{copy}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
               <div
                 className={`mt-3 grid grid-cols-1 gap-2.5 sm:gap-3 ${
                   orderType === "dine-in" || orderType === "delivery"
