@@ -44,6 +44,33 @@ const lilita = localFont({
   fallback: ["system-ui", "sans-serif"],
 });
 
+const JSON_LD_RESTAURANT = {
+  "@context": "https://schema.org",
+  "@type": "FastFoodRestaurant",
+  name: "Brovo Bites",
+  url: "https://brovobites.com",
+  logo: "https://ik.imagekit.io/elraggyoa/brovobites/static/logo-full.44e6ff8dcd.png",
+  image:
+    "https://ik.imagekit.io/elraggyoa/brovobites/static/menu/brovo/og-cover.9a98e187eb.jpg",
+  description:
+    "Fresh, loaded & always crispy. — Burgers · Wings · Wraps · Salads",
+  servesCuisine: ["Burgers", "Wings", "Wraps", "Fries", "Fast Food"],
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Street 2b, G-12/1",
+    addressLocality: "Islamabad",
+    postalCode: "44000",
+    addressCountry: "PK",
+  },
+  telephone: "+923149930219",
+  sameAs: [
+    "https://www.facebook.com/brovobites",
+    "https://www.instagram.com/brovobites",
+    "https://www.tiktok.com/@brovobites",
+    "https://www.youtube.com/@brovobites",
+  ],
+};
+
 export const metadata: Metadata = {
   title: "Brovo Bites",
   description: "Fresh, loaded & always crispy. — Burgers · Wings · Wraps · Salads",
@@ -90,6 +117,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: POS_THEME_BOOT_SCRIPT + LANDING_BOOT_SCRIPT }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_RESTAURANT) }}
+        />
       </head>
       <body className={`${notoUrdu.variable} ${lilita.variable}`}>
         <Providers>{children}</Providers>
