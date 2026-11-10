@@ -192,7 +192,7 @@ export function branchMapsUrl(branch: {
   const withPin = googleMapsUrl(
     branch.latitude,
     branch.longitude,
-    name || address || null,
+    searchLabel || null,
   );
   if (withPin) return withPin;
   if (!searchLabel) return null;

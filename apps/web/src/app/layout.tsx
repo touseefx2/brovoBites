@@ -4,8 +4,15 @@ import { Providers } from "@/components/Providers";
 import { POS_THEME_BOOT_SCRIPT } from "@/lib/pos-theme-script";
 import { LANDING_BOOT_SCRIPT } from "@/lib/landing-boot-script";
 import { SiteAnalytics } from "@/components/SiteAnalytics";
+import staticImages from "@/lib/static-images.imagekit.json";
 // Public website CSS only; staff routes add globals.css (StaffProviders).
 import "./public.css";
+
+const IK_ENDPOINT =
+  (process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?? "").trim().replace(/\/+$/, "") ||
+  "https://ik.imagekit.io/elraggyoa";
+const ikStaticUrl = (path: string) =>
+  `${IK_ENDPOINT}/${(staticImages.files as Record<string, string>)[path]}`;
 
 /** Visitor analytics run on the customer menu build only, and only where the measurement
  *  id is set (LIVE customer Vercel project). POS / admin, DEV and local track nothing. */
@@ -49,9 +56,8 @@ const JSON_LD_RESTAURANT = {
   "@type": "FastFoodRestaurant",
   name: "Brovo Bites",
   url: "https://brovobites.com",
-  logo: "https://ik.imagekit.io/elraggyoa/brovobites/static/logo-full.44e6ff8dcd.png",
-  image:
-    "https://ik.imagekit.io/elraggyoa/brovobites/static/menu/brovo/og-cover.9a98e187eb.jpg",
+  logo: ikStaticUrl("/logo-full.png"),
+  image: ikStaticUrl("/menu/brovo/og-cover.jpg"),
   description:
     "Fresh, loaded & always crispy. — Burgers · Wings · Wraps · Salads",
   servesCuisine: ["Burgers", "Wings", "Wraps", "Fries", "Fast Food"],

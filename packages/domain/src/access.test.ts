@@ -89,7 +89,7 @@ describe("branchMapsUrl", () => {
         longitude: 73.01,
       }),
     ).toBe(
-      "https://www.google.com/maps?q=Brovo%20Bites%20Main%20Branch&ll=33.69,73.01&z=17",
+      "https://www.google.com/maps?q=Brovo%20Bites%20Main%20Branch%2C%20Main%20Road&ll=33.69,73.01&z=17",
     );
   });
 
