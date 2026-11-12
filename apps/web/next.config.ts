@@ -101,7 +101,7 @@ const withPWA = withPWAInit({
         handler: "NetworkFirst",
         options: {
           cacheName: "pages-nav",
-          networkTimeoutSeconds: 10,
+          ...(isCustomerBuild ? {} : { networkTimeoutSeconds: 10 }),
           expiration: { maxEntries: 32 },
         },
       },
@@ -134,7 +134,7 @@ const withPWA = withPWAInit({
         handler: "NetworkFirst",
         options: {
           cacheName: "cross-origin",
-          networkTimeoutSeconds: 10,
+          ...(isCustomerBuild ? {} : { networkTimeoutSeconds: 10 }),
           expiration: { maxEntries: 32, maxAgeSeconds: 3600 },
         },
       },
