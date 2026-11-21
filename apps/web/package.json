@@ -13,7 +13,8 @@
     "copy-menu": "tsx scripts/copy-menu-dev-to-live.ts",
     "seed:e2e": "tsx scripts/seed-e2e.ts",
     "backfill-images": "tsx scripts/backfill-images.ts",
-    "images:sync": "tsx scripts/sync-static-images.ts"
+    "images:sync": "tsx scripts/sync-static-images.ts",
+    "receipt-logo": "tsx scripts/build-receipt-logo.ts"
   },
   "dependencies": {
     "@bravobites/domain": "workspace:^",

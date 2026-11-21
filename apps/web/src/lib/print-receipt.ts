@@ -6,6 +6,10 @@ import qrcode from "qrcode-generator";
 if (qrcode.stringToBytesFuncs?.["UTF-8"]) qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
 import type { MessageKey } from "@/i18n/dictionaries";
 import { reviewUrlOf } from "@/lib/review-request";
+import { RECEIPT_LOGO } from "@/lib/receipt-logo";
+
+/** Printed under the logo and branch on the customer copy. */
+export const RECEIPT_SITE = "brovobites.com";
 
 export type PrintReceiptLabels = {
   order: string;
@@ -175,6 +179,8 @@ function buildReceiptSection(opts: {
   kitchen?: boolean;
   /** Customer copy: Google review QR under the thanks line */
   reviewUrl?: string;
+  /** Customer copy: logo in place of the shop name, website under the branch */
+  logo?: boolean;
   softwareCompanyName?: string;
   softwareCompanyPhone?: string;
 }): string {
@@ -187,6 +193,7 @@ function buildReceiptSection(opts: {
     copyLabel,
     kitchen,
     reviewUrl,
+    logo,
     softwareCompanyName,
     softwareCompanyPhone,
   } = opts;
@@ -229,8 +236,13 @@ function buildReceiptSection(opts: {
 
   const header = `
     <div class="copy-label">${escapeHtml(copyLabel)}</div>
-    <h1>${escapeHtml(shopName)}</h1>
+    ${
+      logo
+        ? `<img class="logo" src="${RECEIPT_LOGO.pngDataUri}" alt="${escapeHtml(shopName)}" />`
+        : `<h1>${escapeHtml(shopName)}</h1>`
+    }
     ${branchName ? `<p class="branch">${escapeHtml(branchName)}</p>` : ""}
+    ${logo ? `<p class="site" dir="ltr">${RECEIPT_SITE}</p>` : ""}
     <div class="order-meta">
       <span>${escapeHtml(labels.order)} <span dir="ltr">${orderNumber}</span>${
     showReprint ? ` · ${escapeHtml(labels.reprint)}` : ""
@@ -403,6 +415,17 @@ function receiptCss(widthMm: number, paperMm: number): string {
       line-height: 1.25;
       text-align: center;
     }
+    /* Customer copy: the thermal logo (same 1-bit pixels the printer gets). */
+    .logo {
+      display: block;
+      width: 26mm;
+      height: 26mm;
+      margin: 4px auto 6px;
+    }
+    .site {
+      margin-top: 1px;
+      text-align: center;
+    }
     .branch {
       margin-top: 2px;
       text-align: center;
@@ -559,6 +582,7 @@ const NARROW_CSS = `
     .receipt { padding-left: 1mm; padding-right: 1mm; }
     .copy-label, .items .th, .vendor, .review { font-size: 10px; }
     .review .qr { width: 26mm; height: 26mm; }
+    .logo { width: 22mm; height: 22mm; }
     h1, .total-value { font-size: 14px; }
     .total-label { font-size: 12px; }
     .items .note { font-size: 10px; }
@@ -614,6 +638,7 @@ export function buildReceiptHtml(opts: ReceiptOptions): string {
         copyLabel: copyLabels[copy],
         kitchen: copy === "kitchen",
         reviewUrl: copy === "customer" ? reviewUrl : undefined,
+        logo: copy === "customer",
       }),
     )
     .join("");

@@ -1,0 +1,16 @@
+---
+description: Thermal receipt printing (POS80, ESC/POS) — receipt logo, ASCII text, print helper
+globs: apps/web/src/lib/escpos.ts,apps/web/src/lib/print-receipt.ts,apps/web/src/lib/receipt-logo.ts,apps/web/public/logo.png,apps/web/public/print-helper/**,apps/web/scripts/build-receipt-logo.ts
+alwaysApply: true
+---
+
+# Receipt printing
+
+- **Receipt logo comes from `apps/web/public/logo.png`.** After changing that logo, run `pnpm --filter web receipt-logo` in the same task and commit `apps/web/src/lib/receipt-logo.ts`. Never edit that generated file by hand. It is embedded on purpose (prints offline, no image request) — the one image not served by ImageKit.
+- Printer bytes: `apps/web/src/lib/escpos.ts`. Preview / browser print: `buildReceiptHtml` in `print-receipt.ts`. Change both together so paper and preview match.
+- Printer text must be plain ASCII (`toPrinterAscii`) — the POS80 prints UTF-8 (—, ·, Urdu) as garbage.
+- POS80 image rule: a `GS v 0` whose data starts with blank rows prints as garbage text. The logo must start on an inked row (the build script crops and checks; `image()` never starts a command on a blank row). ≤255 rows per command, no padding, under `ESC a 1`. A blank 24-row primer raster goes before the logo.
+- No ring / rotated text in the logo. Website = printer text under the branch.
+- No full cut on this printer — partial cut `GS V 66 n` only.
+- Changing printer bytes? Test on paper before shipping.
+- Deployed POS prints via the counter-Mac helper on `http://127.0.0.1:17800` (`apps/web/public/print-helper/install.sh`). Helper changes reach a Mac only when the installer is re-run there.
