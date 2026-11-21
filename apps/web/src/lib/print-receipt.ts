@@ -636,28 +636,76 @@ export function buildReceiptHtml(opts: ReceiptOptions): string {
  * Prints the receipt — by default THREE pages (customer + branch + kitchen).
  * Each copy is a separate print page so thermal cutters can cut between them.
  *
- * When the local print server is available (POS counter Mac with USB printer),
- * sends ESC/POS commands directly — no browser dialog, correct paper width,
+ * When the counter Mac's print helper is running (127.0.0.1:17800, see
+ * public/print-helper/install.sh) — or the local Next server on localhost —
+ * sends ESC/POS commands directly: no browser dialog, correct paper width,
  * and the auto-cutter fires between copies. Falls back to the browser print
- * dialog when the server is unreachable (e.g. deployed on Vercel).
+ * dialog only when neither is reachable.
  */
 export function printReceipt(opts: ReceiptOptions): boolean {
   printReceiptDirect(opts);
   return true;
 }
 
-async function printReceiptDirect(opts: ReceiptOptions): Promise<void> {
+/**
+ * Print helper on the counter Mac (public/print-helper/install.sh). The POS
+ * page runs on Vercel and cannot reach a USB printer; the helper listens on
+ * loopback and pipes the bytes to `lp -o raw`.
+ */
+const PRINT_HELPER_URL = "http://127.0.0.1:17800/print";
+
+type DirectResult = "printed" | "unreachable" | { error: string };
+
+async function postEscPos(url: string, bytes: Uint8Array, timeoutMs: number): Promise<DirectResult> {
+  const ctrl = new AbortController();
+  const timer = window.setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const { buildReceiptEscPos } = await import("./escpos");
-    const bytes = buildReceiptEscPos(opts);
-    const res = await fetch("/api/local-print", {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/octet-stream" },
-      body: bytes.buffer as ArrayBuffer,
+      body: bytes.slice().buffer as ArrayBuffer,
+      signal: ctrl.signal,
+      cache: "no-store",
     });
-    if (res.ok) return;
+    if (res.ok) return "printed";
+    if (res.status === 404 || res.status === 405) return "unreachable";
+    const data = (await res.json().catch(() => null)) as { error?: string } | null;
+    return { error: data?.error || `HTTP ${res.status}` };
   } catch {
-    // Server unreachable — fall back to browser print.
+    // Not running / blocked / timed out.
+    return "unreachable";
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+function isLocalHost(): boolean {
+  const h = window.location.hostname;
+  return h === "localhost" || h === "127.0.0.1";
+}
+
+async function printReceiptDirect(opts: ReceiptOptions): Promise<void> {
+  let bytes: Uint8Array;
+  try {
+    const { buildReceiptEscPos } = await import("./escpos");
+    bytes = buildReceiptEscPos(opts);
+  } catch {
+    printHtmlDocument(buildReceiptHtml(opts));
+    return;
+  }
+
+  // Long timeout: the first print waits on Chrome's "allow local access" prompt.
+  let result = await postEscPos(PRINT_HELPER_URL, bytes, 60_000);
+  if (result === "unreachable" && isLocalHost()) {
+    // `pnpm dev` on the counter Mac: the Next route runs `lp` itself.
+    result = await postEscPos("/api/local-print", bytes, 15_000);
+  }
+  if (result === "printed") return;
+  if (result !== "unreachable") {
+    // The printer is there but refused the job. The browser dialog would send
+    // the same printer a PDF it prints as pages of garbage — report instead.
+    window.alert(`Printer error: ${result.error}`);
+    return;
   }
   printHtmlDocument(buildReceiptHtml(opts));
 }
