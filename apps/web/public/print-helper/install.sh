@@ -165,10 +165,17 @@ sub handle {
   close $fh;
 
   # A failed USB send pauses the CUPS queue; un-pause it so this job goes out.
-  system("/usr/sbin/cupsenable '$PRINTER' >/dev/null 2>&1");
-  my $out = `/usr/bin/lp -d '$PRINTER' -o raw '$file' 2>&1`;
-  my $rc = $?;
+  # eval: the 20s alarm can fire while lp hangs — the temp file must still go.
+  my ($out, $rc);
+  my $ok = eval {
+    system("/usr/sbin/cupsenable '$PRINTER' >/dev/null 2>&1");
+    $out = `/usr/bin/lp -d '$PRINTER' -o raw '$file' 2>&1`;
+    $rc = $?;
+    1;
+  };
+  my $err = $@;
   unlink $file;
+  die $err unless $ok;
   if ($rc != 0) {
     logmsg("lp failed: $out");
     return reply($c, 500, '{"error":' . json_str($out || 'lp failed') . '}', $origin);
@@ -221,7 +228,8 @@ echo "Helper running on 127.0.0.1:$PORT (starts by itself after every restart)."
 if [[ "${1:-}" != "--no-test" ]]; then
   printf '\x1B\x40\x1B\x61\x01Brovo Bites\nPrinter ready\n\n\n\n\x1D\x56\x42\x03' \
     | curl -fsS -X POST --data-binary @- -H 'Content-Type: application/octet-stream' \
-      "http://127.0.0.1:$PORT/print" >/dev/null && echo "Test slip sent to $PRINTER."
+      "http://127.0.0.1:$PORT/print" >/dev/null && echo "Test slip sent to $PRINTER." \
+    || echo "Test slip failed — check the printer is ON with paper (log: $LOG). The helper is installed."
 fi
 
 echo ""
