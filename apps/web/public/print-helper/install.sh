@@ -53,6 +53,9 @@ else
   lpadmin -p "$PRINTER" -E -v "$URI" -m drv:///sample.drv/generic.ppd
   echo "Printer $PRINTER added."
 fi
+# Jobs stuck from before (browser prints sent through the PostScript driver)
+# would come out as pages of garbage the moment the queue resumes.
+cancel -a "$PRINTER" 2>/dev/null || true
 cupsenable "$PRINTER" 2>/dev/null || true
 cupsaccept "$PRINTER" 2>/dev/null || true
 

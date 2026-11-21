@@ -707,8 +707,23 @@ async function printReceiptDirect(opts: ReceiptOptions): Promise<void> {
     window.alert(`Printer error: ${result.error}`);
     return;
   }
+  // A Mac has no thermal-printer driver: the dialog's default POS80 queue
+  // prints the PDF as endless pages of PostScript text. Ask before opening it.
+  if (isMac() && !window.confirm(MAC_NO_HELPER_MESSAGE)) return;
   printHtmlDocument(buildReceiptHtml(opts));
 }
+
+function isMac(): boolean {
+  return /Mac/i.test(navigator.platform || navigator.userAgent);
+}
+
+const MAC_NO_HELPER_MESSAGE =
+  "Receipt printer helper not reachable — the receipt was NOT printed.\n\n" +
+  "• Chrome: click the icon left of the address bar → Site settings → allow access to apps on this device, then print again.\n" +
+  "• Or install the helper: in Terminal run\n" +
+  "  curl -fsSL https://pos.brovobites.com/print-helper/install.sh | bash\n\n" +
+  "OK = open the browser print dialog anyway (do NOT choose POS80 there — it prints garbage).\n" +
+  "Cancel = don't print.";
 
 /**
  * Prints a complete HTML document through a hidden iframe (the browser's
