@@ -14,7 +14,8 @@ const LF  = 0x0a;
 const COLS = 48;
 
 const CMD = {
-  init:           [ESC, 0x40],
+  // ESC @ reset, FS . leave Chinese (Kanji) mode, ESC t 0 code page PC437.
+  init:           [ESC, 0x40, 0x1c, 0x2e, ESC, 0x74, 0x00],
   centerAlign:    [ESC, 0x61, 0x01],
   leftAlign:      [ESC, 0x61, 0x00],
   rightAlign:     [ESC, 0x61, 0x02],
@@ -26,6 +27,25 @@ const CMD = {
   partialCut:     [GS,  0x56, 0x42, 0x03],
 } as const;
 
+/*
+ * The counter printer (POS80 / Xprinter family) starts in Chinese double-byte
+ * mode: any byte ≥ 0x80 pairs with the next one into a Chinese glyph — the
+ * UTF-8 of "—" or "·" printed as strange characters and swallowed the space
+ * after it. Receipt text is sent as plain ASCII.
+ */
+const ASCII_SUBSTITUTES: Record<string, string> = {
+  "—": "-", "–": "-", "−": "-", "‐": "-", "·": "-", "•": "*",
+  "…": "...", "»": ">>", "«": "<<",
+  "‘": "'", "’": "'", "“": '"', "”": '"', " ": " ",
+};
+
+function toPrinterAscii(s: string): string {
+  return s
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "") // é → e
+    .replace(/[^\x20-\x7e\n]/g, (ch) => ASCII_SUBSTITUTES[ch] ?? "?");
+}
+
 class EscPosBuffer {
   private parts: (Uint8Array | number[])[] = [];
 
@@ -35,7 +55,7 @@ class EscPosBuffer {
   }
 
   text(s: string): this {
-    this.parts.push(new TextEncoder().encode(s));
+    this.parts.push(new TextEncoder().encode(toPrinterAscii(s)));
     return this;
   }
 
@@ -76,7 +96,7 @@ class EscPosBuffer {
     const q = qty.padStart(qCol - 1) + " ";
     const a = amt.padStart(aCol);
     let n = name;
-    if (n.length > nCol) n = n.slice(0, nCol - 1) + "…";
+    if (n.length > nCol) n = n.slice(0, nCol - 3) + "...";
     else n = n.padEnd(nCol);
     return this.line(q + n + a);
   }
