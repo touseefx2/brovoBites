@@ -2011,7 +2011,9 @@ function PosApp() {
                           inputMode="decimal"
                           value={manualDlvText}
                           onChange={(e) => {
-                            const raw = e.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+                            const digits = e.target.value.replace(/[^\d.]/g, "");
+                            const [int, ...rest] = digits.split(".");
+                            const raw = rest.length ? `${int}.${rest.join("")}` : int;
                             setManualDlvText(raw);
                             setManualDlvAmount(Math.max(0, Number(raw) || 0));
                           }}
