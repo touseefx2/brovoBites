@@ -358,6 +358,11 @@ function buildCopyEscPos(
  * (customer, branch, kitchen) that the HTML builder produces, each followed
  * by a cut: partial between copies, full after the last.
  */
+const COPY_ORDER: ReceiptCopy[] = ["customer", "branch", "kitchen"];
+function canonicalCopies(copies: ReceiptCopy[]): ReceiptCopy[] {
+  return COPY_ORDER.filter((c) => copies.includes(c));
+}
+
 export function buildReceiptEscPos(opts: ReceiptOptions): Uint8Array {
   const {
     order, shopName, branchName, labels, showReprint,
@@ -372,10 +377,18 @@ export function buildReceiptEscPos(opts: ReceiptOptions): Uint8Array {
     kitchen: labels.kitchenCopy,
   };
 
+  const sorted = canonicalCopies(copies);
   const buf = new EscPosBuffer();
   buf.init();
 
-  copies.forEach((copy) => {
+  // When the first copy is not the customer copy (which has its own blank-raster
+  // primer), feed a few blank lines so the POS80 doesn't swallow the first text
+  // line of the job (same firmware quirk that skips the first image).
+  if (sorted.length > 0 && sorted[0] !== "customer") {
+    buf.lf(3);
+  }
+
+  sorted.forEach((copy) => {
     buildCopyEscPos(buf, {
       order, shopName, branchName, labels, showReprint,
       copyLabel: copyLabels[copy],

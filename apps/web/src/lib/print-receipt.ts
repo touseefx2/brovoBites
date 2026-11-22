@@ -631,7 +631,9 @@ export function buildReceiptHtml(opts: ReceiptOptions): string {
     branch: labels.branchCopy,
     kitchen: labels.kitchenCopy,
   };
-  const sections = copies
+  const COPY_ORDER: ReceiptCopy[] = ["customer", "branch", "kitchen"];
+  const sorted = COPY_ORDER.filter((c) => copies.includes(c));
+  const sections = sorted
     .map((copy) =>
       buildReceiptSection({
         ...shared,

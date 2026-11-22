@@ -444,7 +444,13 @@ function PosApp() {
   const [mutationOrderIds, setMutationOrderIds] = useState<Set<string>>(new Set());
   const [deletedOrderIds, setDeletedOrderIds] = useState<Set<string>>(new Set());
   const catalogRefreshRef = useRef<(() => void) | null>(null);
-  const [autoPrint, setAutoPrint] = useState(true);
+  const [autoPrint, setAutoPrint] = useState(() => {
+    try {
+      const saved = localStorage.getItem("pos:autoPrint");
+      if (saved !== null) return saved === "1";
+    } catch {}
+    return true;
+  });
   const [printCopies, setPrintCopies] = useState<Set<ReceiptCopy>>(() => {
     try {
       const saved = localStorage.getItem("pos:printCopies");
@@ -452,11 +458,21 @@ function PosApp() {
     } catch {}
     return new Set(["customer", "branch", "kitchen"]);
   });
+  const [manualDlv, setManualDlv] = useState(() => {
+    try { return localStorage.getItem("pos:manualDlv") === "1"; } catch {} return false;
+  });
+  const [manualDlvAmount, setManualDlvAmount] = useState(0);
   const [clockNow, setClockNow] = useState(() => shopNow());
 
   useEffect(() => {
     try { localStorage.setItem("pos:printCopies", JSON.stringify([...printCopies])); } catch {}
   }, [printCopies]);
+  useEffect(() => {
+    try { localStorage.setItem("pos:autoPrint", autoPrint ? "1" : "0"); } catch {}
+  }, [autoPrint]);
+  useEffect(() => {
+    try { localStorage.setItem("pos:manualDlv", manualDlv ? "1" : "0"); } catch {}
+  }, [manualDlv]);
 
   const [clockWrong, setClockWrong] = useState(false);
 
@@ -850,7 +866,7 @@ function PosApp() {
 
   const subtotal = cartSubtotal(cart);
   const taxPercent = lockedTaxPercent ?? liveTaxPercent;
-  const dlvChargesBase = lockedDlvCharges ?? liveDlvCharges;
+  const dlvChargesBase = manualDlv ? manualDlvAmount : (lockedDlvCharges ?? liveDlvCharges);
   const dlvCharges = orderType === "delivery" ? dlvChargesBase : 0;
   const taxAmount = taxPercent > 0 ? money(subtotal * taxPercent / 100) : 0;
   const discountAmount = discountValue > 0
@@ -1131,6 +1147,7 @@ function PosApp() {
       setTableNumber("");
       setDiscountType("percent");
       setDiscountValue(0);
+      setManualDlvAmount(0);
       setOrderType("dine-in");
       setPaymentMethod("cash");
 
@@ -1953,6 +1970,71 @@ function PosApp() {
                         </button>
                       ) : null}
                     </div>
+                  </section>
+                ) : null}
+
+                {orderType === "delivery" ? (
+                  <section>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <label
+                        htmlFor="checkout-manual-dlv"
+                        className="modal-dark-label text-xs font-semibold"
+                      >
+                        {t("deliveryCharges")}
+                      </label>
+                      <label className="flex cursor-pointer items-center gap-1.5 select-none">
+                        <span className="text-[10px] font-medium text-stone-400">
+                          {manualDlv ? t("manualDeliveryCharges") : t("autoDeliveryCharges")}
+                        </span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={manualDlv}
+                          onClick={() => {
+                            setManualDlv((v) => !v);
+                            setManualDlvAmount(0);
+                          }}
+                          className={`pos-switch relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${manualDlv ? "is-on" : ""}`}
+                        >
+                          <span className={`inline-block size-3.5 rounded-full bg-white shadow transition-transform ${manualDlv ? "translate-x-[1.125rem] rtl:-translate-x-[1.125rem]" : "translate-x-[0.1875rem] rtl:-translate-x-[0.1875rem]"}`} />
+                        </button>
+                      </label>
+                    </div>
+                    {manualDlv ? (
+                      <div className="relative">
+                        <input
+                          id="checkout-manual-dlv"
+                          type="text"
+                          inputMode="decimal"
+                          value={manualDlvAmount || ""}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^\d.]/g, "");
+                            setManualDlvAmount(Math.max(0, Number(raw) || 0));
+                          }}
+                          className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
+                          dir="ltr"
+                          placeholder="0"
+                        />
+                        {manualDlvAmount ? (
+                          <button
+                            type="button"
+                            className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
+                            aria-label={t("clear")}
+                            onClick={() => setManualDlvAmount(0)}
+                          >
+                            <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+                                <path d="M18 6 6 18M6 6l12 12" />
+                              </svg>
+                            </span>
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="text-xs tabular-nums text-stone-400" dir="ltr">
+                        {formatPkr(lockedDlvCharges ?? liveDlvCharges)}
+                      </p>
+                    )}
                   </section>
                 ) : null}
 
