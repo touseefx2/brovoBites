@@ -462,6 +462,7 @@ function PosApp() {
     try { return localStorage.getItem("pos:manualDlv") === "1"; } catch {} return false;
   });
   const [manualDlvAmount, setManualDlvAmount] = useState(0);
+  const [manualDlvText, setManualDlvText] = useState("");
   const [clockNow, setClockNow] = useState(() => shopNow());
 
   useEffect(() => {
@@ -1147,6 +1148,7 @@ function PosApp() {
       setTableNumber("");
       setDiscountType("percent");
       setDiscountValue(0);
+      setManualDlvText("");
       setManualDlvAmount(0);
       setOrderType("dine-in");
       setPaymentMethod("cash");
@@ -1992,6 +1994,7 @@ function PosApp() {
                           aria-checked={manualDlv}
                           onClick={() => {
                             setManualDlv((v) => !v);
+                            setManualDlvText("");
                             setManualDlvAmount(0);
                           }}
                           className={`pos-switch relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${manualDlv ? "is-on" : ""}`}
@@ -2006,21 +2009,22 @@ function PosApp() {
                           id="checkout-manual-dlv"
                           type="text"
                           inputMode="decimal"
-                          value={manualDlvAmount || ""}
+                          value={manualDlvText}
                           onChange={(e) => {
                             const raw = e.target.value.replace(/[^\d.]/g, "");
+                            setManualDlvText(raw);
                             setManualDlvAmount(Math.max(0, Number(raw) || 0));
                           }}
                           className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
                           dir="ltr"
                           placeholder="0"
                         />
-                        {manualDlvAmount ? (
+                        {manualDlvText ? (
                           <button
                             type="button"
                             className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
                             aria-label={t("clear")}
-                            onClick={() => setManualDlvAmount(0)}
+                            onClick={() => { setManualDlvText(""); setManualDlvAmount(0); }}
                           >
                             <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
