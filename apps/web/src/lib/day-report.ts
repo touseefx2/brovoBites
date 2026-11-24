@@ -225,11 +225,21 @@ export interface DealPartStat {
  * from before deal lines carried their contents use the menu's deal, when
  * `products` is given.
  */
+/** "3" / "15 pcs" / "2 + 15 pcs" — whole items, then pieces of pack items. */
+export function dealPartCount(s: DealPartStat): string {
+  if (s.pieces && s.qty) return `${s.qty} + ${s.pieces} pcs`;
+  if (s.pieces) return `${s.pieces} pcs`;
+  return String(s.qty);
+}
+
+/** A menu item as the reports have it (deal contents / sizes when the full menu is at hand). */
+export type DealMenuItem = Pick<Product, "id" | "name"> & Partial<Pick<Product, "type" | "dealItems" | "variations">>;
+
 export function computeDealPartSales(
   orders: Order[],
   from: Date | null,
   to: Date | null,
-  products?: Product[],
+  products?: DealMenuItem[],
 ): DealPartStat[] {
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
   const norm = (x: string) => x.trim().toLowerCase().replace(/\s+/g, " ");
@@ -241,8 +251,8 @@ export function computeDealPartSales(
       const legacy = byId.get(item.productId);
       const parts: OrderItemPart[] | undefined = item.parts?.length
         ? item.parts
-        : legacy
-          ? dealParts(legacy)
+        : legacy?.type === "bundle" && legacy.dealItems?.length
+          ? dealParts(legacy as Product)
           : undefined;
       if (!parts) continue;
       for (const part of parts) {
@@ -254,7 +264,7 @@ export function computeDealPartSales(
         const own = splitPack(part.label);
         const pack = part.pieces ? 0 : own.pack || named.pack;
         const size = !part.pieces && !pack && part.variationId
-          ? product?.variations.find((v) => v.id === part.variationId)
+          ? product?.variations?.find((v) => v.id === part.variationId)
           : undefined;
         const base = pack
           ? (own.pack ? own.base : named.base)

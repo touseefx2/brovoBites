@@ -1,14 +1,7 @@
 "use client";
 
-import type { DealPartStat } from "@/lib/day-report";
+import { dealPartCount, type DealPartStat } from "@/lib/day-report";
 import { useLocale } from "@/i18n/locale-context";
-
-/** "3" / "15 pcs" / "2 + 15 pcs" — whole items, then pieces of pack items. */
-export function dealPartCount(s: DealPartStat): string {
-  if (s.pieces && s.qty) return `${s.qty} + ${s.pieces} pcs`;
-  if (s.pieces) return `${s.pieces} pcs`;
-  return String(s.qty);
-}
 
 /**
  * Items that went out inside deals (menu, changed and custom deals) — so the
