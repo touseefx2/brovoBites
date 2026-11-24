@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Branch, Order } from "@bravobites/domain";
+import type { Branch, Order, Product } from "@bravobites/domain";
 import {
   businessDateKey,
   businessDayHoursFromSettings,
@@ -19,9 +19,10 @@ import { shopNow } from "@/lib/shop-clock";
 import { LoadError, PageSpinner } from "@/components/Loading";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { useRetryOnReconnect } from "@/lib/use-retry-on-reconnect";
-import { fetchBranches, onOrdersSnapshot, onSettingsSnapshot } from "@/lib/firestore";
+import { fetchBranches, fetchProducts, onOrdersSnapshot, onSettingsSnapshot } from "@/lib/firestore";
 import { openDatePicker } from "@/lib/open-date-picker";
-import { computeItemSales } from "@/lib/day-report";
+import { computeDealPartSales, computeItemSales } from "@/lib/day-report";
+import { DealPartsSales } from "@/components/DealPartsSales";
 import { OrderRangeGuardNotice, useOrderRangeGuard } from "@/lib/use-order-range-guard";
 import type { Unsubscribe } from "firebase/firestore";
 import type { ShopSettings } from "@bravobites/domain";
@@ -194,6 +195,25 @@ export default function ItemSalesPage() {
     if (sortBy === "revenue") result.sort((a, b) => b.revenue - a.revenue);
     return result;
   }, [orders, dateRange, sortBy]);
+
+  // What went out inside deals. The menu is read once: deals sold before deal
+  // lines carried their contents count by the menu's deal.
+  const [menuProducts, setMenuProducts] = useState<Product[] | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    fetchProducts()
+      .then((list) => {
+        if (alive) setMenuProducts(list);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const dealPartStats = useMemo(
+    () => computeDealPartSales(orders, dateRange.from, dateRange.to, menuProducts),
+    [orders, dateRange, menuProducts],
+  );
 
   const periodMoney = useMemo(() => {
     const { from, to } = dateRange;
@@ -557,6 +577,14 @@ export default function ItemSalesPage() {
               </div>
             </div>
           )}
+        </CollapsibleSection>
+      ) : null}
+
+      {guard.approved && !loading && !loadError && dealPartStats.length > 0 ? (
+        <CollapsibleSection title={t("reportInsideDeals")} count={dealPartStats.length} className="mt-4">
+          <div className="pt-3">
+            <DealPartsSales rows={dealPartStats} />
+          </div>
         </CollapsibleSection>
       ) : null}
     </div>

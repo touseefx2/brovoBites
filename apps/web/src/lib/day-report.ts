@@ -1,5 +1,5 @@
-import type { Expense, Order } from "@bravobites/domain";
-import { money } from "@bravobites/domain";
+import type { Expense, Order, OrderItemPart, Product } from "@bravobites/domain";
+import { dealParts, money, splitPack } from "@bravobites/domain";
 
 /**
  * Day-end math shared by admin Day report, Item sales and the POS report
@@ -205,6 +205,78 @@ export function computeItemSales(
     }
   }
   return Array.from(map.values()).sort((a, b) => b.qty - a.qty);
+}
+
+/** One item that went out inside deals: whole items, or pieces for pack items. */
+export interface DealPartStat {
+  key: string;
+  productId?: string;
+  name: string;
+  /** Whole items (burgers, drinks…). */
+  qty: number;
+  /** Pack items in pieces: full packs × their pieces + loose pieces ("Nuggets" 6 + 3). */
+  pieces: number;
+}
+
+/**
+ * What went out inside deals (menu deals, changed and custom deals) over
+ * non-cancelled orders — each deal line's contents × how many of it. One row
+ * per item, whether the deal linked it to the menu or only named it. Orders
+ * from before deal lines carried their contents use the menu's deal, when
+ * `products` is given.
+ */
+export function computeDealPartSales(
+  orders: Order[],
+  from: Date | null,
+  to: Date | null,
+  products?: Product[],
+): DealPartStat[] {
+  const byId = new Map((products ?? []).map((p) => [p.id, p]));
+  const norm = (x: string) => x.trim().toLowerCase().replace(/\s+/g, " ");
+  const map = new Map<string, DealPartStat>();
+  for (const order of ordersInRange(orders, from, to)) {
+    if (order.status === "cancelled") continue;
+    for (const item of order.items) {
+      if (!(item.qty > 0)) continue;
+      const legacy = byId.get(item.productId);
+      const parts: OrderItemPart[] | undefined = item.parts?.length
+        ? item.parts
+        : legacy
+          ? dealParts(legacy)
+          : undefined;
+      if (!parts) continue;
+      for (const part of parts) {
+        if (!(part.qty > 0)) continue;
+        const product = part.productId ? byId.get(part.productId) : undefined;
+        // Pieces sold loose, or a full pack named "(6 pcs)" by the part / its menu item.
+        const label = part.pieces ? splitPack(part.label).base : part.label;
+        const named = splitPack(product?.name ?? part.label);
+        const own = splitPack(part.label);
+        const pack = part.pieces ? 0 : own.pack || named.pack;
+        const size = !part.pieces && !pack && part.variationId
+          ? product?.variations.find((v) => v.id === part.variationId)
+          : undefined;
+        const base = pack
+          ? (own.pack ? own.base : named.base)
+          : product
+            ? splitPack(product.name).base + (size ? ` (${size.label})` : "")
+            : part.pieces
+              ? label
+              : part.label;
+        const key = norm(part.pieces || pack ? splitPack(base).base : base);
+        let stat = map.get(key);
+        if (!stat) {
+          stat = { key, ...(part.productId ? { productId: part.productId } : {}), name: part.pieces || pack ? splitPack(base).base : base, qty: 0, pieces: 0 };
+          map.set(key, stat);
+        }
+        if (part.pieces) stat.pieces += part.pieces * item.qty;
+        else if (pack) stat.pieces += part.qty * pack * item.qty;
+        else stat.qty += part.qty * item.qty;
+        if (!stat.productId && part.productId) stat.productId = part.productId;
+      }
+    }
+  }
+  return [...map.values()].sort((a, b) => b.qty + b.pieces - (a.qty + a.pieces) || a.name.localeCompare(b.name));
 }
 
 export type SalesBridgeKey =

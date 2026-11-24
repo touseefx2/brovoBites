@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   AppUser,
+  Category,
   DiscountType,
   Order,
   OrderItem,
@@ -19,6 +20,8 @@ import {
   canDeleteOrder,
   canEditOrder,
   canRefundOrder,
+  CUSTOM_DEAL_ID,
+  dealParts,
   DEFAULT_SETTINGS,
   formatOrderDateTime,
   formatOrderNumber,
@@ -49,6 +52,8 @@ import { buildReceiptHtml, printReceipt, receiptLabels, type ReceiptCopy } from 
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { reviewUrlOf } from "@/lib/review-request";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { DealEditorSheet, type DealEditResult } from "@/components/DealEditorSheet";
+import { resolveProductImage } from "@/lib/menu-images";
 
 function cloneItems(items: OrderItem[]): OrderItem[] {
   return items.map((i) => ({ ...i }));
@@ -93,6 +98,7 @@ export function OrderDetailSheet({
   settings,
   branchName,
   catalogProducts,
+  catalogCategories,
   onClose,
   onSaved,
   onDeleted,
@@ -107,6 +113,8 @@ export function OrderDetailSheet({
    * Admin pages omit this and still fetch once when opening the item picker.
    */
   catalogProducts?: Product[];
+  /** Menu categories for the deal editor's tabs (optional — without them it shows "All"). */
+  catalogCategories?: Category[];
   onClose: () => void;
   onSaved: (order: Order) => void;
   onDeleted: (orderId: string) => void;
@@ -338,15 +346,17 @@ export function OrderDetailSheet({
 
   function addProduct(product: Product, variationId?: string, variationLabel?: string, price?: number) {
     const unitPrice = price ?? product.basePrice;
+    // A deal changed at the counter is its own line — a plain one is never merged into it.
     const existing = draft.findIndex(
       (d) =>
         d.productId === product.id &&
         (d.variationId ?? "") === (variationId ?? "") &&
-        !d.parts?.length,
+        !d.changed,
     );
     if (existing >= 0) {
       setQty(existing, draft[existing].qty + 1);
     } else {
+      const parts = dealParts(product);
       setDraft((prev) => [
         ...prev,
         {
@@ -357,10 +367,59 @@ export function OrderDetailSheet({
           unitPrice,
           qty: 1,
           lineTotal: unitPrice,
+          ...(parts ? { parts, changed: false } : {}),
         },
       ]);
     }
     setPickerOpen(false);
+  }
+
+  /* ── Change a deal on a saved order (same editor as the POS cart) ── */
+  const [dealEditIndex, setDealEditIndex] = useState<number | null>(null);
+  const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+
+  /** A deal line the editor can open: a custom deal, or a menu deal still on the menu. */
+  function canCustomizeItem(item: OrderItem): boolean {
+    if (item.productId === CUSTOM_DEAL_ID) return true;
+    return productById.get(item.productId)?.type === "bundle";
+  }
+
+  // Deal lines need the menu to show a Customize button (POS has it already; admin loads it once).
+  useEffect(() => {
+    if (!allowEdit) return;
+    if (order.items.some((i) => i.parts?.length || i.productId === CUSTOM_DEAL_ID)) void loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowEdit]);
+
+  function applyOrderDealEdit(result: DealEditResult) {
+    const index = dealEditIndex;
+    setDealEditIndex(null);
+    if (index == null) return;
+    setDraft((list) => {
+      const target = list[index];
+      if (!target) return list;
+      const fields = (qty: number): OrderItem => ({
+        productId: result.productId,
+        productName: result.productName,
+        unitPrice: result.unitPrice,
+        qty,
+        lineTotal: lineTotal(result.unitPrice, qty),
+        parts: result.parts,
+        changed: result.changed,
+        ...(target.note ? { note: target.note } : {}),
+      });
+      // Opened and saved with nothing changed: keep the line as it was.
+      if (!result.changed && !target.changed) return list;
+      // Plain deal ×3 → the change is for one of them: split it off.
+      if (result.changed && !target.changed && target.qty > 1) {
+        const next = list.map((l, i) =>
+          i === index ? { ...l, qty: l.qty - 1, lineTotal: lineTotal(l.unitPrice, l.qty - 1) } : l,
+        );
+        next.splice(index + 1, 0, fields(1));
+        return next;
+      }
+      return list.map((l, i) => (i === index ? fields(target.qty) : l));
+    });
   }
 
   const filteredProducts = useMemo(() => {
@@ -1005,8 +1064,22 @@ export function OrderDetailSheet({
                         </div>
                         {item.parts?.length ? (
                           <p className="mt-0.5 text-[11px] leading-snug text-stone-600">
+                            {item.changed && item.productId !== CUSTOM_DEAL_ID ? (
+                              <span className="pos-variant-chip me-1.5">{t("dealCustomized")}</span>
+                            ) : null}
                             {item.parts.map(partText).join(" · ")}
                           </p>
+                        ) : null}
+                        {allowEdit && !isCancelled && canCustomizeItem(item) ? (
+                          <button
+                            type="button"
+                            className="pos-cart-customize-btn mt-1.5"
+                            disabled={busy}
+                            onClick={() => setDealEditIndex(index)}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                            {t("customizeDeal")}
+                          </button>
                         ) : null}
                         {item.note ? (
                           <p className="mt-0.5 truncate text-[11px] italic text-stone-500">
@@ -1529,6 +1602,31 @@ export function OrderDetailSheet({
           </div>
         </div>
       )}
+
+      {dealEditIndex != null && draft[dealEditIndex] ? (() => {
+        const item = draft[dealEditIndex]!;
+        const custom = item.productId === CUSTOM_DEAL_ID;
+        const product = custom ? undefined : productById.get(item.productId);
+        if (!custom && !product) return null;
+        const catName = new Map((catalogCategories ?? []).map((c) => [c.id, c.name]));
+        return (
+          <DealEditorSheet
+            key={`${dealEditIndex}-${item.productId}`}
+            mode={custom ? "custom" : "deal"}
+            product={product}
+            line={item}
+            menu={products}
+            categories={catalogCategories ?? []}
+            imageOf={(productId, name) => {
+              const p = productId ? productById.get(productId) : undefined;
+              return resolveProductImage(p?.imageUrl, p?.name ?? name, p ? catName.get(p.categoryId) : undefined);
+            }}
+            canLowerPrices={canApplyDiscount(user.role, "fixed", 1, user.permissions)}
+            onSave={applyOrderDealEdit}
+            onClose={() => setDealEditIndex(null)}
+          />
+        );
+      })() : null}
     </>
   );
 }

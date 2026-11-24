@@ -99,34 +99,29 @@ export interface Product {
 export const CUSTOM_DEAL_ID = "custom-deal";
 
 /**
- * One thing inside a deal as it was actually sold — set only when the counter
- * changed a menu deal or made a custom deal. Stock, receipts and the kitchen
- * follow these instead of the menu's dealItems.
+ * One thing inside a deal as it was sold. Every deal line carries its contents
+ * (a snapshot of the menu deal when it was added, or what the counter changed
+ * it to): receipts, the kitchen slip, reports and stock follow these, not the
+ * menu, so an old order still says what was in it after the menu changes.
  */
 export interface OrderItemPart {
   /** Menu product (stock deduct); absent for text-only deal parts. */
   productId?: string;
   variationId?: string;
-  /** Printed text, size included ("Fries (Large)"). */
+  /** Printed text, size / pieces included ("Fries (Full)", "Nuggets (3 pcs)"). */
   label: string;
   /** Per one of the line. 0 = taken out of the deal (prints "No …"). */
   qty: number;
   /**
-   * Loose pieces of a pack item added at the counter ("Nuggets (6 pcs)" sold as 3) —
-   * the label already says "(3 pcs)"; qty is then the packs it counts as for stock.
+   * Loose pieces of a pack item ("Nuggets (6 pcs)" sold as 3): the label says
+   * "(3 pcs)", `qty` is the packs it counts as for stock.
    */
   pieces?: number;
+  /** Pieces in a full pack — set with `pieces`, so the editor can reopen it. */
+  pack?: number;
+  /** Price of the whole part, for parts added at the counter. Absent = paid by the deal price. */
+  price?: number;
   noStock?: boolean;
-}
-
-/** Counter-side editing state of a changed / custom deal (cart only, never saved). */
-export interface CartDealEdit {
-  /** Deal price before extras; custom deals have none. */
-  basePrice?: number;
-  /** Price of the whole row (all its qty), for parts added at the counter (index-aligned with `parts`, null = part of the deal). */
-  partPrices: (number | null)[];
-  /** Pieces in a full pack for rows counted in pieces (index-aligned with `parts`, null = whole items). */
-  packs?: (number | null)[];
 }
 
 export interface CartLine {
@@ -140,9 +135,10 @@ export interface CartLine {
   qty: number;
   /** Optional note for kitchen */
   note?: string;
-  /** Changed / custom deal contents (see OrderItemPart). */
+  /** What is inside a deal line (see OrderItemPart). */
   parts?: OrderItemPart[];
-  dealEdit?: CartDealEdit;
+  /** The counter changed this deal's contents / price, or it is a custom deal. */
+  changed?: boolean;
 }
 
 export interface OrderItem {
@@ -154,8 +150,10 @@ export interface OrderItem {
   qty: number;
   lineTotal: number;
   note?: string;
-  /** Changed / custom deal contents (see OrderItemPart). */
+  /** What is inside a deal line (see OrderItemPart). */
   parts?: OrderItemPart[];
+  /** The counter changed this deal's contents / price, or it is a custom deal. */
+  changed?: boolean;
 }
 
 export interface Order {

@@ -5,7 +5,7 @@
  */
 
 import type { ReceiptOrder, ReceiptCopy, ReceiptOptions, PrintReceiptLabels } from "./print-receipt";
-import { formatOrderDateTime, formatOrderNumber, formatPkr, partText } from "@bravobites/domain";
+import { CUSTOM_DEAL_ID, formatOrderDateTime, formatOrderNumber, formatPkr, partText } from "@bravobites/domain";
 import { RECEIPT_SITE } from "./print-receipt";
 import { RECEIPT_LOGO } from "./receipt-logo";
 
@@ -284,15 +284,17 @@ function buildCopyEscPos(
 
   // Items
   for (const item of order.items) {
-    const name = item.variationLabel
+    const sized = item.variationLabel
       ? `${item.productName} (${item.variationLabel})`
       : item.productName;
+    // Same mark as print-receipt.ts: the cook must not make it from habit.
+    const name = kitchen && item.changed && item.productId !== CUSTOM_DEAL_ID ? `${sized} (CHANGED)` : sized;
     if (kitchen) {
       buf.kitchenRow(String(item.qty), name);
     } else {
       buf.itemRow(String(item.qty), name, formatPkr(item.lineTotal));
     }
-    // Changed / custom deal: what is really inside (same lines as print-receipt.ts).
+    // Deal: what is inside, as sold (same lines as print-receipt.ts).
     for (const part of item.parts ?? []) {
       buf.line(`     - ${partText(part)}`);
     }

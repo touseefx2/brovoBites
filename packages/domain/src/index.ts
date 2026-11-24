@@ -11,7 +11,6 @@ export {
   type DealLineItem,
   type Product,
   type CartLine,
-  type CartDealEdit,
   type OrderItemPart,
   type OrderItem,
   type Order,
@@ -73,6 +72,10 @@ export {
   partsSignature,
   orderItemKey,
   partText,
+  dealParts,
+  readChanged,
+  splitPack,
+  packOfSize,
 } from "./cart";
 
 export {

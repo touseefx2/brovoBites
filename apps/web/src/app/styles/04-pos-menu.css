@@ -1440,3 +1440,22 @@ html[lang="ur"] .pos-dialog-title {
     min-height: 44px;
   }
 }
+.pos-deal-pcs.is-size {
+  min-width: 0;
+  padding: 0 0.8rem;
+  font-size: 0.875rem;
+}
+.pos-deal-money.is-invalid input {
+  border-color: var(--danger);
+  background: #fef2f2;
+}
+.pos-deal-blocked {
+  margin: 0 0 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--danger);
+}

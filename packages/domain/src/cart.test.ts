@@ -5,7 +5,10 @@ import {
   isCartEmpty,
   cleanParts,
   orderItemKey,
+  packOfSize,
   partText,
+  readChanged,
+  splitPack,
   removeFromCart,
   resolveUnitPrice,
   toOrderItems,
@@ -143,19 +146,72 @@ describe("changed / custom deals", () => {
         productName: "Deal 1",
         unitPrice: 950,
         qty: 2,
-        parts: [...parts, { label: "x", qty: 1, productId: undefined }],
-        dealEdit: { basePrice: 750, partPrices: [null, null, 100, 0] },
+        parts: [...parts, { label: "x", qty: 1, productId: undefined, price: 120.004 }],
+        changed: true,
       },
     ]);
     expect(item!.lineTotal).toBe(1900);
-    expect(item!.parts).toEqual([...parts, { label: "x", qty: 1 }]);
-    expect("dealEdit" in item!).toBe(false);
+    expect(item!.parts).toEqual([...parts, { label: "x", qty: 1, price: 120 }]);
+    expect(item!.changed).toBe(true);
     expect(JSON.stringify(item)).not.toContain("undefined");
   });
 
   it("plain lines get no parts field", () => {
     const [item] = toOrderItems(addToCart([], simple, 1));
     expect("parts" in item!).toBe(false);
+    expect("changed" in item!).toBe(false);
+  });
+
+  it("a menu deal added to the cart carries a snapshot of its contents", () => {
+    const deal = {
+      ...simple,
+      id: "deal-1",
+      name: "Deal 1",
+      type: "bundle" as const,
+      basePrice: 700,
+      dealItems: [
+        { productId: "burger-1", label: "Classic Zinger", qty: 1 },
+        { label: "Cold Drink", qty: 1, noStock: true },
+      ],
+    };
+    const lines = addToCart(addToCart([], deal, 1), deal, 1);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.qty).toBe(2);
+    const [item] = toOrderItems(lines);
+    expect(item!.parts).toEqual([
+      { productId: "burger-1", label: "Classic Zinger", qty: 1 },
+      { label: "Cold Drink", qty: 1, noStock: true },
+    ]);
+    expect(item!.changed).toBe(false);
+  });
+
+  it("readChanged: lines saved before the flag (parts, no flag) were changed deals", () => {
+    const parts = [{ label: "A", qty: 1 }];
+    expect(readChanged({ productId: "d", parts })).toBe(true);
+    expect(readChanged({ productId: "d", parts, changed: false })).toBe(false);
+    expect(readChanged({ productId: "d", parts, changed: true })).toBe(true);
+    expect(readChanged({ productId: "d" })).toBe(false);
+    expect(readChanged({ productId: "custom-deal", parts, changed: false })).toBe(true);
+  });
+
+  it("cleanParts coerces junk read back from an order", () => {
+    expect(
+      cleanParts([{ label: 5, qty: "2", price: "-3", pieces: 3, pack: 6 }, null, { label: "<b>", qty: -1, price: 0 }]),
+    ).toEqual([
+      { label: "5", qty: 2, pieces: 3, pack: 6 },
+      { label: "", qty: 0 },
+      { label: "<b>", qty: 0, price: 0 },
+    ]);
+  });
+
+  it("splitPack / packOfSize read pieces from names", () => {
+    expect(splitPack("Nuggets (6 pcs)")).toEqual({ base: "Nuggets", pack: 6 });
+    expect(splitPack("Injected Nuggets (6 pcs)")).toEqual({ base: "Injected Nuggets", pack: 6 });
+    expect(splitPack("Wings 6 Pc")).toEqual({ base: "Wings", pack: 6 });
+    expect(splitPack("Pepsi 1.5 Litre")).toEqual({ base: "Pepsi 1.5 Litre", pack: 0 });
+    expect(splitPack("6 pcs")).toEqual({ base: "6 pcs", pack: 0 });
+    expect(packOfSize("12 pcs")).toBe(12);
+    expect(packOfSize("Full")).toBe(0);
   });
 
   it("orderItemKey separates a changed deal from the menu deal", () => {

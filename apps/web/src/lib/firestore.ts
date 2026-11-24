@@ -61,6 +61,8 @@ import {
   SHARED_MENU_ID,
   cleanParts,
   orderItemKey,
+  readChanged,
+  splitPack,
   amendOrderTotals,
   businessDateKey,
   businessDayHoursFromSettings,
@@ -176,7 +178,10 @@ export function sanitizeOrderItems(items: OrderItem[]): OrderItem[] {
       if (i.variationId) item.variationId = String(i.variationId);
       if (i.variationLabel) item.variationLabel = String(i.variationLabel);
       if (i.note) item.note = String(i.note);
-      if (Array.isArray(i.parts) && i.parts.length > 0) item.parts = cleanParts(i.parts);
+      if (Array.isArray(i.parts) && i.parts.length > 0) {
+        item.parts = cleanParts(i.parts);
+        item.changed = readChanged(i);
+      }
       return item;
     });
 }
@@ -193,7 +198,8 @@ function orderItemLineKey(item: OrderItem): string {
 function orderItemLabel(item: OrderItem): string {
   const name = item.productName.trim() || item.productId;
   const sized = item.variationLabel ? `${name} (${item.variationLabel})` : name;
-  if (!item.parts?.length) return sized;
+  // Menu deals carry their contents too; the log only spells out changed ones.
+  if (!item.changed || !item.parts?.length) return sized;
   const inside = item.parts.map((p) => (p.qty > 0 ? `${p.qty}x ${p.label}` : `no ${p.label}`)).join(", ");
   return `${sized} [${inside}]`;
 }
@@ -2747,6 +2753,20 @@ function normStockName(s: string): string {
 }
 
 /**
+ * Names a deal part can be stocked under. Loose pieces print "Nuggets (3 pcs)":
+ * also try the full pack's name ("Nuggets (6 pcs)") and the bare name.
+ */
+function stockNameKeys(d: { label: string; pieces?: number; pack?: number }): string[] {
+  const keys = [normStockName(d.label)];
+  if ("pieces" in d && d.pieces) {
+    const { base } = splitPack(d.label);
+    if (d.pack) keys.push(normStockName(`${base} (${d.pack} pcs)`));
+    keys.push(normStockName(base));
+  }
+  return [...new Set(keys)];
+}
+
+/**
  * Expand order lines for inventory: bundle/deal lines become their menu
  * components (productId first, then label → product name fallback).
  * If nothing matches, fall back to the deal product itself when inventoried.
@@ -2795,11 +2815,11 @@ function expandItemsForStock(
           invHit = invFor(d.productId, d.variationId);
         }
         if (!invHit) {
-          const key = normStockName(d.label);
-          const named = byName.get(key);
-          invHit = named
-            ? invFor(named.id)
-            : invByName.get(key);
+          for (const key of stockNameKeys(d)) {
+            const named = byName.get(key);
+            invHit = named ? invFor(named.id) : invByName.get(key);
+            if (invHit) break;
+          }
         }
         if (!invHit) invHit = invBySizeText(d.label);
         if (!invHit) continue;
@@ -2989,8 +3009,10 @@ async function stockLinesForOrder(
     for (const d of dealParts) {
       if (d.noStock || d.qty <= 0) continue;
       if (d.productId) ids.add(d.productId);
-      const named = byName.get(normStockName(d.label));
-      if (named) ids.add(named.id);
+      for (const k of stockNameKeys(d)) {
+        const named = byName.get(k);
+        if (named) ids.add(named.id);
+      }
       parts.push(d);
     }
   }
@@ -3006,7 +3028,7 @@ async function stockLinesForOrder(
             ? invMap.has(stockKey(d.productId, d.variationId))
             : false))
       ) &&
-      !byName.has(normStockName(d.label)),
+      !stockNameKeys(d).some((k) => byName.has(k)),
   );
   if (byInventoryName) invMap = await fetchInventoryByProduct(branchId);
   return { lines: expandItemsForStock(items, products, invMap), invMap };

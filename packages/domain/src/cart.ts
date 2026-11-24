@@ -1,4 +1,5 @@
 import type { CartLine, OrderItem, OrderItemPart, Product, ProductVariation } from "./types";
+import { CUSTOM_DEAL_ID } from "./types";
 import { money } from "./money";
 
 export function cartLineKey(productId: string, variationId?: string): string {
@@ -49,14 +50,24 @@ export function toOrderItems(lines: CartLine[]): OrderItem[] {
     if (l.variationId) item.variationId = l.variationId;
     if (l.variationLabel) item.variationLabel = l.variationLabel;
     if (l.note) item.note = l.note;
-    if (l.parts?.length) item.parts = cleanParts(l.parts);
+    if (l.parts?.length) {
+      item.parts = cleanParts(l.parts);
+      // Always written on deal lines: a line with parts and no flag is one
+      // saved before the flag existed (only changed deals had parts then).
+      item.changed = l.changed === true;
+    }
     return item;
   });
 }
 
-/** Parts without undefined fields (Firestore refuses them), numbers coerced. */
-export function cleanParts(parts: OrderItemPart[]): OrderItemPart[] {
-  return parts.map((p) => {
+/**
+ * Parts without undefined fields (Firestore refuses them), every field coerced
+ * — also used to read them back, so a tampered order can't put markup or
+ * non-numbers into receipts.
+ */
+export function cleanParts(parts: unknown[]): OrderItemPart[] {
+  return parts.map((raw) => {
+    const p = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
     const part: OrderItemPart = {
       label: String(p.label ?? ""),
       qty: Math.max(0, Math.floor(Number(p.qty) || 0)),
@@ -65,16 +76,60 @@ export function cleanParts(parts: OrderItemPart[]): OrderItemPart[] {
     if (p.variationId) part.variationId = String(p.variationId);
     if (p.noStock) part.noStock = true;
     const pieces = Math.floor(Number(p.pieces) || 0);
-    if (pieces > 0) part.pieces = pieces;
+    const pack = Math.floor(Number(p.pack) || 0);
+    if (pieces > 0) {
+      part.pieces = pieces;
+      if (pack > 1) part.pack = pack;
+    }
+    const price = Number(p.price);
+    if (p.price != null && Number.isFinite(price) && price >= 0) part.price = money(price);
     return part;
   });
+}
+
+/** A menu deal's contents as order-line parts (snapshot when the deal is sold). */
+export function dealParts(product: Product): OrderItemPart[] | undefined {
+  if (product.type !== "bundle" || product.dealItems.length === 0) return undefined;
+  return cleanParts(
+    product.dealItems.map((d) => ({
+      label: d.label,
+      qty: d.qty,
+      ...(d.productId ? { productId: d.productId } : {}),
+      ...(d.noStock ? { noStock: true } : {}),
+    })),
+  );
+}
+
+/** "Nuggets (6 pcs)" / "Wings 6 Pc" → the bare name and pieces in the pack (0 = not a pack). */
+const PACK_SUFFIX = /\s*\(?\s*(\d+)\s*(?:pcs?|pieces?)\.?\s*\)?\s*$/i;
+export function splitPack(name: string): { base: string; pack: number } {
+  const m = name.match(PACK_SUFFIX);
+  const pack = m ? Number(m[1]) : 0;
+  const base = m ? name.replace(PACK_SUFFIX, "").trim() : name;
+  return pack > 1 && base ? { base, pack } : { base: name, pack: 0 };
+}
+
+/** A size named only by its pieces ("6 pcs", "12 Pc") → that count; else 0. */
+export function packOfSize(label: string): number {
+  const m = label.match(/^\s*(\d+)\s*(?:pcs?|pieces?)\.?\s*$/i);
+  return m ? Number(m[1]) : 0;
+}
+
+/**
+ * Reading a saved line back: was its deal changed at the counter? Orders saved
+ * before `changed` existed only gave parts to changed / custom deals.
+ */
+export function readChanged(raw: { parts?: unknown; changed?: unknown; productId?: unknown }): boolean {
+  if (raw.productId === CUSTOM_DEAL_ID) return true;
+  if (!Array.isArray(raw.parts) || raw.parts.length === 0) return false;
+  return raw.changed === undefined ? true : raw.changed === true;
 }
 
 /** Same contents ↔ same signature ("" for a plain line). */
 export function partsSignature(parts: OrderItemPart[] | undefined): string {
   if (!parts?.length) return "";
   return parts
-    .map((p) => `${p.productId ?? ""}:${p.variationId ?? ""}:${p.label}:${p.qty}`)
+    .map((p) => `${p.productId ?? ""}:${p.variationId ?? ""}:${p.label}:${p.qty}:${p.price ?? ""}`)
     .join("|");
 }
 
@@ -114,6 +169,7 @@ export function addToCart(
     );
   }
 
+  const parts = dealParts(product);
   const next: CartLine = {
     key,
     productId: product.id,
@@ -122,6 +178,7 @@ export function addToCart(
     variationLabel: variation?.label,
     unitPrice,
     qty,
+    ...(parts ? { parts } : {}),
   };
   return [...lines, next];
 }

@@ -1,66 +1,74 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CartDealEdit, CartLine, Category, OrderItemPart, Product } from "@bravobites/domain";
-import { CUSTOM_DEAL_ID, formatPkr, money } from "@bravobites/domain";
+import type { CartLine, Category, OrderItemPart, Product } from "@bravobites/domain";
+import { CUSTOM_DEAL_ID, dealParts, formatPkr, money, packOfSize, splitPack } from "@bravobites/domain";
 import { useLocale } from "@/i18n/locale-context";
 
-/** What the editor hands back: the cart line's new deal fields. */
+/** What the editor hands back: the line's new deal fields. */
 export type DealEditResult = {
   productId: string;
   productName: string;
   unitPrice: number;
-  /** Absent = exactly the menu deal again (no changes). */
-  parts?: OrderItemPart[];
-  dealEdit?: CartDealEdit;
+  parts: OrderItemPart[];
+  /** false = the deal as it was before (menu deal / the order's snapshot) — parts and price are that. */
+  changed: boolean;
 };
+
+/** A cart line or a saved order line — what the editor reopens. */
+export type DealLine = Pick<CartLine, "productId" | "productName" | "unitPrice" | "parts" | "changed">;
+
+/** A size counted in pieces ("6 pcs" → n 6). */
+type PackSize = { id: string; n: number; price: number };
 
 type Row = {
   id: string;
   productId?: string;
   variationId?: string;
+  /** Name without the pieces / size suffix (that is added by rowLabel). */
   label: string;
   qty: number;
   noStock?: boolean;
-  /** null = part of the menu deal (paid by the deal price); else this row's price (all its qty). */
+  /** null = part of the deal (paid by the deal price); else this row's price (all its qty). */
   priceText: string | null;
-  /** Menu price of one — the row's price follows it × qty until the cashier types a price. */
+  /** Menu price of one (of a full pack for pack rows) — the row's price follows it until typed. */
   menuPrice?: number;
   priceTouched?: boolean;
   /**
-   * Added pack item ("Nuggets (6 pcs)"): pieces in the pack. Then `qty`
-   * is loose pieces, `label` the name without "(6 pcs)", and the printed name
-   * becomes "Nuggets (3 pcs)" as the count changes.
+   * Pack item ("Nuggets (6 pcs)" or "6 pcs" / "12 pcs" sizes): pieces in a
+   * full pack. Then `qty` is loose pieces and the printed name says "(3 pcs)".
    */
   pack?: number;
+  /** Pack item sold by sizes: its sizes, so stock and price use the right one. */
+  packSizes?: PackSize[];
+  /** Chosen size of a sized item ("Full", "1.5 Litre") — printed after the name. */
+  sizeLabel?: string;
+  /** Part of the deal: how many the deal comes with (put back to it; staff can't go above). */
+  baseQty?: number;
 };
 
-/** "Nuggets (6 pcs)" / "Wings 6 Pc" → pieces in the pack and the bare name. */
-const PACK_RE = /\s*\(?\s*(\d+)\s*(?:pcs?|pieces?)\.?\s*\)?\s*$/i;
-function splitPack(name: string): { base: string; pack: number } {
-  const m = name.match(PACK_RE);
-  const pack = m ? Number(m[1]) : 0;
-  const base = m ? name.replace(PACK_RE, "").trim() : name;
-  return pack > 1 && base ? { base, pack } : { base: name, pack: 0 };
-}
-
-/** Name as it shows / prints: pack rows say how many pieces. */
+/** Name as it shows / prints: pack rows say how many pieces, sized rows their size. */
 function rowLabel(r: Row): string {
-  return r.pack ? `${r.label.trim() || "Item"} (${r.qty} pcs)` : r.label;
+  const name = r.label.trim() || "Item";
+  if (r.pack) return `${name} (${r.qty} pcs)`;
+  if (r.sizeLabel) return `${name} (${r.sizeLabel})`;
+  return name;
 }
 
-/** Row price from the menu: pack rows by the piece (whole rupees). */
-function autoPrice(r: Row, qty: number): string {
-  if (r.menuPrice == null) return r.priceText ?? "";
-  return r.pack
-    ? String(Math.round((r.menuPrice * qty) / r.pack))
-    : String(money(r.menuPrice * qty));
+/** Row price from the menu: a size of exactly these pieces at its price, else by the piece (whole rupees). */
+function autoPriceOf(r: Row, qty: number): number | null {
+  if (r.menuPrice == null) return null;
+  if (!r.pack) return money(r.menuPrice * qty);
+  const exact = r.packSizes?.find((s) => s.n === qty);
+  return exact ? money(exact.price) : Math.round((r.menuPrice * qty) / r.pack);
 }
 
 const DEFAULT_CUSTOM_NAME = "Custom Deal";
 
 let rowSeq = 0;
 const rowId = () => `r${++rowSeq}`;
+
+const norm = (x: string) => x.trim().toLowerCase().replace(/\s+/g, " ");
 
 /** Digits and one decimal point (same rule as the manual delivery charges box). */
 function cleanPriceText(raw: string): string {
@@ -84,59 +92,98 @@ function menuPriceOf(p: Product, variationId?: string): number {
 }
 
 /**
- * Pack of a deal part: from its label ("Nuggets (6 pcs)") or its linked menu
- * item's name. 0 = counted in whole items (burgers, drinks, fries…).
+ * How a menu item is counted in a deal: by pieces when its name ("Nuggets
+ * (6 pcs)") or every size ("6 pcs" / "12 pcs") says pieces — the smallest
+ * pack, at its price — else as whole items.
  */
-function partPack(label: string, linked?: Product): { base: string; pack: number } {
-  const own = splitPack(label);
-  if (own.pack) return own;
-  const fromMenu = linked ? splitPack(linked.name) : { base: label, pack: 0 };
-  return fromMenu.pack ? { base: /^\d/.test(label) ? fromMenu.base : label, pack: fromMenu.pack } : own;
+function packOfProduct(p: Product): { base: string; pack: number; packPrice?: number; sizes?: PackSize[] } {
+  const named = splitPack(p.name);
+  if (named.pack) return { ...named, packPrice: menuPriceOf(p) };
+  if (p.type === "sized" && p.variations.length > 0) {
+    const sizes = p.variations.map((v) => ({ id: v.id, n: packOfSize(v.label), price: money(v.price) }));
+    if (sizes.every((x) => x.n > 1)) {
+      const smallest = sizes.reduce((a, b) => (b.n < a.n ? b : a));
+      return { base: p.name, pack: smallest.n, packPrice: smallest.price, sizes };
+    }
+  }
+  return { base: p.name, pack: 0 };
 }
 
-/** The menu deal's contents as rows — pack items counted in pieces (2 × 6 pcs → 12). */
-function menuRows(product: Product, menu: Product[]): Row[] {
-  return product.dealItems.map((d) => {
-    const linked = d.productId ? menu.find((m) => m.id === d.productId) : undefined;
-    const { base, pack } = partPack(d.label, linked);
-    return {
-      id: rowId(),
-      productId: d.productId,
-      label: pack ? base : d.label,
-      qty: pack ? d.qty * pack : d.qty,
-      ...(pack ? { pack } : {}),
-      noStock: d.noStock,
-      priceText: null,
-    };
-  });
+/** The menu item a deal part is: its link, or a menu item named exactly like it. */
+function linkedProduct(part: OrderItemPart, menu: Product[]): Product | undefined {
+  if (part.productId) return menu.find((m) => m.id === part.productId);
+  const label = norm(part.label);
+  const bare = part.pieces ? norm(splitPack(part.label).base) : label;
+  return menu.find((m) => m.type !== "bundle" && (norm(m.name) === label || norm(splitPack(m.name).base) === bare && part.pieces));
 }
 
-function rowsFromLine(line: CartLine, menu: Product[]): Row[] {
-  const prices = line.dealEdit?.partPrices ?? [];
-  return (line.parts ?? []).map((p, i) => {
-    const price = prices[i];
-    const product = p.productId ? menu.find((m) => m.id === p.productId) : undefined;
-    // Pack size as the editor saved it (the label now says the pieces sold, not the pack).
-    const pack = line.dealEdit?.packs?.[i] ?? (p.pieces || 0);
-    return {
-      id: rowId(),
-      productId: p.productId,
-      variationId: p.variationId,
-      label: pack ? p.label.replace(PACK_RE, "").trim() : p.label,
-      qty: p.pieces || p.qty,
-      ...(pack ? { pack } : {}),
-      noStock: p.noStock,
-      priceText: price == null ? null : String(price),
-      menuPrice: product ? menuPriceOf(product, p.variationId) : undefined,
-      priceTouched: true,
-    };
-  });
+/**
+ * A saved deal part (menu snapshot, changed or custom deal) → an editable row.
+ * Pack items count in pieces (2 × "Nuggets (6 pcs)" → 12); sized items keep their size.
+ */
+function partToRow(part: OrderItemPart, menu: Product[]): Row {
+  const product = linkedProduct(part, menu);
+  const packed = product ? packOfProduct(product) : { base: part.label, pack: 0 as number };
+  const own = splitPack(part.label);
+  // Pieces as saved, else from the label ("Nuggets (6 pcs)") or the linked item.
+  const pack = part.pieces ? part.pack || packed.pack || part.pieces : own.pack || packed.pack;
+  const size = !pack && part.variationId ? product?.variations.find((v) => v.id === part.variationId) : undefined;
+  const suffix = size ? ` (${size.label})` : "";
+  const label = pack
+    ? own.pack || part.pieces
+      ? own.base
+      : /^\d/.test(part.label)
+        ? packed.base
+        : part.label
+    : suffix && part.label.endsWith(suffix)
+      ? part.label.slice(0, -suffix.length)
+      : part.label;
+  const qty = part.pieces ? part.pieces : pack ? part.qty * pack : part.qty;
+  const menuPrice = product
+    ? pack
+      ? packed.packPrice ?? menuPriceOf(product)
+      : menuPriceOf(product, part.variationId)
+    : undefined;
+  const row: Row = {
+    id: rowId(),
+    productId: part.productId ?? product?.id,
+    variationId: pack ? undefined : part.variationId,
+    label,
+    qty,
+    ...(pack ? { pack } : {}),
+    ...(pack && "sizes" in packed && packed.sizes ? { packSizes: packed.sizes } : {}),
+    ...(size ? { sizeLabel: size.label } : {}),
+    noStock: part.noStock,
+    priceText: part.price == null ? null : String(part.price),
+    menuPrice,
+  };
+  // A price still at the menu's keeps following qty / size; a typed one stays.
+  const auto = autoPriceOf(row, row.qty);
+  return { ...row, priceTouched: part.price != null && (auto == null || part.price !== auto) };
 }
 
-/** Quick piece counts for a pack row: 1 · 2 · 3 · 4 · full pack. */
-function PiecesChips({ row, label, onPick }: { row: Row; label: string; onPick: (n: number) => void }) {
+/** Same deal item in two lists (to know what the deal came with). */
+function sameItem(a: Row, b: Row): boolean {
+  if (a.productId && b.productId) return a.productId === b.productId;
+  return norm(a.label) === norm(b.label);
+}
+
+/** Quick piece counts for a pack row: 1 · 2 · 3 · 4 · full pack (never above `max`). */
+function PiecesChips({
+  row,
+  label,
+  max,
+  onPick,
+}: {
+  row: Row;
+  label: string;
+  max?: number;
+  onPick: (n: number) => void;
+}) {
   const pack = row.pack!;
-  const counts = [...new Set([1, 2, 3, 4, pack])].filter((n) => n <= pack).sort((a, b) => a - b);
+  const counts = [...new Set([1, 2, 3, 4, pack])]
+    .filter((n) => n <= pack && (max == null || n <= max))
+    .sort((a, b) => a - b);
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5" dir="ltr">
       <span className="pos-deal-section me-1">{label}</span>
@@ -159,11 +206,13 @@ function PiecesChips({ row, label, onPick }: { row: Row; label: string; onPick: 
 function Stepper({
   qty,
   min,
+  max,
   unit,
   onChange,
 }: {
   qty: number;
   min: number;
+  max?: number;
   /** Shown under the number ("pcs"). */
   unit?: string;
   onChange: (qty: number) => void;
@@ -183,7 +232,13 @@ function Stepper({
         {qty}
         {unit ? <small className="pos-qty-unit">{unit}</small> : null}
       </span>
-      <button type="button" className="pos-qty-btn is-plus" aria-label="+" onClick={() => onChange(qty + 1)}>
+      <button
+        type="button"
+        className="pos-qty-btn is-plus"
+        aria-label="+"
+        disabled={max != null && qty >= max}
+        onClick={() => onChange(max != null ? Math.min(max, qty + 1) : qty + 1)}
+      >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
       </button>
     </div>
@@ -195,13 +250,15 @@ function MoneyInput({
   value,
   onChange,
   label,
+  invalid,
 }: {
   value: string;
   onChange: (text: string) => void;
   label: string;
+  invalid?: boolean;
 }) {
   return (
-    <span className="pos-deal-money" dir="ltr">
+    <span className={`pos-deal-money ${invalid ? "is-invalid" : ""}`} dir="ltr">
       <span className="pos-deal-money-rs" aria-hidden>
         Rs
       </span>
@@ -212,6 +269,7 @@ function MoneyInput({
         onChange={(e) => onChange(cleanPriceText(e.target.value))}
         onFocus={(e) => e.target.select()}
         aria-label={label}
+        aria-invalid={invalid || undefined}
         placeholder="0"
       />
     </span>
@@ -220,9 +278,10 @@ function MoneyInput({
 
 /**
  * Change a menu deal at the counter (take things out, add extras at a typed
- * price) or build a custom deal from menu items. Picture-first so it works
- * without reading much: tap a photo to add, − / + for how many, type a price.
- * Nothing here touches the menu: the result lives on the cart line / order only.
+ * price, count pack items in pieces, pick sizes) or build a custom deal from
+ * menu items. Picture-first so it works without reading much: tap a photo to
+ * add, − / + for how many, type a price. Nothing here touches the menu: the
+ * result lives on the cart line / order only.
  */
 export function DealEditorSheet({
   mode,
@@ -231,30 +290,58 @@ export function DealEditorSheet({
   menu,
   categories,
   imageOf,
+  canLowerPrices,
   onSave,
   onClose,
 }: {
   mode: "deal" | "custom";
   /** The menu deal (mode "deal"). */
   product?: Product;
-  /** Cart line being edited (absent = new custom deal). */
-  line?: CartLine;
+  /** Line being edited (absent = new custom deal). */
+  line?: DealLine;
   /** Menu to pick items from — already in menu order. */
   menu: Product[];
   categories: Category[];
   /** Photo of a menu item (or of a deal part by its name). */
   imageOf: (productId: string | undefined, name: string) => string;
+  /**
+   * May give more for less: prices under the menu, more of a deal's own items
+   * at the deal price, renaming items (owner, or staff allowed to give discounts).
+   */
+  canLowerPrices: boolean;
   onSave: (result: DealEditResult) => void;
   onClose: () => void;
 }) {
   const { t } = useLocale();
   const isDeal = mode === "deal" && Boolean(product);
+  // The deal "as it was": a plain line's own snapshot (an old order keeps what
+  // and at what price it was sold), else today's menu deal.
+  const [baseline] = useState(() => {
+    if (!isDeal) return { parts: [] as OrderItemPart[], price: 0, rows: [] as Row[] };
+    const snapshot = line && !line.changed && line.parts?.length ? line : undefined;
+    const parts = snapshot ? snapshot.parts! : (dealParts(product!) ?? []);
+    const price = snapshot ? money(snapshot.unitPrice) : money(product!.basePrice);
+    return { parts, price, rows: parts.map((p) => partToRow(p, menu)) };
+  });
+  const withBase = (rs: Row[]): Row[] =>
+    rs.map((r) => {
+      if (r.priceText !== null) return r;
+      const b = baseline.rows.find((x) => sameItem(x, r));
+      return { ...r, baseQty: b?.qty ?? r.qty, ...(b?.pack && !r.pack ? { pack: b.pack, packSizes: b.packSizes, label: b.label } : {}) };
+    });
   const [rows, setRows] = useState<Row[]>(() =>
-    line?.parts?.length ? rowsFromLine(line, menu) : isDeal ? menuRows(product!, menu) : [],
+    withBase(
+      line?.changed && line.parts?.length
+        ? line.parts.map((p) => partToRow(p, menu))
+        : baseline.rows.map((r) => ({ ...r, id: rowId() })),
+    ),
   );
-  const [baseText, setBaseText] = useState<string>(() =>
-    String(line?.dealEdit?.basePrice ?? product?.basePrice ?? 0),
-  );
+  const [baseText, setBaseText] = useState<string>(() => {
+    if (!isDeal) return "0";
+    if (!line?.changed) return String(baseline.price);
+    const extras = (line.parts ?? []).reduce((s, p) => s + (p.price ?? 0), 0);
+    return String(money(Math.max(0, line.unitPrice - extras)));
+  });
   const [name, setName] = useState(
     mode === "custom" ? (line?.productName ?? DEFAULT_CUSTOM_NAME) : "",
   );
@@ -266,6 +353,21 @@ export function DealEditorSheet({
   const basePrice = isDeal ? priceOf(baseText) : 0;
   const unitPrice = money(basePrice + extraRows.reduce((s, r) => s + priceOf(r.priceText), 0));
   const hasItems = rows.some((r) => r.qty > 0);
+
+  // More for less — only owners / staff allowed to discount may save it:
+  // a deal price under what it was, an added item under its menu price, or
+  // more of the deal's own items than it comes with (free food).
+  const baseTooLow = isDeal && basePrice < baseline.price;
+  const lowRows = new Set(
+    extraRows
+      .filter((r) => {
+        const auto = autoPriceOf(r, r.qty);
+        return auto != null && priceOf(r.priceText) < auto;
+      })
+      .map((r) => r.id),
+  );
+  const overRows = dealRows.some((r) => r.baseQty != null && r.qty > r.baseQty);
+  const priceBlocked = !canLowerPrices && (baseTooLow || lowRows.size > 0 || overRows);
 
   // Deals can't go inside a deal: only single menu items.
   const pickable = useMemo(() => menu.filter((p) => p.type !== "bundle"), [menu]);
@@ -289,30 +391,41 @@ export function DealEditorSheet({
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   }
 
-  /** Qty change; an untyped price follows menu price × qty. */
-  function withQty(r: Row, qty: number): Row {
-    const next = { ...r, qty };
-    if (r.priceText !== null && !r.priceTouched && r.menuPrice != null) {
-      next.priceText = autoPrice(r, qty);
-    }
-    return next;
+  /** Re-price a row from the menu unless the cashier typed a price. */
+  function repriced(r: Row): Row {
+    if (r.priceText === null || r.priceTouched) return r;
+    const auto = autoPriceOf(r, r.qty);
+    return auto == null ? r : { ...r, priceText: String(auto) };
   }
 
   function setQty(id: string, qty: number) {
-    setRows((rs) => rs.map((r) => (r.id === id ? withQty(r, qty) : r)));
+    setRows((rs) => rs.map((r) => (r.id === id ? repriced({ ...r, qty }) : r)));
+  }
+
+  /** Sized item: switch its size — the price follows the new size unless typed. */
+  function setSize(id: string, p: Product, variationId: string) {
+    const v = p.variations.find((x) => x.id === variationId);
+    if (!v) return;
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === id ? repriced({ ...r, variationId, sizeLabel: v.label, menuPrice: money(v.price) }) : r,
+      ),
+    );
   }
 
   /**
-   * Tap on a photo: add the item, or one more of it. A pack item
-   * ("Nuggets (6 pcs)") comes as its full pack, counted in pieces — the
-   * cashier can then sell 1, 2, 3… pieces (custom deal or a changed deal alike).
+   * Tap on a photo: add the item, or one more of it. A pack item comes as its
+   * full pack, counted in pieces (sell 1, 2, 3…); a sized item at its smallest
+   * size, switchable on the row.
    */
   function addItem(p: Product) {
-    const price = menuPriceOf(p);
-    const { base, pack } = splitPack(p.name);
+    const { base, pack, packPrice, sizes } = packOfProduct(p);
+    const sized = !pack && p.type === "sized" && p.variations.length > 0;
+    const cheapest = sized ? p.variations.reduce((a, b) => (b.price < a.price ? b : a)) : undefined;
     setRows((rs) => {
-      const same = rs.find((r) => r.priceText !== null && r.productId === p.id && !r.variationId);
-      if (same) return rs.map((r) => (r === same ? withQty(r, r.qty + 1) : r));
+      const same = rs.find((r) => r.priceText !== null && r.productId === p.id);
+      if (same) return rs.map((r) => (r === same ? repriced({ ...r, qty: r.qty + 1 }) : r));
+      const menuPrice = pack ? (packPrice ?? menuPriceOf(p)) : cheapest ? money(cheapest.price) : menuPriceOf(p);
       return [
         ...rs,
         {
@@ -320,48 +433,58 @@ export function DealEditorSheet({
           productId: p.id,
           label: base,
           qty: pack || 1,
-          priceText: String(price),
-          menuPrice: price,
+          priceText: String(menuPrice),
+          menuPrice,
           ...(pack ? { pack } : {}),
+          ...(sizes ? { packSizes: sizes } : {}),
+          ...(cheapest ? { variationId: cheapest.id, sizeLabel: cheapest.label } : {}),
         },
       ];
     });
   }
 
+  /** A row as an order-line part (pieces, the stocked size, price). */
+  function toPart(r: Row): OrderItemPart {
+    // A pack row taken out of the deal prints "No Nuggets" and keeps its pack (put back → pieces).
+    const pieces = r.pack && r.qty > 0 ? r.qty : 0;
+    // Pack sold by sizes: stock comes off the size of exactly these pieces, else the smallest one.
+    const exact = pieces ? r.packSizes?.find((s) => s.n === pieces) : undefined;
+    const smallest = r.packSizes?.reduce((a, b) => (b.n < a.n ? b : a));
+    const stockSize = exact ?? (pieces ? smallest : undefined);
+    const variationId = r.pack ? stockSize?.id : r.variationId;
+    const qty = pieces ? (exact ? 1 : Math.max(1, Math.round(pieces / (smallest?.n ?? r.pack!)))) : r.qty;
+    return {
+      label: (r.qty > 0 ? rowLabel(r) : r.label).trim() || "Item",
+      // Loose pieces count as packs for stock (3 of 6 → 1 pack, 12 → 2).
+      qty,
+      ...(pieces ? { pieces, pack: r.pack } : {}),
+      ...(r.priceText !== null ? { price: priceOf(r.priceText) } : {}),
+      ...(r.productId ? { productId: r.productId } : {}),
+      ...(variationId ? { variationId } : {}),
+      ...(r.noStock ? { noStock: true } : {}),
+    };
+  }
+
   function save() {
+    if (priceBlocked) return;
     const kept = rows.filter((r) => r.priceText === null || r.qty > 0);
     if (!kept.some((r) => r.qty > 0)) return;
-    const parts: OrderItemPart[] = kept.map((r) => {
-      // A pack row taken out of the deal prints "No Nuggets", no pieces.
-      const pieces = r.pack && r.qty > 0 ? r.qty : 0;
-      return {
-        label: (pieces ? rowLabel(r) : r.label).trim() || "Item",
-        // Loose pieces count as packs for stock (3 of 6 → 1 pack, 12 → 2).
-        qty: pieces ? Math.max(1, Math.round(pieces / r.pack!)) : r.qty,
-        ...(pieces ? { pieces } : {}),
-      ...(r.productId ? { productId: r.productId } : {}),
-      ...(r.variationId ? { variationId: r.variationId } : {}),
-        ...(r.noStock ? { noStock: true } : {}),
-      };
-    });
-    const partPrices = kept.map((r) => (r.priceText === null ? null : priceOf(r.priceText)));
-    const packs = kept.map((r) => r.pack ?? null);
+    const parts = kept.map(toPart);
 
     if (isDeal) {
       const p = product!;
-      const menuDeal = menuRows(p, menu);
       const unchanged =
-        basePrice === money(p.basePrice) &&
-        kept.length === menuDeal.length &&
+        basePrice === baseline.price &&
+        kept.length === baseline.rows.length &&
         kept.every((r, i) => {
-          const m = menuDeal[i]!;
-          return r.priceText === null && r.qty === m.qty && r.label === m.label;
+          const b = baseline.rows[i]!;
+          return r.priceText === null && r.qty === b.qty && r.label === b.label;
         });
       if (unchanged) {
-        onSave({ productId: p.id, productName: p.name, unitPrice: money(p.basePrice) });
+        onSave({ productId: p.id, productName: p.name, unitPrice: baseline.price, parts: baseline.parts, changed: false });
         return;
       }
-      onSave({ productId: p.id, productName: p.name, unitPrice, parts, dealEdit: { basePrice, partPrices, packs } });
+      onSave({ productId: p.id, productName: p.name, unitPrice, parts, changed: true });
       return;
     }
     onSave({
@@ -369,7 +492,7 @@ export function DealEditorSheet({
       productName: name.trim() || DEFAULT_CUSTOM_NAME,
       unitPrice,
       parts,
-      dealEdit: { partPrices, packs },
+      changed: true,
     });
   }
 
@@ -496,8 +619,8 @@ export function DealEditorSheet({
                       type="button"
                       className="pos-deal-link"
                       onClick={() => {
-                        setRows(menuRows(product!, menu));
-                        setBaseText(String(product!.basePrice));
+                        setRows(withBase(baseline.rows.map((r) => ({ ...r, id: rowId() }))));
+                        setBaseText(String(baseline.price));
                       }}
                     >
                       ↺ {t("resetDeal")}
@@ -525,19 +648,35 @@ export function DealEditorSheet({
                           <button
                             type="button"
                             className="pos-deal-putback"
-                            onClick={() => setRow(r.id, { qty: r.pack ?? 1 })}
+                            onClick={() => setRow(r.id, { qty: r.baseQty || r.pack || 1 })}
                           >
                             ↺ {t("putBackInDeal")}
                           </button>
                         ) : !r.pack ? (
-                          <Stepper qty={r.qty} min={0} onChange={(q) => setQty(r.id, q)} />
+                          <Stepper
+                            qty={r.qty}
+                            min={0}
+                            max={canLowerPrices ? undefined : r.baseQty}
+                            onChange={(q) => setQty(r.id, q)}
+                          />
                         ) : null}
                       </div>
                       {r.pack && r.qty > 0 ? (
                         <>
-                          <PiecesChips row={r} label={t("pieces")} onPick={(n) => setQty(r.id, n)} />
+                          <PiecesChips
+                            row={r}
+                            label={t("pieces")}
+                            max={canLowerPrices ? undefined : r.baseQty}
+                            onPick={(n) => setQty(r.id, n)}
+                          />
                           <div className="mt-2">
-                            <Stepper qty={r.qty} min={0} unit="pcs" onChange={(q) => setQty(r.id, q)} />
+                            <Stepper
+                              qty={r.qty}
+                              min={0}
+                              max={canLowerPrices ? undefined : r.baseQty}
+                              unit="pcs"
+                              onChange={(q) => setQty(r.id, q)}
+                            />
                           </div>
                         </>
                       ) : null}
@@ -545,7 +684,12 @@ export function DealEditorSheet({
                   ))}
                   <div className="pos-deal-row">
                     <p className="pos-deal-row-name min-w-0 flex-1">{t("dealPrice")}</p>
-                    <MoneyInput value={baseText} onChange={setBaseText} label={t("dealPrice")} />
+                    <MoneyInput
+                      value={baseText}
+                      onChange={setBaseText}
+                      label={t("dealPrice")}
+                      invalid={baseTooLow && !canLowerPrices}
+                    />
                   </div>
                 </div>
               ) : null}
@@ -568,11 +712,13 @@ export function DealEditorSheet({
                           type="text"
                           value={r.label}
                           onChange={(e) => setRow(r.id, { label: e.target.value })}
+                          // Renaming a cheap item to a dear one would give it away: owner / discount staff only.
+                          readOnly={!canLowerPrices && Boolean(r.productId)}
                           maxLength={60}
                           aria-label={t("itemNameLabel")}
                           className="pos-deal-row-name-input w-full"
                         />
-                        {r.pack ? (
+                        {r.pack || r.sizeLabel ? (
                           <p className="pos-deal-row-print" dir="ltr">
                             {rowLabel(r)}
                           </p>
@@ -588,12 +734,33 @@ export function DealEditorSheet({
                       </button>
                     </div>
                     {r.pack ? <PiecesChips row={r} label={t("pieces")} onPick={(n) => setQty(r.id, n)} /> : null}
+                    {(() => {
+                      const p = !r.pack && r.productId ? menu.find((m) => m.id === r.productId) : undefined;
+                      if (!p || p.type !== "sized" || p.variations.length < 2) return null;
+                      return (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <span className="pos-deal-section me-1">{t("size")}</span>
+                          {p.variations.map((v) => (
+                            <button
+                              key={v.id}
+                              type="button"
+                              className={`pos-deal-pcs is-size ${r.variationId === v.id ? "is-active" : ""}`}
+                              aria-pressed={r.variationId === v.id}
+                              onClick={() => setSize(r.id, p, v.id)}
+                            >
+                              {v.label}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     <div className="mt-2 flex items-center gap-2">
                       <Stepper qty={r.qty} min={1} unit={r.pack ? "pcs" : undefined} onChange={(q) => setQty(r.id, q)} />
                       <MoneyInput
                         value={r.priceText ?? ""}
                         onChange={(text) => setRow(r.id, { priceText: text, priceTouched: true })}
                         label={`${t("rowPrice")} — ${rowLabel(r)}`}
+                        invalid={!canLowerPrices && lowRows.has(r.id)}
                       />
                     </div>
                   </div>
@@ -605,6 +772,11 @@ export function DealEditorSheet({
 
         {/* Footer — big total, cancel, add */}
         <div className="pos-deal-foot shrink-0 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+          {priceBlocked ? (
+            <p className="pos-deal-blocked" role="alert">
+              {t("dealPriceTooLow")}
+            </p>
+          ) : null}
           <div className="flex flex-wrap items-center gap-3">
             <div className="me-auto">
               <p className="pos-deal-section">{t("total")}</p>
@@ -619,7 +791,7 @@ export function DealEditorSheet({
               <button
                 type="button"
                 className="btn pos-cta min-h-14 text-lg sm:min-w-[13rem]"
-                disabled={!hasItems}
+                disabled={!hasItems || priceBlocked}
                 onClick={save}
               >
                 ✓ {line ? t("saveDeal") : t("addDealToOrder")}

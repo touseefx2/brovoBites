@@ -882,3 +882,12 @@ html[data-pos-theme="dark"] .pos-deal-pcs.is-active {
   background: var(--bb-red-500);
   color: #fff;
 }
+html[data-pos-theme="dark"] .pos-deal-money.is-invalid input {
+  border-color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+}
+html[data-pos-theme="dark"] .pos-deal-blocked {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}

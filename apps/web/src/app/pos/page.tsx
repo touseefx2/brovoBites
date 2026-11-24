@@ -197,7 +197,7 @@ function CartPanel({
                   {line.variationLabel ? (
                     <span className="pos-variant-chip">{line.variationLabel}</span>
                   ) : null}
-                  {line.parts?.length ? (
+                  {line.changed && line.parts?.length ? (
                     <>
                       {line.productId !== CUSTOM_DEAL_ID ? (
                         <span className="pos-variant-chip">{t("dealCustomized")}</span>
@@ -1206,35 +1206,44 @@ function PosApp() {
     if (!editing) return;
     const freshKey = () =>
       `${result.productId}__x${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-    const changed = (base: Partial<CartLine>): CartLine => ({
+    const changedLine = (base: Partial<CartLine>): CartLine => ({
       key: base.key ?? freshKey(),
       productId: result.productId,
       productName: result.productName,
       unitPrice: result.unitPrice,
       qty: base.qty ?? 1,
       ...(base.note ? { note: base.note } : {}),
-      ...(result.parts ? { parts: result.parts } : {}),
-      ...(result.dealEdit ? { dealEdit: result.dealEdit } : {}),
+      parts: result.parts,
+      changed: true,
     });
     setCart((c) => {
       const target = editing.lineKey ? c.find((l) => l.key === editing.lineKey) : undefined;
-      if (!target) return editing.mode === "custom" ? [...c, changed({})] : c;
-      // Back to exactly the menu deal: one plain line (merges with any plain one).
-      if (!result.parts) {
+      if (!target) return editing.mode === "custom" ? [...c, changedLine({})] : c;
+      // Back to exactly the menu deal.
+      if (!result.changed) {
+        // Already the plain deal (opened, nothing changed): leave the line as it is.
+        if (!target.changed) return c;
+        // A changed deal undone: one plain line (merges with any plain one), keeping its kitchen note.
         const product = products.find((p) => p.id === result.productId);
-        const rest = c.filter((l) => l.key !== target.key);
-        return product ? addToCart(rest, product, target.qty) : c;
+        if (!product) return c;
+        const merged = addToCart(c.filter((l) => l.key !== target.key), product, target.qty);
+        if (!target.note) return merged;
+        return merged.map((l) =>
+          l.productId === product.id && !l.changed
+            ? { ...l, note: l.note && l.note !== target.note ? `${l.note}; ${target.note}` : target.note }
+            : l,
+        );
       }
-      // Plain deal ×3 → the change is for one of them: split it off.
-      if (!target.parts && target.qty > 1) {
+      // Plain deal ×3 → the change is for one of them: split it off (with the line's note).
+      if (!target.changed && target.qty > 1) {
         const idx = c.indexOf(target);
         const next = c.map((l) => (l.key === target.key ? { ...l, qty: l.qty - 1 } : l));
-        next.splice(idx + 1, 0, changed({}));
+        next.splice(idx + 1, 0, changedLine({ note: target.note }));
         return next;
       }
       return c.map((l) =>
         l.key === target.key
-          ? changed({ key: target.parts ? target.key : undefined, qty: target.qty, note: target.note })
+          ? changedLine({ key: target.changed ? target.key : undefined, qty: target.qty, note: target.note })
           : l,
       );
     });
@@ -1863,6 +1872,7 @@ function PosApp() {
             line={line}
             menu={menuInOrder}
             categories={categories}
+            canLowerPrices={!profile || canApplyDiscount(profile.role, "fixed", 1, profile.permissions)}
             imageOf={(productId, name) => {
               const p = productId ? products.find((x) => x.id === productId) : undefined;
               const cat = p ? categoryMap.get(p.categoryId) : undefined;
@@ -2550,6 +2560,7 @@ function PosApp() {
           settings={settings}
           onClose={() => setReportOpen(false)}
           onOpenOrder={(o) => setSelectedOrder(o)}
+          menuProducts={products}
           itemImage={(productId, name) => {
             const product = products.find((p) => p.id === productId);
             const cat = product ? categoryMap.get(product.categoryId) : undefined;
@@ -2564,6 +2575,7 @@ function PosApp() {
           user={profile}
           settings={settings}
           catalogProducts={products}
+          catalogCategories={categories}
           branchName={
             selectedOrder.branchName ||
             branches.find((b) => b.id === selectedOrder.branchId)?.name

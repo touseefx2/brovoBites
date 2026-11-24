@@ -9,6 +9,7 @@ import type {
   Order,
   OrderType,
   PaymentMethod,
+  Product,
   ShopSettings,
 } from "@bravobites/domain";
 import {
@@ -31,11 +32,14 @@ import { OwnerReportView, useOwnerReportExtras, useReportCatalog } from "@/compo
 import { PAYMENT_TONE, PaymentTile } from "@/components/PaymentMethodIcon";
 import { CATEGORY_TILE, CategoryIcon, EditExpenseDialog } from "@/components/PosExpensesSheet";
 import { useLocale } from "@/i18n/locale-context";
+import { DealPartsSales } from "@/components/DealPartsSales";
 import {
   computeDayReport,
+  computeDealPartSales,
   computeItemSales,
   computeSalesBridge,
   type DayReport,
+  type DealPartStat,
   type ItemStat,
   type SalesBridgeKey,
 } from "@/lib/day-report";
@@ -455,6 +459,7 @@ export function PosDayReport({
   onClose,
   onOpenOrder,
   itemImage,
+  menuProducts,
 }: {
   branchId: string;
   branchName?: string;
@@ -463,6 +468,8 @@ export function PosDayReport({
   onClose: () => void;
   onOpenOrder: (order: Order) => void;
   itemImage?: ItemImage;
+  /** The POS menu — for "Inside deals" on orders from before deal lines carried their contents. */
+  menuProducts?: Product[];
 }) {
   const { t, locale } = useLocale();
   const [tab, setTab] = useState<Tab>("summary");
@@ -704,6 +711,17 @@ export function PosDayReport({
     };
   }, [ownerTab, ownerUids]);
   const reportCatalog = useReportCatalog(ownerTab);
+  // Deals sold before lines carried their contents fall back to the menu's deal.
+  const dealPartStats = useMemo(
+    () =>
+      computeDealPartSales(
+        staff === "all" ? orderView.list : orderView.list.filter((o) => o.createdBy === staff),
+        from,
+        to,
+        menuProducts,
+      ),
+    [orderView.list, from, to, staff, menuProducts],
+  );
   const ownerReport = useMemo(
     () =>
       ownerTab && ownerUids
@@ -961,7 +979,7 @@ export function PosDayReport({
           ) : tab === "summary" ? (
             <SummaryTab report={report} items={items} itemImage={itemImage} onViewItems={() => setTab("items")} />
           ) : tab === "items" ? (
-            <ItemsTab items={items} report={report} itemImage={itemImage} />
+            <ItemsTab items={items} dealParts={dealPartStats} report={report} itemImage={itemImage} />
           ) : tab === "stock" ? (
             <DayStockTab branchId={branchId} fromIso={fromIso} toIso={toIso} />
           ) : tab === "owner" ? (
@@ -1378,10 +1396,12 @@ function SummaryTab({
 
 function ItemsTab({
   items,
+  dealParts,
   report,
   itemImage,
 }: {
   items: ItemStat[];
+  dealParts: DealPartStat[];
   report: DayReport;
   itemImage?: ItemImage;
 }) {
@@ -1518,6 +1538,14 @@ function ItemsTab({
           </div>
         </Card>
       )}
+
+      {!query.trim() && dealParts.length > 0 ? (
+        <Card title={t("reportInsideDeals")}>
+          <div className="pt-3">
+            <DealPartsSales rows={dealParts} itemImage={itemImage} />
+          </div>
+        </Card>
+      ) : null}
 
       {!query.trim() ? (
         <Card title={t("reportWhyDiffers")}>

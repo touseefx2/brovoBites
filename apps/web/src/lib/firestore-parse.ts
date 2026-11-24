@@ -15,7 +15,6 @@ import type {
   InventoryItem,
   Order,
   OrderItem,
-  OrderItemPart,
   OrderRefund,
   OrderType,
   PaymentMethod,
@@ -25,7 +24,7 @@ import type {
   StockMovementType,
   StockUnit,
 } from "@bravobites/domain";
-import { DEFAULT_SETTINGS, SHARED_MENU_ID, businessDateKey, coerceBusinessTime } from "@bravobites/domain";
+import { DEFAULT_SETTINGS, SHARED_MENU_ID, businessDateKey, cleanParts, coerceBusinessTime, readChanged } from "@bravobites/domain";
 
 /**
  * Firestore documents → app types. No Firebase SDK calls here, so the app
@@ -218,19 +217,8 @@ export function asOrderItem(raw: unknown): OrderItem {
   if (i.variationLabel) item.variationLabel = String(i.variationLabel);
   if (i.note) item.note = String(i.note);
   if (Array.isArray(i.parts) && i.parts.length > 0) {
-    item.parts = i.parts.map((raw) => {
-      const p = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-      const part: OrderItemPart = {
-        label: String(p.label ?? ""),
-        qty: Math.max(0, Math.floor(Number(p.qty) || 0)),
-      };
-      if (p.productId) part.productId = String(p.productId);
-      if (p.variationId) part.variationId = String(p.variationId);
-      if (p.noStock) part.noStock = true;
-      const pieces = Math.floor(Number(p.pieces) || 0);
-      if (pieces > 0) part.pieces = pieces;
-      return part;
-    });
+    item.parts = cleanParts(i.parts);
+    item.changed = readChanged(i);
   }
   return item;
 }
