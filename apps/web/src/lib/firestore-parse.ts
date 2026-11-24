@@ -15,6 +15,7 @@ import type {
   InventoryItem,
   Order,
   OrderItem,
+  OrderItemPart,
   OrderRefund,
   OrderType,
   PaymentMethod,
@@ -216,6 +217,21 @@ export function asOrderItem(raw: unknown): OrderItem {
   if (i.variationId) item.variationId = String(i.variationId);
   if (i.variationLabel) item.variationLabel = String(i.variationLabel);
   if (i.note) item.note = String(i.note);
+  if (Array.isArray(i.parts) && i.parts.length > 0) {
+    item.parts = i.parts.map((raw) => {
+      const p = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+      const part: OrderItemPart = {
+        label: String(p.label ?? ""),
+        qty: Math.max(0, Math.floor(Number(p.qty) || 0)),
+      };
+      if (p.productId) part.productId = String(p.productId);
+      if (p.variationId) part.variationId = String(p.variationId);
+      if (p.noStock) part.noStock = true;
+      const pieces = Math.floor(Number(p.pieces) || 0);
+      if (pieces > 0) part.pieces = pieces;
+      return part;
+    });
+  }
   return item;
 }
 

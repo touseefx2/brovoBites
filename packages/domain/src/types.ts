@@ -95,6 +95,40 @@ export interface Product {
   sortOrder: number;
 }
 
+/** Product id of a deal made up at the counter (not on the menu). */
+export const CUSTOM_DEAL_ID = "custom-deal";
+
+/**
+ * One thing inside a deal as it was actually sold — set only when the counter
+ * changed a menu deal or made a custom deal. Stock, receipts and the kitchen
+ * follow these instead of the menu's dealItems.
+ */
+export interface OrderItemPart {
+  /** Menu product (stock deduct); absent for text-only deal parts. */
+  productId?: string;
+  variationId?: string;
+  /** Printed text, size included ("Fries (Large)"). */
+  label: string;
+  /** Per one of the line. 0 = taken out of the deal (prints "No …"). */
+  qty: number;
+  /**
+   * Loose pieces of a pack item added at the counter ("Nuggets (6 pcs)" sold as 3) —
+   * the label already says "(3 pcs)"; qty is then the packs it counts as for stock.
+   */
+  pieces?: number;
+  noStock?: boolean;
+}
+
+/** Counter-side editing state of a changed / custom deal (cart only, never saved). */
+export interface CartDealEdit {
+  /** Deal price before extras; custom deals have none. */
+  basePrice?: number;
+  /** Price of the whole row (all its qty), for parts added at the counter (index-aligned with `parts`, null = part of the deal). */
+  partPrices: (number | null)[];
+  /** Pieces in a full pack for rows counted in pieces (index-aligned with `parts`, null = whole items). */
+  packs?: (number | null)[];
+}
+
 export interface CartLine {
   /** Stable key for cart line (productId + variationId) */
   key: string;
@@ -106,6 +140,9 @@ export interface CartLine {
   qty: number;
   /** Optional note for kitchen */
   note?: string;
+  /** Changed / custom deal contents (see OrderItemPart). */
+  parts?: OrderItemPart[];
+  dealEdit?: CartDealEdit;
 }
 
 export interface OrderItem {
@@ -117,6 +154,8 @@ export interface OrderItem {
   qty: number;
   lineTotal: number;
   note?: string;
+  /** Changed / custom deal contents (see OrderItemPart). */
+  parts?: OrderItemPart[];
 }
 
 export interface Order {

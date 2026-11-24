@@ -1,5 +1,5 @@
 import type { Order, ReceiptPaper } from "@bravobites/domain";
-import { formatOrderDateTime, formatOrderNumber, formatPkr } from "@bravobites/domain";
+import { formatOrderDateTime, formatOrderNumber, formatPkr, partText } from "@bravobites/domain";
 import qrcode from "qrcode-generator";
 
 // Links with Urdu text (e.g. a Maps place name) encode as UTF-8, not one byte per char.
@@ -208,6 +208,10 @@ function buildReceiptSection(opts: {
       let html = `<span class="qty" dir="ltr">${escapeHtml(String(item.qty))}</span><span class="item-name"><bdi>${name}</bdi></span>${
         kitchen ? "" : `<span class="amt" dir="ltr">${escapeHtml(formatPkr(item.lineTotal))}</span>`
       }`;
+      // Changed / custom deal: what is really inside (same lines as escpos.ts).
+      for (const part of item.parts ?? []) {
+        html += `<span class="note part" dir="ltr">- <bdi>${escapeHtml(partText(part))}</bdi></span>`;
+      }
       if (item.note) {
         html += `<span class="note">» <bdi>${escapeHtml(item.note)}</bdi></span>`;
       }

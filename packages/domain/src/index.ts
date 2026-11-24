@@ -11,6 +11,8 @@ export {
   type DealLineItem,
   type Product,
   type CartLine,
+  type CartDealEdit,
+  type OrderItemPart,
   type OrderItem,
   type Order,
   type OrderRefund,
@@ -36,6 +38,7 @@ export {
   DEFAULT_STAFF_PERMISSIONS,
   DEFAULT_BRANCH_ID,
   SHARED_MENU_ID,
+  CUSTOM_DEAL_ID,
   EXPENSE_CATEGORIES,
   STOCK_UNITS,
 } from "./types";
@@ -66,6 +69,10 @@ export {
   updateCartQty,
   removeFromCart,
   isCartEmpty,
+  cleanParts,
+  partsSignature,
+  orderItemKey,
+  partText,
 } from "./cart";
 
 export {

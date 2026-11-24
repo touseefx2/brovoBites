@@ -46,6 +46,7 @@ import type {
   InventoryItem,
   Order,
   OrderItem,
+  OrderItemPart,
   OrderType,
   PaymentMethod,
   Product,
@@ -58,6 +59,8 @@ import {
   labelNamesSize,
   DEFAULT_SETTINGS,
   SHARED_MENU_ID,
+  cleanParts,
+  orderItemKey,
   amendOrderTotals,
   businessDateKey,
   businessDayHoursFromSettings,
@@ -173,6 +176,7 @@ export function sanitizeOrderItems(items: OrderItem[]): OrderItem[] {
       if (i.variationId) item.variationId = String(i.variationId);
       if (i.variationLabel) item.variationLabel = String(i.variationLabel);
       if (i.note) item.note = String(i.note);
+      if (Array.isArray(i.parts) && i.parts.length > 0) item.parts = cleanParts(i.parts);
       return item;
     });
 }
@@ -183,12 +187,15 @@ export function orderItemsTotal(items: OrderItem[]): number {
 
 /** Human-readable add / remove / qty changes for activity logs. */
 function orderItemLineKey(item: OrderItem): string {
-  return `${item.productId}::${item.variationId ?? ""}`;
+  return orderItemKey(item);
 }
 
 function orderItemLabel(item: OrderItem): string {
   const name = item.productName.trim() || item.productId;
-  return item.variationLabel ? `${name} (${item.variationLabel})` : name;
+  const sized = item.variationLabel ? `${name} (${item.variationLabel})` : name;
+  if (!item.parts?.length) return sized;
+  const inside = item.parts.map((p) => (p.qty > 0 ? `${p.qty}x ${p.label}` : `no ${p.label}`)).join(", ");
+  return `${sized} [${inside}]`;
 }
 
 /**
@@ -2773,13 +2780,19 @@ function expandItemsForStock(
   const out: { inv: InventoryItem; name: string; qty: number }[] = [];
   for (const item of items) {
     const product = byId.get(item.productId);
-    if (product?.type === "bundle" && product.dealItems.length > 0) {
+    // A deal changed at the counter (or a custom deal) moves what was sold, not the menu's list.
+    const dealParts: OrderItemPart[] | undefined = item.parts?.length
+      ? item.parts
+      : product?.type === "bundle" && product.dealItems.length > 0
+        ? product.dealItems
+        : undefined;
+    if (dealParts) {
       let matched = 0;
-      for (const d of product.dealItems) {
-        if (d.noStock) continue;
+      for (const d of dealParts) {
+        if (d.noStock || d.qty <= 0) continue;
         let invHit: InventoryItem | undefined;
         if (d.productId) {
-          invHit = invFor(d.productId);
+          invHit = invFor(d.productId, d.variationId);
         }
         if (!invHit) {
           const key = normStockName(d.label);
@@ -2863,7 +2876,16 @@ async function fetchProductsForStock(items: OrderItem[]): Promise<Product[]> {
   } catch {
     // nothing cached
   }
-  const lineIds = [...new Set(items.map((i) => i.productId))];
+  // A changed / custom deal needs its parts' products, not its own (a custom deal has none).
+  const lineIds = [
+    ...new Set(
+      items.flatMap((i) =>
+        i.parts?.length
+          ? i.parts.flatMap((p) => (p.productId ? [p.productId] : []))
+          : [i.productId],
+      ),
+    ),
+  ];
   if (lineIds.some((id) => !byId.has(id))) return fetchProducts();
 
   const dealIds = lineIds.filter((id) => byId.get(id)?.type === "bundle");
@@ -2954,13 +2976,18 @@ async function stockLinesForOrder(
   const byId = new Map(products.map((p) => [p.id, p]));
   const byName = new Map(products.map((p) => [normStockName(p.name), p]));
   const ids = new Set<string>();
-  const parts: DealLineItem[] = [];
+  const parts: (DealLineItem | OrderItemPart)[] = [];
   for (const item of items) {
     ids.add(item.productId);
     const product = byId.get(item.productId);
-    if (product?.type !== "bundle") continue;
-    for (const d of product.dealItems) {
-      if (d.noStock) continue;
+    const dealParts: (DealLineItem | OrderItemPart)[] | undefined = item.parts?.length
+      ? item.parts
+      : product?.type === "bundle"
+        ? product.dealItems
+        : undefined;
+    if (!dealParts) continue;
+    for (const d of dealParts) {
+      if (d.noStock || d.qty <= 0) continue;
       if (d.productId) ids.add(d.productId);
       const named = byName.get(normStockName(d.label));
       if (named) ids.add(named.id);
@@ -2972,7 +2999,13 @@ async function stockLinesForOrder(
   // inventory names (all rows) can still match it.
   const byInventoryName = parts.some(
     (d) =>
-      !(d.productId && invMap.has(d.productId)) &&
+      !(
+        d.productId &&
+        (invMap.has(d.productId) ||
+          ("variationId" in d && d.variationId
+            ? invMap.has(stockKey(d.productId, d.variationId))
+            : false))
+      ) &&
       !byName.has(normStockName(d.label)),
   );
   if (byInventoryName) invMap = await fetchInventoryByProduct(branchId);
@@ -3201,7 +3234,8 @@ export function amendStockLines(
   const qtyMap = (items: OrderItem[]) => {
     const map = new Map<string, { qty: number; line: OrderItem }>();
     for (const it of items) {
-      const key = stockKey(it.productId, it.variationId);
+      // A changed deal is its own line: its contents differ from the menu deal's.
+      const key = orderItemKey(it);
       const prev = map.get(key);
       if (prev) prev.qty += it.qty;
       else map.set(key, { qty: it.qty, line: it });
@@ -3227,6 +3261,7 @@ export function amendStockLines(
       qty: Math.abs(delta),
       unitPrice: 0,
       lineTotal: 0,
+      ...(src.parts?.length ? { parts: src.parts } : {}),
     };
     if (delta > 0) toDeduct.push(line);
     else toRestock.push(line);

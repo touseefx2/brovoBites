@@ -781,3 +781,104 @@ html[data-pos-theme="dark"] .pos-logs-icon {
     }
   }
 }
+
+/* Deal editor (change a deal / custom deal) */
+html[data-pos-theme="dark"] .pos-deal-head-icon {
+  background: rgba(240, 176, 40, 0.14);
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] :is(.pos-deal-name-input, .pos-deal-money input) {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-sunken);
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-deal-money input:focus {
+  border-color: var(--bb-mustard-500);
+  box-shadow: 0 0 0 3px rgba(240, 176, 40, 0.2);
+}
+html[data-pos-theme="dark"] .pos-deal-close {
+  background: var(--pd-hover);
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] :is(.pos-deal-step, .pos-deal-row-name, .pos-deal-row-name-input, .pos-deal-tile) {
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] :is(.pos-deal-section, .pos-deal-money-rs, .pos-deal-empty) {
+  color: var(--muted);
+}
+html[data-pos-theme="dark"] :is(.pos-deal-menu, .pos-deal-foot) {
+  border-color: var(--pd-line);
+}
+html[data-pos-theme="dark"] :is(.pos-deal-panel, .pos-deal-foot) {
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] .pos-deal-cat {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-deal-cat.is-active {
+  border-color: var(--bb-red-500);
+  background: var(--bb-red-500);
+  color: #fff;
+}
+html[data-pos-theme="dark"] .pos-deal-tile {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] .pos-deal-tile.is-picked {
+  border-color: var(--bb-mustard-500);
+  box-shadow: 0 0 0 2px rgba(240, 176, 40, 0.2);
+}
+html[data-pos-theme="dark"] :is(.pos-deal-tile-price, .pos-deal-link, .pos-cart-customize-btn) {
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] :is(.pos-deal-tile-media, .pos-deal-row-img) {
+  background: var(--pd-raised);
+}
+html[data-pos-theme="dark"] .pos-deal-row {
+  border-color: var(--pd-line);
+  background: var(--pd-raised);
+}
+html[data-pos-theme="dark"] .pos-deal-row.is-removed {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+}
+html[data-pos-theme="dark"] .pos-deal-row-name-input:hover {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-sunken);
+}
+html[data-pos-theme="dark"] .pos-deal-putback {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] :is(.pos-deal-link, .pos-cart-customize-btn):hover {
+  background: var(--pd-hover);
+}
+html[data-pos-theme="dark"] .pos-deal-empty {
+  border-color: var(--pd-line-strong);
+}
+html[data-pos-theme="dark"] .pos-cart-customize-btn {
+  border-color: rgba(240, 176, 40, 0.45);
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] .pos-cart-parts {
+  color: var(--bb-mustard-300);
+}
+html[data-pos-theme="dark"] .pos-deal-row-print {
+  color: var(--bb-mustard-500);
+}
+html[data-pos-theme="dark"] .pos-qty-unit {
+  color: var(--muted);
+}
+html[data-pos-theme="dark"] .pos-deal-pcs {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+  color: var(--ink);
+}
+html[data-pos-theme="dark"] .pos-deal-pcs.is-active {
+  border-color: var(--bb-red-500);
+  background: var(--bb-red-500);
+  color: #fff;
+}

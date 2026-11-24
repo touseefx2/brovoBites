@@ -5,7 +5,7 @@
  */
 
 import type { ReceiptOrder, ReceiptCopy, ReceiptOptions, PrintReceiptLabels } from "./print-receipt";
-import { formatOrderDateTime, formatOrderNumber, formatPkr } from "@bravobites/domain";
+import { formatOrderDateTime, formatOrderNumber, formatPkr, partText } from "@bravobites/domain";
 import { RECEIPT_SITE } from "./print-receipt";
 import { RECEIPT_LOGO } from "./receipt-logo";
 
@@ -291,6 +291,10 @@ function buildCopyEscPos(
       buf.kitchenRow(String(item.qty), name);
     } else {
       buf.itemRow(String(item.qty), name, formatPkr(item.lineTotal));
+    }
+    // Changed / custom deal: what is really inside (same lines as print-receipt.ts).
+    for (const part of item.parts ?? []) {
+      buf.line(`     - ${partText(part)}`);
     }
     if (item.note) {
       buf.line(`     » ${item.note}`);

@@ -11,10 +11,12 @@ import {
   canManageInventory,
   canApplyDiscount,
   cartSubtotal,
+  CUSTOM_DEAL_ID,
   DEFAULT_SETTINGS,
   formatPkr,
   isCartEmpty,
   money,
+  partText,
   removeFromCart,
   SHARED_MENU_ID,
   startOfBusinessDay,
@@ -27,6 +29,7 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { PosThemeToggle } from "@/components/PosThemeToggle";
 import { BrandLogo } from "@/components/Brand";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { DealEditorSheet, type DealEditResult } from "@/components/DealEditorSheet";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { OrderDetailSheet } from "@/components/OrderDetailSheet";
 import { OrderListCard } from "@/components/OrderListCard";
@@ -104,6 +107,8 @@ function CartPanel({
   noteEditKey,
   onNoteEditKey,
   onNoteChange,
+  canCustomize,
+  onCustomize,
 }: {
   cart: CartLine[];
   subtotal: number;
@@ -121,6 +126,8 @@ function CartPanel({
   noteEditKey: string | null;
   onNoteEditKey: (key: string | null) => void;
   onNoteChange: (key: string, note: string) => void;
+  canCustomize: (line: CartLine) => boolean;
+  onCustomize: (key: string) => void;
 }) {
   const { t } = useLocale();
   const hasCharges = taxAmount > 0 || dlvCharges > 0;
@@ -189,6 +196,24 @@ function CartPanel({
                   </div>
                   {line.variationLabel ? (
                     <span className="pos-variant-chip">{line.variationLabel}</span>
+                  ) : null}
+                  {line.parts?.length ? (
+                    <>
+                      {line.productId !== CUSTOM_DEAL_ID ? (
+                        <span className="pos-variant-chip">{t("dealCustomized")}</span>
+                      ) : null}
+                      <p className="pos-cart-parts">{line.parts.map(partText).join(" · ")}</p>
+                    </>
+                  ) : null}
+                  {canCustomize(line) ? (
+                    <button
+                      type="button"
+                      className="pos-cart-customize-btn"
+                      onClick={() => onCustomize(line.key)}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                      {t("customizeDeal")}
+                    </button>
                   ) : null}
                   {noteEditKey === line.key ? (
                     <input
@@ -429,6 +454,8 @@ function PosApp() {
   const [discountType, setDiscountType] = useState<DiscountType>("percent");
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [noteEditKey, setNoteEditKey] = useState<string | null>(null);
+  /** Deal editor: change a cart deal line (lineKey) or make a new custom deal. */
+  const [dealEditor, setDealEditor] = useState<{ mode: "deal" | "custom"; lineKey?: string } | null>(null);
   const checkoutLockRef = useRef(false);
   const [imgEpoch, setImgEpoch] = useState(0);
   const [queueSnap, setQueueSnap] = useState<QueueSnapshot>({
@@ -817,34 +844,36 @@ function PosApp() {
     };
   }, [mobileCartOpen, checkoutPreviewOpen, busy]);
 
-  const visibleProducts = useMemo(() => {
-    const q = menuQuery.trim().toLowerCase();
-    // Menu order: category sortOrder, then product sortOrder, then name — so
-    // "All" lists Burgers…Drinks in the rail's order instead of interleaving
-    // every category's #1, #2, … (products only carry a per-category sortOrder).
+  // Menu order: category sortOrder, then product sortOrder, then name — so
+  // "All" lists Burgers…Drinks in the rail's order instead of interleaving
+  // every category's #1, #2, … (products only carry a per-category sortOrder).
+  const menuInOrder = useMemo(() => {
     const catRank = new Map<string, [number, number]>();
     categories.forEach((c, i) => catRank.set(c.id, [c.sortOrder ?? 0, i]));
     const missing: [number, number] = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER];
-    return products
-      .filter((p) => {
-        if (categoryId !== "all" && p.categoryId !== categoryId) return false;
-        if (!q) return true;
-        if (p.name.toLowerCase().includes(q)) return true;
-        if (p.variations.some((v) => v.label.toLowerCase().includes(q))) return true;
-        if (p.dealItems.some((d) => d.label.toLowerCase().includes(q))) return true;
-        return false;
-      })
-      .sort((a, b) => {
-        const ca = catRank.get(a.categoryId) ?? missing;
-        const cb = catRank.get(b.categoryId) ?? missing;
-        return (
-          ca[0] - cb[0] ||
-          ca[1] - cb[1] ||
-          (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
-          a.name.localeCompare(b.name)
-        );
-      });
-  }, [products, categories, categoryId, menuQuery]);
+    return [...products].sort((a, b) => {
+      const ca = catRank.get(a.categoryId) ?? missing;
+      const cb = catRank.get(b.categoryId) ?? missing;
+      return (
+        ca[0] - cb[0] ||
+        ca[1] - cb[1] ||
+        (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+        a.name.localeCompare(b.name)
+      );
+    });
+  }, [products, categories]);
+
+  const visibleProducts = useMemo(() => {
+    const q = menuQuery.trim().toLowerCase();
+    return menuInOrder.filter((p) => {
+      if (categoryId !== "all" && p.categoryId !== categoryId) return false;
+      if (!q) return true;
+      if (p.name.toLowerCase().includes(q)) return true;
+      if (p.variations.some((v) => v.label.toLowerCase().includes(q))) return true;
+      if (p.dealItems.some((d) => d.label.toLowerCase().includes(q))) return true;
+      return false;
+    });
+  }, [menuInOrder, categoryId, menuQuery]);
 
   const productCountByCategory = useMemo(() => {
     const counts = new Map<string, number>();
@@ -1164,7 +1193,60 @@ function PosApp() {
     }
   }
 
+  /** A cart line the deal editor can open: a menu deal with contents, or a custom deal. */
+  function canCustomizeLine(line: CartLine): boolean {
+    if (line.productId === CUSTOM_DEAL_ID) return true;
+    const p = products.find((x) => x.id === line.productId);
+    return p?.type === "bundle";
+  }
+
+  function applyDealEdit(result: DealEditResult) {
+    const editing = dealEditor;
+    setDealEditor(null);
+    if (!editing) return;
+    const freshKey = () =>
+      `${result.productId}__x${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const changed = (base: Partial<CartLine>): CartLine => ({
+      key: base.key ?? freshKey(),
+      productId: result.productId,
+      productName: result.productName,
+      unitPrice: result.unitPrice,
+      qty: base.qty ?? 1,
+      ...(base.note ? { note: base.note } : {}),
+      ...(result.parts ? { parts: result.parts } : {}),
+      ...(result.dealEdit ? { dealEdit: result.dealEdit } : {}),
+    });
+    setCart((c) => {
+      const target = editing.lineKey ? c.find((l) => l.key === editing.lineKey) : undefined;
+      if (!target) return editing.mode === "custom" ? [...c, changed({})] : c;
+      // Back to exactly the menu deal: one plain line (merges with any plain one).
+      if (!result.parts) {
+        const product = products.find((p) => p.id === result.productId);
+        const rest = c.filter((l) => l.key !== target.key);
+        return product ? addToCart(rest, product, target.qty) : c;
+      }
+      // Plain deal ×3 → the change is for one of them: split it off.
+      if (!target.parts && target.qty > 1) {
+        const idx = c.indexOf(target);
+        const next = c.map((l) => (l.key === target.key ? { ...l, qty: l.qty - 1 } : l));
+        next.splice(idx + 1, 0, changed({}));
+        return next;
+      }
+      return c.map((l) =>
+        l.key === target.key
+          ? changed({ key: target.parts ? target.key : undefined, qty: target.qty, note: target.note })
+          : l,
+      );
+    });
+  }
+
   const cartHandlers = {
+    canCustomize: canCustomizeLine,
+    onCustomize: (key: string) => {
+      const line = cart.find((l) => l.key === key);
+      if (!line) return;
+      setDealEditor({ mode: line.productId === CUSTOM_DEAL_ID ? "custom" : "deal", lineKey: key });
+    },
     onQty: (key: string, qty: number) => setCart((c) => updateCartQty(c, key, qty)),
     onRemove: (key: string) => setCart((c) => removeFromCart(c, key)),
     onClear: () => setConfirmClearCart(true),
@@ -1491,8 +1573,8 @@ function PosApp() {
         </aside>
 
         <section className="flex min-h-0 flex-col p-3 pb-24 sm:px-4 sm:pt-4 lg:p-4">
-          <div className="pos-menu-search-bar shrink-0 pb-3">
-            <label className="relative block">
+          <div className="pos-menu-search-bar flex shrink-0 items-center gap-2 pb-3">
+            <label className="relative block min-w-0 flex-1">
               <span className="sr-only">{t("searchMenu")}</span>
               <svg
                 className="pos-menu-search-icon pointer-events-none absolute start-3.5 top-1/2 size-[18px] -translate-y-1/2"
@@ -1517,6 +1599,14 @@ function PosApp() {
                 className="input pos-menu-search w-full text-base sm:text-sm"
               />
             </label>
+            <button
+              type="button"
+              className="pos-custom-deal-btn"
+              onClick={() => setDealEditor({ mode: "custom" })}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+              {t("customDeal")}
+            </button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto">
@@ -1757,6 +1847,32 @@ function PosApp() {
           </div>
         </div>
       ) : null}
+
+      {dealEditor ? (() => {
+        const line = dealEditor.lineKey ? cart.find((l) => l.key === dealEditor.lineKey) : undefined;
+        const product =
+          dealEditor.mode === "deal" && line
+            ? products.find((p) => p.id === line.productId)
+            : undefined;
+        if (dealEditor.mode === "deal" && !product) return null;
+        return (
+          <DealEditorSheet
+            key={dealEditor.lineKey ?? "new"}
+            mode={dealEditor.mode}
+            product={product}
+            line={line}
+            menu={menuInOrder}
+            categories={categories}
+            imageOf={(productId, name) => {
+              const p = productId ? products.find((x) => x.id === productId) : undefined;
+              const cat = p ? categoryMap.get(p.categoryId) : undefined;
+              return resolveProductImage(p?.imageUrl, p?.name ?? name, cat?.name);
+            }}
+            onSave={applyDealEdit}
+            onClose={() => setDealEditor(null)}
+          />
+        );
+      })() : null}
 
       {checkoutPreviewOpen ? (
         <div

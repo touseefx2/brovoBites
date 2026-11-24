@@ -3,6 +3,9 @@ import {
   addToCart,
   cartSubtotal,
   isCartEmpty,
+  cleanParts,
+  orderItemKey,
+  partText,
   removeFromCart,
   resolveUnitPrice,
   toOrderItems,
@@ -122,5 +125,53 @@ describe("cart", () => {
     const items = toOrderItems(lines);
     expect(items[0].lineTotal).toBe(1160);
     expect(items[0].productName).toBe("Solo Zinger Deal");
+  });
+});
+
+describe("changed / custom deals", () => {
+  const parts = [
+    { productId: "burger-1", label: "Classic Zinger", qty: 1 },
+    { label: "Cold Drink", qty: 0, noStock: true },
+    { productId: "juice", variationId: "l", label: "Juice (Large)", qty: 2 },
+  ];
+
+  it("toOrderItems keeps the parts, without undefined fields or editor state", () => {
+    const [item] = toOrderItems([
+      {
+        key: "deal-1__xabc",
+        productId: "deal-1",
+        productName: "Deal 1",
+        unitPrice: 950,
+        qty: 2,
+        parts: [...parts, { label: "x", qty: 1, productId: undefined }],
+        dealEdit: { basePrice: 750, partPrices: [null, null, 100, 0] },
+      },
+    ]);
+    expect(item!.lineTotal).toBe(1900);
+    expect(item!.parts).toEqual([...parts, { label: "x", qty: 1 }]);
+    expect("dealEdit" in item!).toBe(false);
+    expect(JSON.stringify(item)).not.toContain("undefined");
+  });
+
+  it("plain lines get no parts field", () => {
+    const [item] = toOrderItems(addToCart([], simple, 1));
+    expect("parts" in item!).toBe(false);
+  });
+
+  it("orderItemKey separates a changed deal from the menu deal", () => {
+    const plain = { productId: "deal-1" };
+    const changed = { productId: "deal-1", parts };
+    expect(orderItemKey(plain)).toBe("deal-1::");
+    expect(orderItemKey(changed)).not.toBe(orderItemKey(plain));
+    expect(orderItemKey(changed)).toBe(orderItemKey({ productId: "deal-1", parts: [...parts] }));
+  });
+
+  it("partText prints loose pieces by their label only", () => {
+    expect(partText({ productId: "nug", label: "Nuggets (3 pcs)", qty: 1, pieces: 3 })).toBe("Nuggets (3 pcs)");
+    expect(cleanParts([{ label: "N", qty: 1, pieces: 0 }])).toEqual([{ label: "N", qty: 1 }]);
+  });
+
+  it("partText prints removed parts as No …", () => {
+    expect(parts.map(partText)).toEqual(["1x Classic Zinger", "No Cold Drink", "2x Juice (Large)"]);
   });
 });

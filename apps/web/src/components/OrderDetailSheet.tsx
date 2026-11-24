@@ -27,6 +27,8 @@ import {
   money,
   orderRefundableAmount,
   orderRefundedAmount,
+  partsSignature,
+  partText,
 } from "@bravobites/domain";
 import { useLocale } from "@/i18n/locale-context";
 import { pcClockBlocksSales, shopNow } from "@/lib/shop-clock";
@@ -60,6 +62,7 @@ function itemsEqual(a: OrderItem[], b: OrderItem[]): boolean {
       o &&
       item.productId === o.productId &&
       item.variationId === o.variationId &&
+      partsSignature(item.parts) === partsSignature(o.parts) &&
       item.qty === o.qty &&
       item.unitPrice === o.unitPrice
     );
@@ -336,7 +339,10 @@ export function OrderDetailSheet({
   function addProduct(product: Product, variationId?: string, variationLabel?: string, price?: number) {
     const unitPrice = price ?? product.basePrice;
     const existing = draft.findIndex(
-      (d) => d.productId === product.id && (d.variationId ?? "") === (variationId ?? ""),
+      (d) =>
+        d.productId === product.id &&
+        (d.variationId ?? "") === (variationId ?? "") &&
+        !d.parts?.length,
     );
     if (existing >= 0) {
       setQty(existing, draft[existing].qty + 1);
@@ -997,6 +1003,11 @@ export function OrderDetailSheet({
                             {item.qty} × {formatPkr(item.unitPrice)}
                           </span>
                         </div>
+                        {item.parts?.length ? (
+                          <p className="mt-0.5 text-[11px] leading-snug text-stone-600">
+                            {item.parts.map(partText).join(" · ")}
+                          </p>
+                        ) : null}
                         {item.note ? (
                           <p className="mt-0.5 truncate text-[11px] italic text-stone-500">
                             ↳ {item.note}
