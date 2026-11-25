@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CUSTOMER_NOTE_MAX,
   formatPhone,
@@ -62,21 +62,31 @@ export function CustomerDetailSheet({
   const [mergeQuery, setMergeQuery] = useState("");
   const [mergeInto, setMergeInto] = useState<Customer | null>(null);
 
-  // A newer note from someone else shows unless this one is being edited.
+  // A newer note from someone else shows — only when the stored note itself changed, and
+  // never over what is being typed here.
+  const remoteNote = useRef(customer.note);
+  const [noteDirty, setNoteDirty] = useState(false);
   useEffect(() => {
-    if (noteState === "idle") setNote(customer.note);
-  }, [customer.note, noteState]);
+    if (customer.note === remoteNote.current) return;
+    remoteNote.current = customer.note;
+    if (!noteDirty) setNote(customer.note);
+  }, [customer.note, noteDirty]);
 
+  // Their orders: fetched again only when their numbers or their counted orders change
+  // (an edit / cancel / new sale), not on every change elsewhere in the customers list.
+  const phoneKeys = [customer.id, ...(customer.altPhones ?? [])].join(",");
+  const ordersVersion = `${customer.orderCount}|${customer.totalSpent}|${customer.lastOrderAt}`;
+  const branchKeys = user.branchIds.join(",");
   useEffect(() => {
     let alive = true;
     setOrdersError(null);
-    fetchCustomerOrders(customer, user)
+    fetchCustomerOrders(phoneKeys.split(","), { role: user.role, branchIds: branchKeys ? branchKeys.split(",") : [] })
       .then((list) => alive && setOrders(list))
       .catch((e) => alive && setOrdersError(mapFirebaseError(e)));
     return () => {
       alive = false;
     };
-  }, [customer, user]);
+  }, [phoneKeys, ordersVersion, user.role, branchKeys]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -93,6 +103,7 @@ export function CustomerDetailSheet({
       // Offline it waits in Firestore's queue: shown as saved, it goes up with the net.
       void saveCustomerNote(customer.id, note, user).catch((e) => setError(mapFirebaseError(e)));
       setNoteState("saved");
+      setNoteDirty(false);
     } catch (e) {
       setError(mapFirebaseError(e));
       setNoteState("idle");
@@ -173,6 +184,7 @@ export function CustomerDetailSheet({
                 value={note}
                 onChange={(e) => {
                   setNote(e.target.value);
+                  setNoteDirty(true);
                   setNoteState("idle");
                 }}
                 maxLength={CUSTOMER_NOTE_MAX}

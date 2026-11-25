@@ -156,6 +156,13 @@ test.describe("customers", () => {
     await sheet.locator("#customer-note").fill("Calls ahead");
     await sheet.getByRole("button", { name: "Save" }).click();
     await expect.poll(async () => (await customer(phone.key))?.note, { timeout: 30_000 }).toBe("Calls ahead");
+    // Typing again right after a save keeps every key (the saved note doesn't snap back).
+    const noteBox = sheet.locator("#customer-note");
+    await noteBox.press("End");
+    await noteBox.pressSequentially(" twice");
+    await expect(noteBox).toHaveValue("Calls ahead twice");
+    await sheet.getByRole("button", { name: "Save" }).click();
+    await expect.poll(async () => (await customer(phone.key))?.note, { timeout: 30_000 }).toBe("Calls ahead twice");
     await sc.close();
 
     // Owner: renames (kept over the orders' name) and sees the KPIs.
@@ -168,7 +175,13 @@ test.describe("customers", () => {
     await osheet.getByRole("button", { name: "Save" }).last().click();
     await expect.poll(async () => (await customer(phone.key))?.name, { timeout: 30_000 }).toBe(`${name} Khan`);
     expect((await customer(phone.key))!.nameLocked).toBe(true);
-    await expect(op.getByRole("button", { name: "Recount from orders" })).toBeVisible();
+    // Recount from orders: runs on the server and reports how many customers it found.
+    await op.keyboard.press("Escape");
+    await expect(osheet).toBeHidden();
+    await op.getByRole("button", { name: "Recount from orders" }).click();
+    await op.getByRole("button", { name: "Yes", exact: true }).click();
+    await expect(op.getByText(/^Recounted: \d+ customers$/)).toBeVisible({ timeout: 120_000 });
+    expect((await customer(phone.key))!).toMatchObject({ name: `${name} Khan`, orderCount: 1, note: "Calls ahead twice" });
     await oc.close();
   });
 

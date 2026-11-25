@@ -100,8 +100,12 @@ export function saveCustomerNote(rawPhone: string, note: string, user: AppUser):
  * A customer's orders (all their numbers), newest first. Staff ask per branch
  * they work at (the rules only let them read their branches' orders).
  */
-export async function fetchCustomerOrders(customer: Customer, user: AppUser): Promise<Order[]> {
-  const keys = [customer.id, ...(customer.altPhones ?? [])].slice(0, 30);
+export async function fetchCustomerOrders(
+  phoneKeys: readonly string[],
+  user: Pick<AppUser, "role" | "branchIds">,
+): Promise<Order[]> {
+  const keys = phoneKeys.slice(0, 30);
+  if (keys.length === 0) return [];
   const col = collection(getClientDb(), "orders");
   const queries =
     user.role === "owner"
