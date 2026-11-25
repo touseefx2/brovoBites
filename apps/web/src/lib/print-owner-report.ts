@@ -1,5 +1,5 @@
 import type { ReceiptPaper, StockDayRow } from "@bravobites/domain";
-import { formatPkr, money } from "@bravobites/domain";
+import { formatPkr, madeCountText, money, type ItemMadeRow, type MadeCount } from "@bravobites/domain";
 import type { Locale, MessageKey } from "@/i18n/dictionaries";
 import type { DrawerRow, FlagKind, FlagLevel, ItemSales, OwnerReport, ReportEventKind, ReportFlag, StaffAudit } from "@/lib/owner-report";
 import {
@@ -24,7 +24,6 @@ import {
 } from "@/lib/owner-report-text";
 import { escapeHtml as e, receiptPaperMm, receiptPrintWidthMm } from "@/lib/print-receipt";
 import { unitLabelKey } from "@/lib/stock-labels";
-import { dealPartCount, type DealPartStat } from "@/lib/day-report";
 import { changeSummary } from "@/lib/activity-change-text";
 import { LOG_DETAIL_CSS, LOG_DETAIL_SLIP_CSS, logDetailHtml, logDetailSlipHtml } from "@/lib/print-activity-change";
 
@@ -468,14 +467,19 @@ function itemsHtml(c: Ctx, items: ItemSales): string {
   return `${topHtml}${groups}`;
 }
 
-/* ── 4a. Inside deals ── */
+/* ── 4a. Items made ── */
 
-/** What went out inside the deals sold — the count in front of each item. */
-function insideDealsHtml(c: Ctx, rows: DealPartStat[]): string {
-  const count = (r: DealPartStat) => `<bdi dir="ltr" class="num">${e(dealPartCount(r))}</bdi>`;
-  if (c.slip) return rows.map((r) => row(e(r.name), count(r))).join("");
+/** Every item that went out: the total big, "Alone · In deals" under it. */
+function itemsMadeHtml(c: Ctx, rows: ItemMadeRow[]): string {
+  const { t } = c;
+  const n = (m: MadeCount) => `<bdi dir="ltr" class="num">${e(madeCountText(m))}</bdi>`;
+  const split = (r: ItemMadeRow) => `${e(t("madeAlone"))} ${n(r.alone)} · ${e(t("madeInDeals"))} ${n(r.inDeals)}`;
+  if (c.slip) return rows.map((r) => row(e(r.name), n(r.total), split(r))).join("");
   const list = rows
-    .map((r) => `<li class="irow"><div><p class="nm">${e(r.name)}</p></div><div class="qty"><b>${count(r)}</b></div></li>`)
+    .map(
+      (r) =>
+        `<li class="irow"><div><p class="nm">${e(r.name)}</p><p class="muted">${split(r)}</p></div><div class="qty"><b>${n(r.total)}</b></div></li>`,
+    )
     .join("");
   return `<div class="igroup"><ul class="irows">${list}</ul></div>`;
 }
@@ -1124,8 +1128,8 @@ export function buildOwnerReportHtml(
       end: itemsTotal ? `<p class="items-total">${itemsTotal}</p>${itemsVsSales}` : undefined,
       body: (c.slip && itemsTotal ? `<p class="items-total">${itemsTotal}</p>${itemsVsSales}` : "") + itemsHtml(c, report.items),
     }),
-    report.insideDeals.length > 0
-      ? sec(c, { title: t("reportInsideDeals"), icon: PATH.utensils, hint: t("reportInsideDealsHint"), body: insideDealsHtml(c, report.insideDeals) })
+    report.itemsMade.length > 0
+      ? sec(c, { title: t("itemsMade"), icon: PATH.utensils, hint: t("itemsMadeHint"), body: itemsMadeHtml(c, report.itemsMade) })
       : "",
     report.stock || report.stockLog.length > 0
       ? sec(c, { title: t("stockToday"), icon: PATH.box, hint: t("stockTodayHint"), body: stockHtml(c, report.stock) })

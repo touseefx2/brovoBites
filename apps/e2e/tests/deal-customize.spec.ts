@@ -20,6 +20,8 @@ import {
 } from "./support";
 
 const DEAL = "1. Solo Zinger Deal"; // Rs 580: Classic Zinger, Half Fries, Regular Bottle
+/** Set E2E_SHOTS=<folder> to save screenshots of the new report views. */
+const SHOTS = process.env.E2E_SHOTS;
 
 type Part = { label: string; qty: number; pieces?: number; pack?: number; price?: number; productId?: string; variationId?: string };
 type Item = { productId: string; productName: string; unitPrice: number; qty: number; lineTotal: number; parts?: Part[]; changed?: boolean };
@@ -118,14 +120,32 @@ test.describe("deal customize", () => {
     expect(plainItem!.changed).toBe(false);
     expect(plainItem!.parts!.map((p) => p.label)).toEqual(["Classic Zinger", "Half Fries", "Regular Bottle"]);
 
-    // Report → Item Sales: what went out inside deals.
+    // Report: Menu Sales keeps the billed lines; Items Made adds alone + inside deals.
     await pos.toolbar().locator("button", { hasText: "Report" }).click();
     const report = page.getByRole("dialog", { name: "Day End Report" });
-    await report.getByRole("tab", { name: /Item Sales/ }).click();
-    const inside = report.getByRole("list", { name: "Inside deals" });
-    await expect(inside).toBeVisible({ timeout: 30_000 });
-    await expect(inside.locator("li", { hasText: "Nuggets" })).toContainText("pcs");
-    await expect(inside.locator("li", { hasText: "Classic Zinger" })).toBeVisible();
+    await report.getByRole("tab", { name: /Menu Sales/ }).click();
+    await expect(report.getByRole("table").getByText(DEAL).first()).toBeVisible({ timeout: 30_000 });
+    await report.getByRole("tab", { name: /Items Made/ }).click();
+    const made = report.getByRole("table", { name: "Items Made" });
+    await expect(made).toBeVisible({ timeout: 30_000 });
+    // Both deals sold here had a Classic Zinger inside: ≥ 2 in deals, and Total = Alone + In deals.
+    const zingerRow = made.locator('tr[data-item="Classic Zinger"]');
+    await expect(zingerRow).toHaveCount(1);
+    const cell = async (col: string) => Number((await zingerRow.locator(`[data-col="${col}"]`).innerText()).replace("—", "0"));
+    expect(await cell("deals")).toBeGreaterThanOrEqual(2);
+    expect(await cell("total")).toBe((await cell("alone")) + (await cell("deals")));
+    // Nuggets (sizes "6 pcs" / "12 pcs") count in pieces: the 3 loose pieces of the changed deal at least.
+    await expect(made.locator('tr[data-item="Nuggets"] [data-col="deals"]')).toContainText("pcs");
+    if (SHOTS) await report.screenshot({ path: `${SHOTS}/pos-items-made.png` });
+    await report.getByRole("tab", { name: /Menu Sales/ }).click();
+    if (SHOTS) await report.screenshot({ path: `${SHOTS}/pos-menu-sales.png` });
+
+    // Admin → Item Sales: Menu Sales | Items Made, same numbers.
+    await page.goto("/admin/item-sales");
+    await page.getByRole("tab", { name: "Items Made" }).click();
+    const adminMade = page.getByRole("table", { name: "Items Made" });
+    await expect(adminMade.locator('tr[data-item="Classic Zinger"]')).toHaveCount(1, { timeout: 30_000 });
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/admin-items-made.png`, fullPage: true });
     await context.close();
   });
 

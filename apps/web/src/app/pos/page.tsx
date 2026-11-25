@@ -408,6 +408,8 @@ function PosApp() {
   const [branchId, setBranchId] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  /** Every menu item, hidden ones too — reports count items sold before they were hidden. */
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categoryId, setCategoryId] = useState<string>("all");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null);
@@ -683,10 +685,12 @@ function PosApp() {
       applyBranches(snap.branches);
       catalogRef.settings = snap.settings;
       catalogRef.categories = snap.categories.filter((c) => c.isActive);
-      catalogRef.products = snap.products.filter((p) => p.isActive);
+      // The cache keeps every item (hidden ones too: reports, stock of old sales); the menu shows active ones.
+      catalogRef.products = snap.products;
       setSettings(snap.settings);
       setCategories(catalogRef.categories);
-      setProducts(catalogRef.products);
+      setAllProducts(snap.products);
+      setProducts(snap.products.filter((p) => p.isActive));
       setError(null);
     }
 
@@ -740,8 +744,9 @@ function PosApp() {
           SHARED_MENU_ID,
           (prods) => {
             if (cancelled) return;
-            catalogRef.products = prods.filter((p) => p.isActive);
-            setProducts(catalogRef.products);
+            catalogRef.products = prods;
+            setAllProducts(prods);
+            setProducts(prods.filter((p) => p.isActive));
             schedulePersist();
           },
           () => {},
@@ -2560,9 +2565,10 @@ function PosApp() {
           settings={settings}
           onClose={() => setReportOpen(false)}
           onOpenOrder={(o) => setSelectedOrder(o)}
-          menuProducts={products}
+          menuProducts={allProducts}
           itemImage={(productId, name) => {
-            const product = products.find((p) => p.id === productId);
+            // Hidden items still have their photo in the report.
+            const product = allProducts.find((p) => p.id === productId);
             const cat = product ? categoryMap.get(product.categoryId) : undefined;
             return resolveProductImage(product?.imageUrl, name, cat?.name);
           }}

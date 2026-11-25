@@ -8,6 +8,7 @@ import type {
   ExpenseCategory,
   Order,
   OrderType,
+  ItemMadeRow,
   PaymentMethod,
   Product,
   ShopSettings,
@@ -32,14 +33,13 @@ import { OwnerReportView, useOwnerReportExtras, useReportCatalog } from "@/compo
 import { PAYMENT_TONE, PaymentTile } from "@/components/PaymentMethodIcon";
 import { CATEGORY_TILE, CategoryIcon, EditExpenseDialog } from "@/components/PosExpensesSheet";
 import { useLocale } from "@/i18n/locale-context";
-import { DealPartsSales } from "@/components/DealPartsSales";
+import { ItemsMadeTable } from "@/components/ItemsMadeTable";
 import {
   computeDayReport,
-  computeDealPartSales,
   computeItemSales,
+  computeItemsMadeInRange,
   computeSalesBridge,
   type DayReport,
-  type DealPartStat,
   type ItemStat,
   type SalesBridgeKey,
 } from "@/lib/day-report";
@@ -72,7 +72,7 @@ import { openDatePicker } from "@/lib/open-date-picker";
 import { useSyncedExpenseFill } from "@/lib/use-synced-expense-fill";
 import { pcClockBlocksSales, shopNow } from "@/lib/shop-clock";
 
-type Tab = "summary" | "items" | "orders" | "expenses" | "stock" | "owner";
+type Tab = "summary" | "items" | "made" | "orders" | "expenses" | "stock" | "owner";
 type OrderChip = OrderStatusFilter | "pending";
 
 /** Numbers stay in the Latin sans face (Urdu UI uses Naskh for text). */
@@ -268,11 +268,13 @@ const ICON: Record<string, ReactNode> = {
   cancel: <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM15 9l-6 6M9 9l6 6" />,
   shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10ZM9 12l2 2 4-4" />,
   box: <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12" />,
+  chef: <path d="M6 13.9A4 4 0 0 1 7.5 6a5 5 0 0 1 9 0A4 4 0 0 1 18 13.9V20H6v-6.1ZM6 17h12" />,
 };
 
 const TAB_ICON: Record<Tab, keyof typeof ICON> = {
   summary: "sum",
   items: "items",
+  made: "chef",
   orders: "orders",
   expenses: "wallet",
   stock: "box",
@@ -711,10 +713,10 @@ export function PosDayReport({
     };
   }, [ownerTab, ownerUids]);
   const reportCatalog = useReportCatalog(ownerTab);
-  // Deals sold before lines carried their contents fall back to the menu's deal.
-  const dealPartStats = useMemo(
+  // Items Made: alone + inside deals (deals sold before lines carried their contents use the menu's).
+  const itemsMade = useMemo(
     () =>
-      computeDealPartSales(
+      computeItemsMadeInRange(
         staff === "all" ? orderView.list : orderView.list.filter((o) => o.createdBy === staff),
         from,
         to,
@@ -745,7 +747,8 @@ export function PosDayReport({
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: "summary", label: t("reportSummary") },
-    { id: "items", label: t("itemSales"), count: items.length },
+    { id: "items", label: t("menuSales"), count: items.length },
+    { id: "made", label: t("itemsMade"), count: itemsMade.length },
     { id: "orders", label: t("orders"), count: report.dayOrders.length },
     { id: "expenses", label: t("expenses"), count: report.dayExpenses.length },
     { id: "stock", label: t("inventory") },
@@ -979,7 +982,9 @@ export function PosDayReport({
           ) : tab === "summary" ? (
             <SummaryTab report={report} items={items} itemImage={itemImage} onViewItems={() => setTab("items")} />
           ) : tab === "items" ? (
-            <ItemsTab items={items} dealParts={dealPartStats} report={report} itemImage={itemImage} />
+            <ItemsTab items={items} report={report} itemImage={itemImage} />
+          ) : tab === "made" ? (
+            <MadeTab rows={itemsMade} itemImage={itemImage} />
           ) : tab === "stock" ? (
             <DayStockTab branchId={branchId} fromIso={fromIso} toIso={toIso} />
           ) : tab === "owner" ? (
@@ -1134,7 +1139,7 @@ function SummaryTab({
               <div className="mt-6 grid max-w-xl grid-cols-3 gap-2 sm:gap-3">
                 {[
                   { icon: "orders" as const, value: String(report.totalOrders), label: t("orders") },
-                  { icon: "items" as const, value: String(itemsSold), label: t("itemsCount") },
+                  { icon: "items" as const, value: String(itemsSold), label: t("reportBillLines") },
                   { icon: "avg" as const, value: formatPkr(avgOrder), label: t("reportAvgOrder") },
                 ].map((k) => (
                   <div
@@ -1392,16 +1397,37 @@ function SummaryTab({
   );
 }
 
+/* ── Items Made ── */
+
+/** Every item that went out: alone, inside deals, and the two together. */
+function MadeTab({ rows, itemImage }: { rows: ItemMadeRow[]; itemImage?: ItemImage }) {
+  const { t } = useLocale();
+  const [query, setQuery] = useState("");
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? rows.filter((r) => r.name.toLowerCase().includes(q)) : rows;
+  }, [rows, query]);
+
+  if (rows.length === 0) return <Empty label={t("noReportData")} />;
+  return (
+    <div className="space-y-3">
+      <SearchBox value={query} onChange={setQuery} placeholder={t("reportSearchItems")} />
+      <Card title={t("itemsMade")}>
+        <p className="px-4 pt-3 pb-2 text-xs leading-relaxed text-stone-600 sm:px-5">{t("itemsMadeHint")}</p>
+        {shown.length === 0 ? <Empty label={t("reportNoMatch")} /> : <ItemsMadeTable rows={shown} itemImage={itemImage} />}
+      </Card>
+    </div>
+  );
+}
+
 /* ── Items ── */
 
 function ItemsTab({
   items,
-  dealParts,
   report,
   itemImage,
 }: {
   items: ItemStat[];
-  dealParts: DealPartStat[];
   report: DayReport;
   itemImage?: ItemImage;
 }) {
@@ -1538,14 +1564,6 @@ function ItemsTab({
           </div>
         </Card>
       )}
-
-      {!query.trim() && dealParts.length > 0 ? (
-        <Card title={t("reportInsideDeals")}>
-          <div className="pt-3">
-            <DealPartsSales rows={dealParts} itemImage={itemImage} />
-          </div>
-        </Card>
-      ) : null}
 
       {!query.trim() ? (
         <Card title={t("reportWhyDiffers")}>

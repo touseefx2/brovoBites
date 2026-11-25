@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ActivityLog, CashDrawerSession, Expense, InventoryItem, Order, StockMovement } from "@bravobites/domain";
 import type { Unsubscribe } from "firebase/firestore";
 import { useLocale } from "@/i18n/locale-context";
 import { mergeActivityLogs } from "@/lib/activity-merge";
 import { mapFirebaseError } from "@/lib/errors";
-import { onActivityLogsInRange, onCashDrawersInRange, onInventorySnapshot, onStockMovementsSince } from "@/lib/firestore";
+import {
+  fetchMenuFromServer,
+  onActivityLogsInRange,
+  onCashDrawersInRange,
+  onInventorySnapshot,
+  onStockMovementsSince,
+} from "@/lib/firestore";
 import { loadPublicMenu, peekPublicMenu } from "@/lib/menu-data";
 import type { ReportCatalog } from "@/lib/owner-report";
 import { readCachedPosCatalog } from "@/lib/pos-catalog";
@@ -228,24 +234,36 @@ export function useWithLocalPending(opts: {
 }
 
 /**
- * Menu categories + item names, to group item sales: the POS's offline copy
- * of the menu, else the menu this browser already keeps — no extra reads when
- * either is there. undefined while looking, null when there is none.
+ * Menu categories + items, to group item sales and count Items Made: the
+ * POS's offline copy of the menu (every item, hidden ones too). Without it,
+ * the menu this browser keeps (shown items only) at once — never waiting on
+ * the network — then the full menu from the database when it answers.
+ * undefined while looking, null when there is none.
  */
 export function useReportCatalog(enabled: boolean): ReportCatalog | null | undefined {
   const [catalog, setCatalog] = useState<ReportCatalog | null | undefined>(undefined);
+  const started = useRef(false);
   useEffect(() => {
-    if (!enabled || catalog !== undefined) return;
+    if (!enabled || started.current) return;
+    started.current = true;
     let alive = true;
     void (async () => {
       const pos = await readCachedPosCatalog().catch(() => null);
-      const menu = pos ?? peekPublicMenu() ?? (await loadPublicMenu().catch(() => null));
-      if (alive) setCatalog(menu ? { categories: menu.categories, products: menu.products } : null);
+      if (pos) {
+        if (alive) setCatalog({ categories: pos.categories, products: pos.products });
+        return;
+      }
+      const shown = peekPublicMenu() ?? (await loadPublicMenu().catch(() => null));
+      if (alive) setCatalog(shown ? { categories: shown.categories, products: shown.products } : null);
+      // Hidden items too (sold before they were hidden) — from the server only; offline it stays as is.
+      const full = await fetchMenuFromServer().catch(() => null);
+      if (alive && full) setCatalog(full);
     })();
     return () => {
       alive = false;
+      started.current = false;
     };
-  }, [enabled, catalog]);
+  }, [enabled]);
   return catalog;
 }
 

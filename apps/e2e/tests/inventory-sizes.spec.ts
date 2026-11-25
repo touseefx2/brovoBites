@@ -119,7 +119,7 @@ test("drink sizes are stocked apart; sale, receive, waste and report agree", asy
     await staff.page.getByRole("dialog", { name: "Inventory" }).getByRole("button", { name: "Close" }).last().click();
     await pos.toolbar().locator("button", { hasText: "Report" }).click();
     const report = staff.page.getByRole("dialog", { name: "Day End Report" });
-    await report.getByRole("tab").nth(4).click(); // Summary, Item Sales, Orders, Expenses, Inventory
+    await report.getByRole("tab", { name: /Inventory/ }).click();
     const dayStock = report.locator("#or-stock");
     await expect(dayStock).toContainText("Soft Drink · Tin Can");
     // The hand changes start closed: the arrow opens them.
@@ -242,7 +242,7 @@ test("an offline POS sale counts in stock and in the day's Sold at once; syncing
     // Day End Report → Inventory: Sold −2, Left 98 — still offline.
     await pos.toolbar().locator("button", { hasText: "Report" }).click();
     const report = page.getByRole("dialog", { name: "Day End Report" });
-    await report.getByRole("tab").nth(4).click();
+    await report.getByRole("tab", { name: /Inventory/ }).click();
     const line = report.locator("#or-stock tr").filter({ hasText: "1 Litre" });
     await expect(line).toContainText("−2");
     await expect(line).toContainText("98");

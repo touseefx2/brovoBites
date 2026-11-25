@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import { formatPkr, money, type StockDayRow } from "@bravobites/domain";
+import { formatPkr, money, type ItemMadeRow, type StockDayRow } from "@bravobites/domain";
 import { ActivityChangeView } from "@/components/ActivityChangeView";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
 import { useLocale } from "@/i18n/locale-context";
@@ -22,7 +22,7 @@ import type {
   StockLogLine,
 } from "@/lib/owner-report";
 import { downloadOwnerReportPdf, makeOwnerReportPdf } from "@/lib/owner-report-pdf";
-import { dealPartCount, type DealPartStat } from "@/lib/day-report";
+import { ItemsMadeTable } from "@/components/ItemsMadeTable";
 import {
   afterSaleText,
   buildOwnerSummary,
@@ -1723,21 +1723,12 @@ function StaffTable({ staff }: { staff: StaffAudit[] }) {
 
 /* ── 5. What sold ── */
 
-/** What went out inside the deals sold (menu, changed and custom deals). */
-function InsideDealsSection({ rows }: { rows: DealPartStat[] }) {
+/** Items Made: every item that went out — alone, inside deals, and the two together. */
+function ItemsMadeSection({ rows }: { rows: ItemMadeRow[] }) {
   const { t } = useLocale();
   return (
-    <Section title={t("reportInsideDeals")} hint={t("reportInsideDealsHint")} icon={PATH.utensils}>
-      <ul data-testid="owner-inside-deals" className="grid divide-y divide-[#f3e2cf] sm:grid-cols-2 sm:divide-y-0">
-        {rows.map((r) => (
-          <li key={r.key} className="flex items-center justify-between gap-3 border-[#f3e2cf] px-4 py-3 sm:border-b sm:px-6">
-            <span className="min-w-0 truncate text-[15px] font-semibold text-[var(--ink)]">{r.name}</span>
-            <bdi dir="ltr" className="shrink-0 text-base font-extrabold text-[var(--ink)]" style={NUM}>
-              {dealPartCount(r)}
-            </bdi>
-          </li>
-        ))}
-      </ul>
+    <Section title={t("itemsMade")} hint={t("itemsMadeHint")} icon={PATH.utensils}>
+      <ItemsMadeTable rows={rows} />
     </Section>
   );
 }
@@ -2445,7 +2436,7 @@ function ReportBody({
         />
       </div>
       <ItemsSection items={report.items} sales={report.totals.refunds > 0 ? report.totals.gross : report.totals.net} />
-      {report.insideDeals.length > 0 ? <InsideDealsSection rows={report.insideDeals} /> : null}
+      {report.itemsMade.length > 0 ? <ItemsMadeSection rows={report.itemsMade} /> : null}
       {report.stock || report.stockLog.length > 0 ? <StockSection rows={report.stock} log={report.stockLog} multiDay={multiDay} /> : null}
       <StaffSection
         staff={report.staff}

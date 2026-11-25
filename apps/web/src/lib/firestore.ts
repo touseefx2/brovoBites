@@ -10,6 +10,7 @@ import {
   getDocFromServer,
   getDocs,
   getDocsFromCache,
+  getDocsFromServer,
   increment,
   limit,
   onSnapshot,
@@ -425,6 +426,22 @@ export async function fetchProducts(_branchId?: string): Promise<Product[]> {
   return snap.docs
     .map((d) => asProduct(d.id, d.data()))
     .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/**
+ * The whole menu (hidden items too) from the server only — never this
+ * browser's partial offline copy. Rejects when the server can't be reached.
+ */
+export async function fetchMenuFromServer(): Promise<{ categories: Category[]; products: Product[] }> {
+  const db = getClientDb();
+  const [cats, prods] = await Promise.all([
+    getDocsFromServer(collection(db, "categories")),
+    getDocsFromServer(collection(db, "products")),
+  ]);
+  return {
+    categories: cats.docs.map((d) => asCategory(d.id, d.data())).sort((a, b) => a.sortOrder - b.sortOrder),
+    products: prods.docs.map((d) => asProduct(d.id, d.data())).sort((a, b) => a.sortOrder - b.sortOrder),
+  };
 }
 
 export async function fetchSettings(): Promise<ShopSettings> {

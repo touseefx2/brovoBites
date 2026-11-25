@@ -9,8 +9,8 @@ import type {
   StockDayRow,
   StockMovement,
 } from "@bravobites/domain";
-import { money, summarizeStockDay } from "@bravobites/domain";
-import { computeDayReport, computeDealPartSales, type DayReport, type DealPartStat } from "@/lib/day-report";
+import { computeItemsMade, money, summarizeStockDay, type ItemMadeRow } from "@bravobites/domain";
+import { computeDayReport, type DayReport } from "@/lib/day-report";
 
 /**
  * Owner report — who did what in a period: each person's sales, discounts,
@@ -207,15 +207,15 @@ export interface ItemSales {
 /** Menu names for grouping item sales (the POS keeps a copy offline). */
 export interface ReportCatalog {
   categories: { id: string; name: string; sortOrder: number }[];
-  /** With the full menu (POS / server), deals sold before lines carried their contents count in "Inside deals". */
+  /** With the full menu (POS / server), deal items join their menu items in "Items made", and deals sold before lines carried their contents count. */
   products: ({ id: string; name: string; categoryId: string } & Partial<Pick<Product, "type" | "dealItems" | "variations">>)[];
 }
 
 export interface OwnerReport {
   day: DayReport;
   items: ItemSales;
-  /** What went out inside the deals sold (menu, changed and custom deals). */
-  insideDeals: DealPartStat[];
+  /** Every item the kitchen made: sold alone + inside deals (menu, changed and custom deals). */
+  itemsMade: ItemMadeRow[];
   totals: {
     orders: number;
     gross: number;
@@ -855,7 +855,7 @@ export function computeOwnerReport(params: {
   return {
     day,
     items: computeItemSales(day.dayOrders, params.catalog),
-    insideDeals: computeDealPartSales(day.dayOrders, null, null, params.catalog?.products),
+    itemsMade: computeItemsMade(day.dayOrders, params.catalog?.products),
     totals: {
       orders: day.totalOrders,
       gross,

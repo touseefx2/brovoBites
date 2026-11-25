@@ -21,8 +21,8 @@ import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { useRetryOnReconnect } from "@/lib/use-retry-on-reconnect";
 import { fetchBranches, fetchProducts, onOrdersSnapshot, onSettingsSnapshot } from "@/lib/firestore";
 import { openDatePicker } from "@/lib/open-date-picker";
-import { computeDealPartSales, computeItemSales } from "@/lib/day-report";
-import { DealPartsSales } from "@/components/DealPartsSales";
+import { computeItemSales, computeItemsMadeInRange } from "@/lib/day-report";
+import { ItemsMadeTable } from "@/components/ItemsMadeTable";
 import { OrderRangeGuardNotice, useOrderRangeGuard } from "@/lib/use-order-range-guard";
 import type { Unsubscribe } from "firebase/firestore";
 import type { ShopSettings } from "@bravobites/domain";
@@ -79,6 +79,8 @@ export default function ItemSalesPage() {
   const [dateTo, setDateTo] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("qty");
   const [searchQuery, setSearchQuery] = useState("");
+  /** Menu Sales (what was billed, with money) or Items Made (alone + inside deals). */
+  const [view, setView] = useState<"menu" | "made">("menu");
 
   const dayHours = useMemo(
     () => businessDayHoursFromSettings(settings),
@@ -196,8 +198,8 @@ export default function ItemSalesPage() {
     return result;
   }, [orders, dateRange, sortBy]);
 
-  // What went out inside deals. The menu is read once: deals sold before deal
-  // lines carried their contents count by the menu's deal.
+  // Items Made. The menu is read once: deal items join their menu items, and
+  // deals sold before lines carried their contents count by the menu's deal.
   const [menuProducts, setMenuProducts] = useState<Product[] | undefined>(undefined);
   useEffect(() => {
     let alive = true;
@@ -205,15 +207,22 @@ export default function ItemSalesPage() {
       .then((list) => {
         if (alive) setMenuProducts(list);
       })
-      .catch(() => {});
+      // Can't read the menu: count by names (deal items still join menu items of the same name).
+      .catch(() => {
+        if (alive) setMenuProducts([]);
+      });
     return () => {
       alive = false;
     };
   }, []);
-  const dealPartStats = useMemo(
-    () => computeDealPartSales(orders, dateRange.from, dateRange.to, menuProducts),
+  const itemsMade = useMemo(
+    () => computeItemsMadeInRange(orders, dateRange.from, dateRange.to, menuProducts),
     [orders, dateRange, menuProducts],
   );
+  const shownMade = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return q ? itemsMade.filter((r) => r.name.toLowerCase().includes(q)) : itemsMade;
+  }, [itemsMade, searchQuery]);
 
   const periodMoney = useMemo(() => {
     const { from, to } = dateRange;
@@ -281,9 +290,11 @@ export default function ItemSalesPage() {
           {t("itemSales")}
         </h1>
         <p className="admin-page-sub">{t("itemSalesHint")}</p>
-        <p className="mt-1 text-xs leading-snug text-[var(--muted)]">
-          {t("itemSalesVsOrdersHint")}
-        </p>
+        {view === "menu" ? (
+          <p className="mt-1 text-xs leading-snug text-[var(--muted)]">
+            {t("itemSalesVsOrdersHint")}
+          </p>
+        ) : null}
       </div>
 
       <div className="admin-filter-panel mb-4">
@@ -458,25 +469,43 @@ export default function ItemSalesPage() {
           </div>
         ) : null}
 
-        <div className="admin-filter-divider flex items-center justify-end gap-1 border-t px-3 py-2.5 sm:px-4">
-          <button
-            type="button"
-            className={`admin-filter-chip min-h-9 py-1.5 text-xs ${
-              sortBy === "qty" ? "is-active" : ""
-            }`}
-            onClick={() => setSortBy("qty")}
-          >
-            {t("sortByQty")}
-          </button>
-          <button
-            type="button"
-            className={`admin-filter-chip min-h-9 py-1.5 text-xs ${
-              sortBy === "revenue" ? "is-active" : ""
-            }`}
-            onClick={() => setSortBy("revenue")}
-          >
-            {t("sortByRevenue")}
-          </button>
+        <div className="admin-filter-divider flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2.5 sm:px-4">
+          <div className="flex gap-1" role="tablist" aria-label={t("itemSales")}>
+            {(["menu", "made"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="tab"
+                aria-selected={view === v}
+                className={`admin-filter-chip min-h-11 px-4 text-sm font-bold ${view === v ? "is-active" : ""}`}
+                onClick={() => setView(v)}
+              >
+                {v === "menu" ? t("menuSales") : t("itemsMade")}
+              </button>
+            ))}
+          </div>
+          {view === "menu" ? (
+            <div className="flex gap-1">
+              <button
+                type="button"
+                className={`admin-filter-chip min-h-9 py-1.5 text-xs ${
+                  sortBy === "qty" ? "is-active" : ""
+                }`}
+                onClick={() => setSortBy("qty")}
+              >
+                {t("sortByQty")}
+              </button>
+              <button
+                type="button"
+                className={`admin-filter-chip min-h-9 py-1.5 text-xs ${
+                  sortBy === "revenue" ? "is-active" : ""
+                }`}
+                onClick={() => setSortBy("revenue")}
+              >
+                {t("sortByRevenue")}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -486,9 +515,9 @@ export default function ItemSalesPage() {
         <LoadError message={loadError} onRetry={() => void load()} retryLabel={t("retry")} />
       ) : null}
 
-      {guard.approved && !loading && !loadError ? (
+      {guard.approved && !loading && !loadError && view === "menu" ? (
         <CollapsibleSection
-          title={t("itemSales")}
+          title={t("menuSales")}
           count={filteredStats.length}
         >
           {filteredStats.length === 0 ? (
@@ -580,11 +609,17 @@ export default function ItemSalesPage() {
         </CollapsibleSection>
       ) : null}
 
-      {guard.approved && !loading && !loadError && dealPartStats.length > 0 ? (
-        <CollapsibleSection title={t("reportInsideDeals")} count={dealPartStats.length} className="mt-4">
-          <div className="pt-3">
-            <DealPartsSales rows={dealPartStats} />
-          </div>
+      {guard.approved && !loading && !loadError && view === "made" ? (
+        <CollapsibleSection title={t("itemsMade")} count={shownMade.length}>
+          <p className="px-4 pt-3 pb-2 text-xs leading-relaxed text-[var(--muted)]">{t("itemsMadeHint")}</p>
+          {/* Wait for the menu: without it, old deal lines can't be told from single items. */}
+          {menuProducts === undefined ? (
+            <PageSpinner label={t("loading")} />
+          ) : shownMade.length === 0 ? (
+            <p className="px-4 py-10 text-center text-sm text-[var(--muted)]">{t("noReportData")}</p>
+          ) : (
+            <ItemsMadeTable rows={shownMade} />
+          )}
         </CollapsibleSection>
       ) : null}
     </div>
