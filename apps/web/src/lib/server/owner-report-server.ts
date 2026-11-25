@@ -30,6 +30,7 @@ import { fill, ownerReportFileName, periodText } from "@/lib/owner-report-text";
 import { buildOwnerReportHtml } from "@/lib/print-owner-report";
 import { localePdfName, REPORT_EMAIL_LOCALES } from "@/lib/report-email";
 import { reportEmailBody } from "@/lib/server/mailer";
+import { fetchPaidInRangeAdmin } from "@/lib/server/payment-queries";
 
 /**
  * One business day's owner report, made on the server (Admin SDK) for the
@@ -159,6 +160,19 @@ export async function buildServerOwnerReport(
   const parts = await Promise.all(
     branches.map((b) => branchData(db, b.id, from.toISOString(), to.toISOString(), dateKey)),
   );
+  // Credit sales of earlier days paid on this day — "Old bills collected" (not
+  // the day's sales). Needs the (branchId, paidAt) index: if that query fails
+  // the email still goes out, without that line (logged), rather than not at all.
+  const collectedOrders = (
+    await Promise.all(
+      branches.map((b) =>
+        fetchPaidInRangeAdmin(db, b.id, from.toISOString(), to.toISOString()).catch((err) => {
+          console.error("owner report: paid-in-range query failed", b.id, err);
+          return [] as Order[];
+        }),
+      ),
+    )
+  ).flat();
   for (const p of parts) {
     orders.push(...p.orders);
     expenses.push(...p.expenses);
@@ -178,6 +192,7 @@ export async function buildServerOwnerReport(
     to,
     fromKey: dateKey,
     toKey: dateKey,
+    collectedOrders,
     ownerUids: new Set(ownerSnap.docs.map((d) => d.id)),
     catalog: {
       categories: catSnap.docs.map((d) => asCategory(d.id, d.data())),
@@ -223,7 +238,7 @@ export async function buildServerOwnerReport(
  * missing one makes this throw — callers treat the fingerprint as optional.
  */
 /** Fingerprint format version — a stored one of another version is not compared. */
-export const DAY_SIGNATURE_VERSION = "v2|";
+export const DAY_SIGNATURE_VERSION = "v3|";
 
 /** The fingerprint shows any sale, refund, change or expense for the day. */
 export function signatureHasData(signature: string): boolean {
@@ -243,7 +258,7 @@ export async function daySignature(db: Firestore, dateKey: string, settings: Sho
     ids.map(async (branchId) => {
       const dayOrders = () =>
         db.collection("orders").where("branchId", "==", branchId).where("createdAt", ">=", since).where("createdAt", "<=", until);
-      const ordersWhere = (field: "status" | "paymentMethod", value: string) =>
+      const ordersWhere = (field: "status" | "paymentMethod" | "paymentStatus", value: string) =>
         db
           .collection("orders")
           .where("branchId", "==", branchId)
@@ -262,7 +277,16 @@ export async function daySignature(db: Firestore, dateKey: string, settings: Sho
           .orderBy("createdAt", "desc")
           .count()
           .get();
-      const [orders, cancelled, refunds, cash, card, orderLogs, expenseLogs, expenses] = await Promise.all([
+      // Credit sales paid during the day ("Old bills collected").
+      const paidOnDay = () =>
+        db
+          .collection("orders")
+          .where("branchId", "==", branchId)
+          .where("paidAt", ">=", since)
+          .where("paidAt", "<=", until)
+          .aggregate({ n: AggregateField.count(), total: AggregateField.sum("total") })
+          .get();
+      const [orders, cancelled, refunds, cash, card, orderLogs, expenseLogs, expenses, unpaid, paid] = await Promise.all([
         dayOrders().aggregate({ n: AggregateField.count(), total: AggregateField.sum("total") }).get(),
         ordersWhere("status", "cancelled"),
         dayOrders().aggregate({ refunds: AggregateField.sum("refundAmount") }).get(),
@@ -276,6 +300,10 @@ export async function daySignature(db: Firestore, dateKey: string, settings: Sho
           .where("date", "==", dateKey)
           .aggregate({ n: AggregateField.count(), amount: AggregateField.sum("amount") })
           .get(),
+        // The day's sales still payment pending: a later "set back to pending"
+        // (or one paid) changes the day's report, so it must change this too.
+        ordersWhere("paymentStatus", "pending"),
+        paidOnDay(),
       ]);
       const o = orders.data();
       const c = cancelled.data();
@@ -289,6 +317,8 @@ export async function daySignature(db: Firestore, dateKey: string, settings: Sho
         `k${card.data().n}/${card.data().total ?? 0}`,
         `l${orderLogs.data().count}/${expenseLogs.data().count}`,
         `e${e.n}/${e.amount ?? 0}`,
+        `p${unpaid.data().n}/${unpaid.data().total ?? 0}`,
+        `d${paid.data().n}/${paid.data().total ?? 0}`,
       ].join(":");
     }),
   );

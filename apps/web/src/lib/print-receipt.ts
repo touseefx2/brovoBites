@@ -100,7 +100,9 @@ export type ReceiptOrder = Pick<
   | "createdByName"
   | "createdByEmail"
   | "createdAt"
-> & { orderNumber: number | null };
+> &
+  // Optional: the checkout preview draft and the admin test print have none of these.
+  Partial<Pick<Order, "status" | "paymentStatus" | "paidAt">> & { orderNumber: number | null };
 
 export type ReceiptOptions = {
   order: ReceiptOrder;
@@ -162,10 +164,46 @@ function orderTypeLabel(labels: PrintReceiptLabels, type?: string): string {
   return labels.dineIn;
 }
 
-function paymentLabel(labels: PrintReceiptLabels, method: string): string {
+export function paymentLabel(
+  labels: Pick<PrintReceiptLabels, "cash" | "card" | "digital">,
+  method: string,
+): string {
   if (method === "card") return labels.card;
   if (method === "digital") return labels.digital;
   return labels.cash;
+}
+
+/** The banner under TOTAL on a payment-pending slip (both builders). */
+export const RECEIPT_PAYMENT_PENDING = "PAYMENT PENDING";
+/** Label of the "paid later" line (both builders). */
+export const RECEIPT_PAID_ON = "Paid on";
+
+/**
+ * The payment lines of the customer and branch copies — ONE helper for the
+ * paper (escpos.ts) and the preview / browser print, so they cannot drift.
+ * The status words are fixed ASCII English, never translated: the POS80
+ * prints Urdu as "????" (toPrinterAscii).
+ *
+ * - Payment pending (not cancelled): "Payment  PENDING" + the PAYMENT PENDING banner.
+ * - Paid: "Payment  Cash - PAID"; paid later (paidAt) adds "Paid on  <date>".
+ * - Cancelled: the method only, as before — neither PAID nor PENDING.
+ * `paymentMethod` is never "pending": on a pending order it is only the
+ * expected method, so it is not printed there.
+ */
+export function receiptPayment(
+  order: Pick<ReceiptOrder, "paymentMethod" | "status" | "paymentStatus" | "paidAt">,
+  labels: Pick<PrintReceiptLabels, "cash" | "card" | "digital">,
+): { value: string; banner: string | null; paidOn: string | null } {
+  const method = paymentLabel(labels, order.paymentMethod);
+  if (order.status === "cancelled") return { value: method, banner: null, paidOn: null };
+  if (order.paymentStatus === "pending") {
+    return { value: "PENDING", banner: RECEIPT_PAYMENT_PENDING, paidOn: null };
+  }
+  return {
+    value: `${method} - PAID`,
+    banner: null,
+    paidOn: order.paidAt ? formatOrderDateTime(order.paidAt) : null,
+  };
 }
 
 function buildReceiptSection(opts: {
@@ -294,6 +332,15 @@ function buildReceiptSection(opts: {
     discountHtml = `<div class="row"><span>${dlabel}</span><span dir="ltr">−${escapeHtml(formatPkr(order.discountAmount!))}</span></div><hr />`;
   }
 
+  const payment = receiptPayment(order, labels);
+  // Same order as escpos.ts: payment line, "Paid on", then the banner.
+  const paymentExtraHtml =
+    (payment.paidOn
+      ? `\n    <p class="row paid-on"><span dir="ltr">${RECEIPT_PAID_ON}</span><span dir="ltr">${escapeHtml(payment.paidOn)}</span></p>`
+      : "") +
+    (payment.banner
+      ? `\n    <p class="payment-banner" dir="ltr">${escapeHtml(payment.banner)}</p>`
+      : "");
   const reviewQr = reviewUrl ? qrSvg(reviewUrl) : "";
   const vendorName = (softwareCompanyName || "").trim();
   const vendorPhone = (softwareCompanyPhone || "").trim();
@@ -313,7 +360,7 @@ function buildReceiptSection(opts: {
     ${chargesHtml}
     ${discountHtml}
     <p class="total"><span class="total-label">${escapeHtml(labels.total)}</span><span class="total-value" dir="ltr">${escapeHtml(formatPkr(order.total))}</span></p>
-    <p class="row payment"><span>${escapeHtml(labels.paymentMethod)}</span><span>${escapeHtml(paymentLabel(labels, order.paymentMethod))}</span></p>
+    <p class="row payment"><span>${escapeHtml(labels.paymentMethod)}</span><span>${escapeHtml(payment.value)}</span></p>${paymentExtraHtml}
     <p class="thanks">${escapeHtml(labels.thankYou)}</p>
     ${
       reviewQr
@@ -512,6 +559,17 @@ function receiptCss(widthMm: number, paperMm: number): string {
       white-space: nowrap;
     }
     .payment { margin: 4px 0 0; }
+    /* Same as the paper's double-size bold line (escpos.ts): bold only at 16px. */
+    .payment-banner {
+      margin: 6px 0 0;
+      padding: 4px 2px;
+      border: 2px solid #000;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
     .thanks {
       margin-top: 10px;
       text-align: center;
@@ -588,6 +646,7 @@ const NARROW_CSS = `
     .review .qr { width: 26mm; height: 26mm; }
     .logo { width: 22mm; height: 22mm; }
     h1, .total-value { font-size: 14px; }
+    .payment-banner { font-size: 14px; letter-spacing: 0; }
     .total-label { font-size: 12px; }
     .items .note { font-size: 10px; }
     .items.kitchen { font-size: 13px; }

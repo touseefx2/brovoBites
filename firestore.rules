@@ -103,6 +103,27 @@ service cloud.firestore {
       return discountUpdateOkFor(userDoc());
     }
 
+    // refundUnchanged() and paymentFieldsUnchanged() in one diff (staff
+    // edits / cancels; each diff costs expressions, see the order update rule).
+    function refundAndPaymentUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny([
+          'refundAmount',
+          'refundReason',
+          'refundedAt',
+          'refundedBy',
+          'refundedByName',
+          'refundCount',
+          'refunds',
+          'refundedAtServer',
+          'paymentStatus',
+          'paidAt',
+          'paidAtServer',
+          'paidBy',
+          'paidByName',
+        ]);
+    }
+
     function refundUnchanged() {
       return !request.resource.data.diff(resource.data).affectedKeys()
         .hasAny([
@@ -174,6 +195,7 @@ service cloud.firestore {
     // Staff refund of their order (a partial cancel, so the cancel permission):
     // refund fields only, more than before and at most the total, one more
     // entry in the refund log, in the name of the maker `a` (user doc `u`).
+    // Never while the payment is pending (no cash came in).
     function refundOk(a, u) {
       let d = request.resource.data;
       return permOf(u, 'canCancelOrders')
@@ -199,7 +221,8 @@ service cloud.firestore {
         && d.refundAmount > resource.data.get('refundAmount', 0)
         && d.refundAmount <= d.total
         && d.get('refundedBy', '') == a
-        && refundLogAppendsOnly(d.refundAmount - resource.data.get('refundAmount', 0));
+        && refundLogAppendsOnly(d.refundAmount - resource.data.get('refundAmount', 0))
+        && resource.data.get('paymentStatus', '') != 'pending';
     }
 
     // The refund log keeps every earlier entry as it was and gains exactly one,
@@ -217,14 +240,16 @@ service cloud.firestore {
     }
 
     // Staff change to an order made by `a` (user doc `u`): within the 72h
-    // window, discount rules, then a refund, an edit (not after a refund) or a cancel.
+    // window, discount rules, then a refund, an edit (not after a refund) or a
+    // cancel. None of them touches the payment status (refundOk's key list
+    // leaves it out too).
     function staffOrderChange(a, u) {
       return staffWithinEditWindow()
         && discountUpdateOkFor(u)
         && (
           refundOk(a, u)
           || (
-            refundUnchanged()
+            refundAndPaymentUnchanged()
             && (
               (
                 request.resource.data.status == 'completed'
@@ -285,6 +310,86 @@ service cloud.firestore {
         .hasAny(['createdAtServer', 'syncedAtServer']);
     }
 
+    // ── Payment status ──
+    // paymentStatus 'pending' = the customer pays later; no field = paid (every
+    // older order). paid* names who collected a pending order, and when.
+    function paymentStatusKeys() {
+      return ['paymentStatus', 'paidAt', 'paidAtServer', 'paidBy', 'paidByName'];
+    }
+
+    function orderIsUnpaid(data) {
+      return data.get('paymentStatus', '') == 'pending';
+    }
+
+    // A new order is paid (no field) or payment pending — never "already
+    // collected later". Name / phone for a pending sale are checked by the app
+    // only: a queued offline sale refused here would be stuck for good.
+    function paymentOkOnCreate() {
+      let d = request.resource.data;
+      return (!('paymentStatus' in d) || d.paymentStatus == 'pending')
+        && !d.keys().hasAny(['paidAt', 'paidAtServer', 'paidBy', 'paidByName']);
+    }
+
+    // Order edits, cancels and refunds by staff never touch the payment status
+    // (only paymentSettleOk does; back to pending is the owner's).
+    function paymentFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(paymentStatusKeys());
+    }
+
+    // Owner path: when the payment status changes, pending carries no paid*
+    // stamps, and nothing but 'pending' is ever stored. A refunded order is
+    // never set back to pending (a pending order has no refunds: the drawer
+    // counts its whole total when it is paid).
+    function paymentShapeOk() {
+      let d = request.resource.data;
+      return paymentFieldsUnchanged()
+        || !('paymentStatus' in d)
+        || (d.paymentStatus == 'pending'
+          && !d.keys().hasAny(['paidAt', 'paidAtServer', 'paidBy', 'paidByName'])
+          && d.get('refundAmount', 0) == 0);
+    }
+
+    // No refund on an unpaid order — nobody, owner included (the cash never
+    // came in). Lower what is owed by editing the items or cancelling.
+    // Owner path; staff refunds check it in refundOk, mark-paid allows no
+    // refund keys.
+    function noRefundWhileUnpaid() {
+      return (!orderIsUnpaid(resource.data) && !orderIsUnpaid(request.resource.data))
+        || refundUnchanged();
+    }
+
+    // Mark a pending order paid: anyone active at the branch, any order age,
+    // any maker (customers pay days later, often to another cashier). Payment
+    // fields only, in the collector's name (or theirs, uploaded and stamped).
+    function paymentSettleOk() {
+      return resource.data.get('paymentStatus', '') == 'pending'
+        && paymentSettleFieldsOk(request.resource.data);
+    }
+
+    function paymentSettleFieldsOk(d) {
+      return !('paymentStatus' in d)
+        && resource.data.status != 'cancelled'
+        && d.diff(resource.data).affectedKeys().hasOnly([
+          'paymentStatus',
+          'paymentMethod',
+          'paidAt',
+          'paidAtServer',
+          'paidBy',
+          'paidByName',
+          'lastClientMutationId',
+          'appliedClientMutationIds',
+          'uploadedBy',
+          'uploadedByName',
+          'uploadedAt',
+        ])
+        && d.paymentMethod in ['cash', 'card', 'digital']
+        && d.paidAt is string
+        && d.get('paidAtServer', request.time) == request.time
+        && d.paidBy is string
+        && (d.paidBy == request.auth.uid || uploadsFor(d.paidBy, resource.data.branchId));
+    }
+
     match /users/{uid} {
       // Staff may read owners' profiles too (owner report: who the owners are).
       allow read: if signedIn() && (
@@ -343,6 +448,7 @@ service cloud.firestore {
         && orderAmountsOk()
         && serverStampsNow()
         && noRefundOnCreate()
+        && paymentOkOnCreate()
         && (
           isOwner()
           || (request.resource.data.createdBy == request.auth.uid && staffDiscountOk())
@@ -359,6 +465,12 @@ service cloud.firestore {
       allow update: if isActiveUser()
         && canAccessBranch(resource.data.branchId)
         && reviewSendOk();
+      // Payment status: the owner may set an order back to pending (staff
+      // can't: staffOrderChange keeps the payment fields unchanged); anyone at
+      // the branch marks a pending order paid (paymentSettleOk, no window).
+      // Kept in this one statement, and the payment checks only on the paths
+      // that need them: each extra `allow` re-runs the user checks and a
+      // request may evaluate at most 1000 expressions.
       allow update: if isActiveUser()
         && canAccessBranch(resource.data.branchId)
         && request.resource.data.branchId == resource.data.branchId
@@ -374,7 +486,10 @@ service cloud.firestore {
           || orderAmountsOk()
         )
         && (
-          isOwner()
+          (isOwner() && paymentShapeOk() && noRefundWhileUnpaid())
+          // Payment received for a pending order (any maker, any age). Fails
+          // in a few steps for any other change, so it goes before the staff paths.
+          || paymentSettleOk()
           || (
             resource.data.createdBy == request.auth.uid
             && updatedBySelf()

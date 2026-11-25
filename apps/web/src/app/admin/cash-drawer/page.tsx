@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Branch,
-  BusinessDayHours,
   CashDrawerSession,
   Expense,
   Order,
@@ -12,6 +11,8 @@ import type {
 import {
   businessDateKey,
   businessDayHoursFromSettings,
+  drawerCash,
+  drawerWindow,
   endOfBusinessDay,
   formatPkr,
   money,
@@ -59,112 +60,6 @@ function formatHm12(hm: string): string {
   return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-/**
- * Where a drawer's count starts: its business day's start — or, when a drawer
- * was already closed earlier that day, that close (a reopened drawer must not
- * count the same sales and expenses again).
- */
-function drawerWindow(
-  session: CashDrawerSession,
-  sessions: CashDrawerSession[],
-  hours: BusinessDayHours,
-): { fromMs: number; toMs: number; reopened: boolean } {
-  let fromMs = startOfBusinessDay(session.date, hours).getTime();
-  const toMs = endOfBusinessDay(session.date, hours).getTime();
-  const openedMs = new Date(session.openedAt).getTime();
-  let reopened = false;
-  for (const s of sessions) {
-    if (s.id === session.id || s.date !== session.date) continue;
-    if (s.status !== "closed" || !s.closedAt) continue;
-    const closedMs = new Date(s.closedAt).getTime();
-    if (closedMs <= openedMs && closedMs > fromMs) {
-      fromMs = closedMs;
-      reopened = true;
-    }
-  }
-  return { fromMs, toMs, reopened };
-}
-
-/**
- * Cash that should be in the drawer: opening + cash sales made in the window −
- * cash handed back in the window (refunds and cancels, whatever day the sale
- * was — the cash leaves the drawer then) − that day's expenses. A sale
- * cancelled in the same drawer nets to nothing.
- */
-function drawerCash(params: {
-  dateKey: string;
-  window: { fromMs: number; toMs: number; reopened: boolean };
-  /** Start of the drawer's business day. */
-  dayStartMs: number;
-  /**
-   * Owners: a sale of an earlier business day cancelled now leaves this drawer
-   * only when an owner cancelled it — in the app staff can't cancel an earlier
-   * day's sale, so a staff-made one is ignored here.
-   */
-  ownerUids: Set<string>;
-  orders: Order[];
-  expenses: Expense[];
-  openingBalance: number;
-}) {
-  const { fromMs, toMs, reopened } = params.window;
-  const inWindow = (iso: string | undefined) => {
-    const t = iso ? new Date(iso).getTime() : NaN;
-    return t >= fromMs && t <= toMs;
-  };
-  const cashOrders = params.orders.filter((o) => o.paymentMethod === "cash");
-
-  const soldHere = cashOrders
-    .filter((o) => inWindow(o.createdAt))
-    .reduce((s, o) => s + o.total, 0);
-  // A cancel hands back what is left after refunds; it was done at updatedAt.
-  const soldEarlierDay = (o: Order) => new Date(o.createdAt).getTime() < params.dayStartMs;
-  const cancelledHere = cashOrders
-    .filter(
-      (o) =>
-        o.status === "cancelled" &&
-        inWindow(o.updatedAt ?? o.createdAt) &&
-        (!soldEarlierDay(o) || (!!o.updatedBy && params.ownerUids.has(o.updatedBy))),
-    )
-    .reduce((s, o) => s + Math.max(0, o.total - (o.refundAmount ?? 0)), 0);
-  const cashSales = soldHere - cancelledHere;
-
-  const cashRefunds = cashOrders.reduce((s, o) => s + refundsInWindow(o, inWindow), 0);
-
-  const cashExpenses = params.expenses
-    .filter(
-      (e) =>
-        (e.date || e.createdAt || "").slice(0, 10) === params.dateKey &&
-        (!reopened || inWindow(e.createdAt)),
-    )
-    .reduce((s, e) => s + e.amount, 0);
-
-  const expected = money(params.openingBalance + cashSales - cashExpenses - cashRefunds);
-  return { cashSales, cashRefunds, cashExpenses, expected };
-}
-
-/**
- * Cash refunded on this order inside the window, by each refund's own time.
- * Refunds from before that log only have the latest refundedAt: the amount the
- * log doesn't cover counts at that time — or on the sale's day once a newer
- * refund has taken over refundedAt.
- */
-function refundsInWindow(o: Order, inWindow: (iso: string | undefined) => boolean): number {
-  const refunded = o.refundAmount ?? 0;
-  let logged = 0;
-  let sum = 0;
-  for (const r of o.refunds ?? []) {
-    // Never more than the order's refund total, whatever the log says.
-    const amount = Math.min(r.amount, Math.max(0, money(refunded - logged)));
-    logged += amount;
-    if (inWindow(r.at)) sum += amount;
-  }
-  const unlogged = money(refunded - logged);
-  if (unlogged > 0 && inWindow(o.refunds?.length ? o.createdAt : (o.refundedAt ?? o.createdAt))) {
-    sum += unlogged;
-  }
-  return sum;
-}
-
 /** Same id ⇒ counted once (an order sold and refunded in the window is in both lists). */
 function mergeOrders(...lists: Order[][]): Order[] {
   const byId = new Map<string, Order>();
@@ -194,6 +89,10 @@ export default function CashDrawerPage() {
   const [queueReady, setQueueReady] = useState(false);
   const [ordersReady, setOrdersReady] = useState(false);
   const [refundsReady, setRefundsReady] = useState(false);
+  /** The "paid since" query failed (offline with no cache / index missing): old bills collected may be missing. */
+  const [paidMissing, setPaidMissing] = useState(false);
+  /** Bumped to read the paid part again after it failed (e.g. its index was still building). */
+  const [paidRetry, setPaidRetry] = useState(0);
   const [expensesReady, setExpensesReady] = useState(false);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -307,6 +206,7 @@ export default function CashDrawerPage() {
     setOrdersReady(false);
     setRefundsReady(false);
     setExpensesReady(false);
+    setPaidMissing(false);
     const unsubs: Unsubscribe[] = [
       onOrdersSnapshot(
         branchId,
@@ -320,11 +220,18 @@ export default function CashDrawerPage() {
         },
         { sinceIso: dayStartIso, untilIso: dayEndIso },
       ),
-      // Refunded or cancelled during this drawer — also sales of earlier days.
-      onCashBackOrdersSnapshot(branchId, dayStartIso, (o) => {
-        setRefundedOrders(o);
-        setRefundsReady(true);
-      }),
+      // Refunded, cancelled or paid (credit sales) during this drawer — also
+      // sales of earlier days. If the paid part can't be read, say so: the
+      // expected cash would miss old bills collected.
+      onCashBackOrdersSnapshot(
+        branchId,
+        dayStartIso,
+        (o) => {
+          setRefundedOrders(o);
+          setRefundsReady(true);
+        },
+        () => setPaidMissing(true),
+      ),
       onExpensesSnapshot(
         branchId,
         (e) => {
@@ -339,7 +246,15 @@ export default function CashDrawerPage() {
       ),
     ];
     return () => unsubs.forEach((u) => u());
-  }, [branchId, locale, settingsReady, dayStartIso, dayEndIso, today]);
+  }, [branchId, locale, settingsReady, dayStartIso, dayEndIso, today, paidRetry]);
+
+  // A failed listener never comes back by itself: try again every 30 s until
+  // the paid part loads (closing the drawer waits for it — see below).
+  useEffect(() => {
+    if (!paidMissing) return;
+    const id = window.setTimeout(() => setPaidRetry((n) => n + 1), 30_000);
+    return () => window.clearTimeout(id);
+  }, [paidMissing]);
 
   // This PC's queue — re-read whenever it changes (new sale, synced, failed…).
   useEffect(() => {
@@ -406,6 +321,9 @@ export default function CashDrawerPage() {
           };
           let day;
           let refunded;
+          // fetchCashBackFromServer throws when the "paid since" part fails
+          // (offline, cache only, index missing): never save an expected cash
+          // that misses credit sales paid in cash.
           try {
             [day, refunded] = await Promise.all([
               fetchDayFromServer(range),
@@ -552,7 +470,8 @@ export default function CashDrawerPage() {
   }
 
   async function handleCloseDrawer() {
-    if (!profile || !todayOpenSession) return;
+    // Expected cash would miss old bills paid today — never save it like that.
+    if (!profile || !todayOpenSession || paidMissing) return;
     setBusy(true);
     setError(null);
     try {
@@ -681,6 +600,23 @@ export default function CashDrawerPage() {
                   {t("totalRefunds")}: <span className="font-semibold text-orange-600" dir="ltr">{formatPkr(todayStats.cashRefunds)}</span>
                 </div>
               )}
+              {todayStats.collected > 0 && (
+                <div className="border-t border-[var(--border)] px-4 py-2 text-xs text-[var(--muted)]" data-testid="drawer-collected">
+                  {t("oldBillsCollected")} ({todayStats.collectedOrders}):{" "}
+                  <span className="font-semibold text-green-700" dir="ltr">+{formatPkr(todayStats.collected)}</span>
+                </div>
+              )}
+              {todayStats.unpaid > 0 && (
+                <div className="border-t border-[var(--border)] px-4 py-2 text-xs text-[var(--muted)]" data-testid="drawer-unpaid">
+                  {t("unpaidNotInDrawer")} ({todayStats.unpaidOrders}):{" "}
+                  <span className="font-semibold text-red-600" dir="ltr">{formatPkr(todayStats.unpaid)}</span>
+                </div>
+              )}
+              {paidMissing && (
+                <div className="border-t border-[var(--border)] px-4 py-2 text-xs font-medium text-amber-800">
+                  {t("drawerPaidMissing")}
+                </div>
+              )}
               {todayStats.pendingToday > 0 && (
                 <div className="border-t border-[var(--border)] px-4 py-2 text-xs font-medium text-amber-800">
                   {t("drawerPendingIncluded").replace("{count}", String(todayStats.pendingToday))}
@@ -692,7 +628,7 @@ export default function CashDrawerPage() {
                     type="button"
                     className="btn w-full min-h-11 py-3"
                     // Expected cash must include today's orders and refunds first.
-                    disabled={busy || !statsReady}
+                    disabled={busy || !statsReady || paidMissing}
                     onClick={() => {
                       setClosingCount(0);
                       setCloseFormVisible(true);
@@ -745,7 +681,7 @@ export default function CashDrawerPage() {
                       <button
                         type="button"
                         className="btn min-h-11 flex-1"
-                        disabled={busy || !statsReady || closingCount <= 0}
+                        disabled={busy || !statsReady || paidMissing || closingCount <= 0}
                         onClick={() => setConfirmCloseDrawer(true)}
                       >
                         {busy ? t("saving") : t("closeDrawer")}

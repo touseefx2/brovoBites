@@ -1,4 +1,4 @@
-export { enqueueCheckout } from "./checkout";
+export { enqueueCheckout, UnpaidNeedsCustomerError } from "./checkout";
 export { listLocalActivityLogs } from "./activity";
 export { listSyncIssues, type SyncIssue, type SyncIssueReason } from "./issues";
 export {
@@ -10,6 +10,7 @@ export {
   enqueueOrderCancel,
   enqueueOrderDelete,
   enqueueOrderEdit,
+  enqueueOrderPayment,
   enqueueOrderRefund,
   isOrderCreatePending,
 } from "./mutations";
@@ -34,6 +35,7 @@ export {
   type LocalDataStats,
 } from "./db";
 export {
+  acknowledgeDroppedChanges,
   clearSyncedLocalCopy,
   isQueueSyncing,
   kickSync,
@@ -57,5 +59,7 @@ export {
   type QueuedExpense,
   type QueuedOrder,
   type QueuedMutation,
+  type MutationKind,
+  type MutationDropReason,
   type EnqueueCheckoutInput,
 } from "./types";

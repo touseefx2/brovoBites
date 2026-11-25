@@ -35,6 +35,11 @@ export interface QueuedOrder {
   discountAmount?: number;
   total: number;
   paymentMethod: PaymentMethod;
+  /**
+   * "pending" = customer pays later (payment pending). Absent = paid, as on
+   * every row from before this field existed. Only ever written when pending.
+   */
+  paymentStatus?: "pending";
   createdBy: string;
   createdByName: string;
   createdByEmail?: string;
@@ -82,6 +87,11 @@ export type EnqueueCheckoutInput = {
   branchName?: string;
   lines: import("@bravobites/domain").CartLine[];
   paymentMethod: PaymentMethod;
+  /**
+   * "pending" = the customer pays later: needs a customer name or phone.
+   * Missing / "paid" = paid now (the default).
+   */
+  paymentStatus?: "paid" | "pending";
   orderType: OrderType;
   customerName?: string;
   customerPhone?: string;
@@ -126,6 +136,7 @@ export function queuedToOrder(q: QueuedOrder): Order {
       : {}),
     total: q.total,
     paymentMethod: q.paymentMethod,
+    ...(q.paymentStatus === "pending" ? { paymentStatus: "pending" as const } : {}),
     status: "completed",
     createdBy: q.createdBy,
     createdByName: q.createdByName,
@@ -146,9 +157,12 @@ export function isQueueFailed(q: QueuedOrder): boolean {
   return q.status === "failed" || q.stockStatus === "failed";
 }
 
-export type MutationKind = "edit" | "cancel" | "refund" | "delete";
+export type MutationKind = "edit" | "cancel" | "refund" | "delete" | "payment";
 
-/** Offline edit / cancel / refund / delete — synced after create queue. */
+/** Why sync dropped a change (OrderConflictError reason on the cloud). */
+export type MutationDropReason = "deleted" | "cancelled" | "refunded" | "paid" | "unpaid";
+
+/** Offline edit / cancel / refund / delete / payment — synced after create queue. */
 export interface QueuedMutation {
   mutationId: string;
   kind: MutationKind;
@@ -159,6 +173,10 @@ export interface QueuedMutation {
   orderAfter: Order;
   refundAmount?: number;
   refundReason?: string;
+  /** kind "payment": mark paid, or (owner only) set back to payment pending. */
+  paymentTo?: "paid" | "pending";
+  /** kind "payment" + paymentTo "paid": the method the customer actually paid with. */
+  paidMethod?: PaymentMethod;
   /** Skip stock restore on cancel/delete when stock was never deducted. */
   skipStockRestore?: boolean;
   user: AppUser;
@@ -174,6 +192,17 @@ export interface QueuedMutation {
   syncedAt?: number;
   /** "dropped": owner had deleted/cancelled the order first — not applied. */
   outcome?: "dropped";
+  /**
+   * Why it was dropped (set on rows dropped since payment status existed).
+   * Payment changes and refunds of a payment-pending order stay visible in
+   * the sync-status sheet — cash may be in the drawer (listSyncIssues).
+   */
+  droppedReason?: MutationDropReason;
+  /**
+   * When the cashier tapped "Got it" on this dropped change in the sync-status
+   * sheet. Until then it counts in QueueSnapshot.droppedCount (red pill).
+   */
+  droppedSeenAt?: number;
 }
 
 export function isMutationActive(m: QueuedMutation): boolean {
@@ -297,6 +326,48 @@ export function applyPendingExpenseOps(
   return { list, pendingIds };
 }
 
+const PAYMENT_KEYS = ["paymentStatus", "paidAt", "paidBy", "paidByName"] as const;
+
+/** Payment state of an order, for "did it change?" checks. */
+function paymentState(o: Order): string {
+  return `${o.paymentStatus === "pending" ? "pending" : ""}|${o.paidAt ?? ""}`;
+}
+
+/** `target` with the payment fields (and, if asked, the method) of `source`. */
+function withPaymentOf(target: Order, source: Order, takeMethod: boolean): Order {
+  const out: Order = { ...target };
+  for (const k of PAYMENT_KEYS) delete out[k];
+  if (source.paymentStatus === "pending") out.paymentStatus = "pending";
+  if (source.paidAt) out.paidAt = source.paidAt;
+  if (source.paidBy) out.paidBy = source.paidBy;
+  if (source.paidByName) out.paidByName = source.paidByName;
+  if (takeMethod) out.paymentMethod = source.paymentMethod;
+  return out;
+}
+
+/**
+ * The order after mutation `m`, given the copy shown so far (`current`).
+ * - "payment": only the payment fields change — never the stale rest of
+ *   orderAfter over a newer cloud copy.
+ * - edit / cancel / refund never change payment: keep the current copy's
+ *   payment fields (marked paid on another device meanwhile), and its method
+ *   too when its payment state moved since the change was made (same rule
+ *   as updateOrderItems on the cloud).
+ * Missing `current` (an order outside the list): orderAfter, as before.
+ */
+function applyMutation(current: Order | undefined, m: QueuedMutation): Order {
+  if (!current) return m.orderAfter;
+  if (m.kind === "payment") {
+    return withPaymentOf(current, m.orderAfter, m.paymentTo === "paid");
+  }
+  if (paymentState(current) === paymentState(m.orderAfter)) return m.orderAfter;
+  return withPaymentOf(
+    m.orderAfter,
+    current,
+    paymentState(current) !== paymentState(m.orderBefore),
+  );
+}
+
 /**
  * Cloud orders + this PC's queue → what the POS should count right now.
  * Unsynced sales are added, queued edit/cancel/refund apply their result,
@@ -318,7 +389,7 @@ export function applyPendingOrderOps(
   for (const m of sorted) {
     pendingIds.add(m.orderId);
     if (m.kind === "delete") byId.delete(m.orderId);
-    else byId.set(m.orderId, m.orderAfter);
+    else byId.set(m.orderId, applyMutation(byId.get(m.orderId), m));
   }
   const list = [...byId.values()].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
@@ -358,7 +429,7 @@ export function syncedLocalOrders(
     .sort((a, b) => a.enqueuedAt - b.enqueuedAt);
   for (const m of synced) {
     if (m.kind === "delete") byId.delete(m.orderId);
-    else byId.set(m.orderId, m.orderAfter);
+    else byId.set(m.orderId, applyMutation(byId.get(m.orderId), m));
   }
   return [...byId.values()];
 }

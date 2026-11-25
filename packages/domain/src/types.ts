@@ -221,6 +221,20 @@ export interface Order {
    * on the day the cash left. Absent on orders refunded before it existed.
    */
   refunds?: OrderRefund[];
+  /**
+   * "pending" = the customer pays later (credit sale). Absent means paid, as
+   * every order before this field existed. `paymentMethod` is then the method
+   * the customer is expected to use; marking it paid sets the method used.
+   */
+  paymentStatus?: "pending";
+  /**
+   * ISO shop time the cashier marked a PENDING order paid (not the sync time).
+   * Present and not pending = a credit sale paid later. Never set on create;
+   * removed again when the owner sets the order back to pending.
+   */
+  paidAt?: string;
+  paidBy?: string;
+  paidByName?: string;
 }
 
 export interface OrderRefund {
@@ -382,6 +396,8 @@ export interface ActivityOrderSnapshot {
   /** Refunded so far (before this change). */
   refundAmount?: number;
   createdAt?: string;
+  /** "pending" when the customer had not paid yet; absent = paid (old logs too). */
+  paymentStatus?: "pending";
 }
 
 export interface ActivityExpenseSnapshot {
@@ -399,6 +415,8 @@ export type ActivityChange =
       /** The bill after an edit. */
       after?: ActivityOrderSnapshot;
       refund?: { amount: number; reason?: string; totalRefunded: number };
+      /** A payment-status change (mark paid / set back to pending) — not an edit. */
+      payment?: { to: "paid" | "pending"; method: PaymentMethod; amount: number };
     }
   | {
       kind: "expense";

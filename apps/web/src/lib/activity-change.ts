@@ -2,6 +2,7 @@ import type {
   ActivityExpenseSnapshot,
   ActivityLog,
   ActivityOrderSnapshot,
+  PaymentMethod,
 } from "@bravobites/domain";
 import { formatPkr, money } from "@bravobites/domain";
 
@@ -18,6 +19,8 @@ export type LogViewKind =
   | "orderCancel"
   | "orderDelete"
   | "orderRefund"
+  /** Payment received on a payment-pending order, or set back to pending (not an edit). */
+  | "orderPayment"
   | "expenseAdd"
   | "expenseEdit"
   | "expenseDelete"
@@ -62,6 +65,8 @@ export interface LogView {
   expenseBefore?: ActivityExpenseSnapshot;
   expenseAfter?: ActivityExpenseSnapshot;
   refund?: { amount: number; reason?: string; totalRefunded?: number };
+  /** orderPayment: which way, the method it was paid / expected with, the amount. */
+  payment?: { to: "paid" | "pending"; method?: PaymentMethod; amount?: number };
   /** Who uploaded it for the person (shared PC). */
   uploadedBy?: string;
   /** Anything else the log said (older logs). */
@@ -193,6 +198,39 @@ function splitNotes(detail: string | undefined, view: LogView, skip: RegExp) {
   }
 }
 
+/** Summary of a payment-status log (setOrderPayment / pos-queue activity). */
+const PAYMENT_SUMMARY = /^Payment (received|set back)/i;
+
+/**
+ * A payment-status change on an order (logged as an order "update"): payment
+ * received, or set back to pending. Not an edit, not a refund.
+ */
+export function isPaymentLog(log: ActivityLog): boolean {
+  if (log.entityType !== "order" || log.action !== "update") return false;
+  return (log.change?.kind === "order" && !!log.change.payment) || PAYMENT_SUMMARY.test(log.summary);
+}
+
+/** "… · Rs 900 · Cash · by Ali" → "cash" (the log says the method in English). */
+function paymentMethodOf(summary: string): PaymentMethod | undefined {
+  const m = /\s·\s(Cash|Card|Online)\s·\s/i.exec(summary);
+  if (!m) return undefined;
+  const w = m[1].toLowerCase();
+  return w === "online" ? "digital" : (w as PaymentMethod);
+}
+
+/** A payment log's direction, method and amount (from `change.payment`, else its text); null when it is not one. */
+export function paymentFromLog(
+  log: ActivityLog,
+): { to: "paid" | "pending"; method?: PaymentMethod; amount?: number } | null {
+  if (!isPaymentLog(log)) return null;
+  const p = log.change?.kind === "order" ? log.change.payment : undefined;
+  return {
+    to: p?.to ?? (/^Payment set back/i.test(log.summary) ? "pending" : "paid"),
+    method: p?.method ?? paymentMethodOf(log.summary),
+    amount: p?.amount ?? firstAmount(log.summary),
+  };
+}
+
 /**
  * An order refund (logged as an order "update"). Only order logs — an expense
  * whose text mentions "refund" is not one.
@@ -218,6 +256,20 @@ export function buildLogView(log: ActivityLog): LogView {
     if (before) {
       view.before = before;
       view.orderNumber = before.orderNumber || view.orderNumber;
+    }
+
+    const payment = paymentFromLog(log);
+    if (payment) {
+      view.kind = "orderPayment";
+      view.payment = payment;
+      view.amount = view.payment.amount;
+      if (after) view.after = after;
+      // Paid with another method than the one expected at checkout.
+      if (before && after && before.paymentMethod !== after.paymentMethod) {
+        view.lines.push({ kind: "field", field: "payment", from: before.paymentMethod, to: after.paymentMethod });
+      }
+      splitNotes(log.detail, view, /^Payment status:/i);
+      return view;
     }
 
     if (log.action === "update" && /^refund/i.test(log.summary)) {

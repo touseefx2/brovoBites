@@ -11,6 +11,7 @@ import {
   Timestamp,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -645,6 +646,223 @@ describe("orders — server stamps and amounts can't be faked", () => {
     await assertSucceeds(
       updateDoc(doc(staffAuth(), "orders/amend"), { items: [{ productId: "p", qty: 2 }], subtotal: 200, total: 200 }),
     );
+  });
+});
+
+describe("orders — payment status (paid / payment pending)", () => {
+  const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+  const base = (extra: Record<string, unknown> = {}) => ({
+    branchId: "main",
+    createdBy: "staff1",
+    orderNumber: 120,
+    status: "completed",
+    paymentMethod: "cash",
+    createdAt: "2026-10-04T10:00:00.000Z",
+    customerName: "Ali",
+    subtotal: 500,
+    total: 500,
+    items: [{ productId: "p", qty: 1 }],
+    ...extra,
+  });
+  // What the app writes when a pending order is paid (setOrderPayment).
+  const markPaid = (by: string, extra: Record<string, unknown> = {}) => ({
+    paymentStatus: deleteField(),
+    paymentMethod: "card",
+    paidAt: "2026-10-09T12:00:00.000Z",
+    paidAtServer: serverTimestamp(),
+    paidBy: by,
+    paidByName: "Collector",
+    lastClientMutationId: "mut_pay_1",
+    appliedClientMutationIds: ["mut_pay_1"],
+    ...extra,
+  });
+  const stampBy = (uid: string) => ({
+    uploadedBy: uid,
+    uploadedByName: "Uploader",
+    uploadedAt: serverTimestamp(),
+  });
+  const backToPending = () => ({
+    paymentStatus: "pending",
+    paidAt: deleteField(),
+    paidAtServer: deleteField(),
+    paidBy: deleteField(),
+    paidByName: deleteField(),
+  });
+  const refund = (by: string) => ({
+    refundAmount: 100,
+    refundReason: "Wrong item",
+    refundedAt: "2026-10-09T11:00:00.000Z",
+    refundedBy: by,
+    refundedByName: "Someone",
+    refundCount: 1,
+    refunds: [{ amount: 100, at: "2026-10-09T11:00:00.000Z" }],
+  });
+
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      const fiveDaysAgo = Timestamp.fromMillis(Date.now() - FIVE_DAYS_MS);
+      // A coworker's credit sale from 5 days ago (outside every staff window).
+      await setDoc(
+        doc(db, "orders/pend-old"),
+        base({ createdBy: "staff2", paymentStatus: "pending", createdAtServer: fiveDaysAgo }),
+      );
+      await setDoc(doc(db, "orders/pend-own"), base({ paymentStatus: "pending", createdAtServer: Timestamp.now() }));
+      await setDoc(doc(db, "orders/paid-own"), base({ createdAtServer: Timestamp.now() }));
+      await setDoc(
+        doc(db, "orders/paid-later"),
+        base({
+          createdAtServer: Timestamp.now(),
+          paymentMethod: "card",
+          paidAt: "2026-10-09T12:00:00.000Z",
+          paidAtServer: Timestamp.now(),
+          paidBy: "staff2",
+          paidByName: "Staff Two",
+        }),
+      );
+      await setDoc(
+        doc(db, "orders/pend-cancelled"),
+        base({ status: "cancelled", paymentStatus: "pending", createdAtServer: Timestamp.now() }),
+      );
+      await setDoc(
+        doc(db, "orders/pend-other-branch"),
+        base({ branchId: "other", createdBy: "owner1", paymentStatus: "pending", createdAtServer: Timestamp.now() }),
+      );
+    });
+  });
+
+  it("another staff member marks a coworker's 5-day-old pending order paid, in their own name", async () => {
+    // The generic edit path still refuses it (not theirs, outside the window).
+    await assertFails(
+      updateDoc(doc(staffAuth(), "orders/pend-old"), { ...markPaid("staff1"), updatedBy: "staff1" }),
+    );
+    await assertSucceeds(updateDoc(doc(staffAuth(), "orders/pend-old"), markPaid("staff1")));
+    // Already paid: a second mark-paid is refused.
+    await assertFails(updateDoc(doc(coworkerAuth(), "orders/pend-old"), markPaid("staff2")));
+    await assertFails(updateDoc(doc(staffAuth(), "orders/pend-old"), markPaid("staff1")));
+  });
+
+  it("the owner marks a pending order paid too", async () => {
+    await assertSucceeds(updateDoc(doc(ownerAuth(), "orders/pend-own"), markPaid("owner1")));
+  });
+
+  it("mark-paid carries only payment fields, a real method, a string time and this write's server time", async () => {
+    const ref = () => doc(coworkerAuth(), "orders/pend-own");
+    await assertFails(updateDoc(ref(), markPaid("staff2", { total: 0, items: [] })));
+    await assertFails(updateDoc(ref(), markPaid("staff2", { updatedAt: "2026-10-09T12:00:00.000Z" })));
+    await assertFails(updateDoc(ref(), markPaid("staff2", { status: "cancelled" })));
+    await assertFails(updateDoc(ref(), markPaid("staff2", { paymentMethod: "pending" })));
+    await assertFails(updateDoc(ref(), markPaid("staff2", { paidAt: 123 })));
+    await assertFails(updateDoc(ref(), markPaid("staff2", { paidAt: deleteField() })));
+    await assertFails(
+      updateDoc(ref(), markPaid("staff2", { paidAtServer: Timestamp.fromMillis(Date.now() - 60_000) })),
+    );
+    // Still pending in the same write → not a payment.
+    await assertFails(updateDoc(ref(), markPaid("staff2", { paymentStatus: "pending" })));
+    await assertFails(updateDoc(ref(), markPaid("staff2", { paymentStatus: "paid" })));
+    await assertSucceeds(updateDoc(ref(), markPaid("staff2")));
+  });
+
+  it("in someone else's name only as an upload, stamped by the uploader", async () => {
+    const ref = () => doc(coworkerAuth(), "orders/pend-own");
+    await assertFails(updateDoc(ref(), markPaid("staff1")));
+    await assertFails(updateDoc(ref(), markPaid("staff1", stampBy("owner1"))));
+    await assertSucceeds(updateDoc(ref(), markPaid("staff1", stampBy("staff2"))));
+  });
+
+  it("never on a cancelled order, another branch, or an order that was never pending", async () => {
+    await assertFails(updateDoc(doc(staffAuth(), "orders/pend-cancelled"), markPaid("staff1")));
+    await assertFails(updateDoc(doc(ownerAuth(), "orders/pend-cancelled"), markPaid("owner1")));
+    await assertFails(updateDoc(doc(staffAuth(), "orders/pend-other-branch"), markPaid("staff1")));
+    await assertFails(updateDoc(doc(coworkerAuth(), "orders/paid-own"), markPaid("staff2")));
+  });
+
+  it("staff can't set a paid order back to pending; the owner can, and the paid stamps go", async () => {
+    await assertFails(updateDoc(doc(staffAuth(), "orders/paid-own"), { paymentStatus: "pending", updatedBy: "staff1" }));
+    await assertFails(updateDoc(doc(staffAuth(), "orders/paid-later"), { ...backToPending(), updatedBy: "staff1" }));
+    await assertFails(updateDoc(doc(coworkerAuth(), "orders/paid-later"), backToPending()));
+    // Owner: pending never keeps paid stamps, and nothing but 'pending' is stored.
+    await assertFails(updateDoc(doc(ownerAuth(), "orders/paid-later"), { paymentStatus: "pending" }));
+    await assertFails(updateDoc(doc(ownerAuth(), "orders/paid-own"), { paymentStatus: "unpaid" }));
+    await assertSucceeds(updateDoc(doc(ownerAuth(), "orders/paid-later"), backToPending()));
+    // Paid at checkout by mistake → back to pending.
+    await assertSucceeds(updateDoc(doc(ownerAuth(), "orders/paid-own"), { paymentStatus: "pending" }));
+  });
+
+  it("a refunded order is never set back to pending (a pending order has no refunds)", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(
+        doc(ctx.firestore(), "orders/paid-refunded"),
+        base({ createdAtServer: Timestamp.now(), refundAmount: 200, refundCount: 1 }),
+      );
+    });
+    await assertFails(updateDoc(doc(ownerAuth(), "orders/paid-refunded"), { paymentStatus: "pending" }));
+  });
+
+  it("staff edits and cancels never touch the payment fields", async () => {
+    const ref = () => doc(staffAuth(), "orders/pend-own");
+    await assertFails(updateDoc(ref(), { paymentStatus: deleteField(), updatedBy: "staff1" }));
+    await assertFails(
+      updateDoc(ref(), { items: [{ productId: "p", qty: 2 }], subtotal: 1000, total: 1000, paidAt: "2026-10-09T12:00:00.000Z" }),
+    );
+    await assertFails(updateDoc(doc(staffAuth(), "orders/paid-later"), { paidBy: "staff1", updatedBy: "staff1" }));
+    await assertFails(updateDoc(doc(staffAuth(), "orders/paid-later"), { paidAt: deleteField(), updatedBy: "staff1" }));
+    await assertFails(
+      updateDoc(doc(staffAuth(), "orders/paid-own"), { status: "cancelled", paymentStatus: "pending", updatedBy: "staff1" }),
+    );
+    // An upload of the maker's edit can't carry them either.
+    await assertFails(
+      updateDoc(doc(coworkerAuth(), "orders/pend-own"), {
+        paymentStatus: deleteField(),
+        updatedBy: "staff1",
+        ...stampBy("staff2"),
+      }),
+    );
+    // Plain edits of a pending order (incl. the expected method) work as before.
+    await assertSucceeds(
+      updateDoc(ref(), { items: [{ productId: "p", qty: 2 }], subtotal: 1000, total: 1000, paymentMethod: "card", updatedBy: "staff1" }),
+    );
+    await assertSucceeds(updateDoc(doc(staffAuth(), "orders/paid-later"), { paymentMethod: "cash", updatedBy: "staff1" }));
+    await assertSucceeds(updateDoc(ref(), { status: "cancelled", updatedBy: "staff1" }));
+  });
+
+  it("no refund on a pending order — owner included", async () => {
+    await assertFails(updateDoc(doc(staffAuth(), "orders/pend-own"), refund("staff1")));
+    await assertFails(updateDoc(doc(ownerAuth(), "orders/pend-own"), refund("owner1")));
+    await assertFails(updateDoc(doc(ownerAuth(), "orders/pend-own"), { refundAmount: 100 }));
+    // Nor as part of a mark-paid.
+    await assertFails(updateDoc(doc(ownerAuth(), "orders/pend-own"), { ...markPaid("owner1"), refundAmount: 100 }));
+    // Once paid, refunds work as before.
+    await assertSucceeds(updateDoc(doc(staffAuth(), "orders/paid-own"), refund("staff1")));
+    await assertSucceeds(updateDoc(doc(ownerAuth(), "orders/paid-later"), { refundAmount: 50 }));
+  });
+
+  it("a new order is paid or payment pending, never already collected later", async () => {
+    const fresh = (extra: Record<string, unknown> = {}) => base({ syncedAtServer: serverTimestamp(), ...extra });
+    await assertSucceeds(setDoc(doc(staffAuth(), "orders/new-paid"), fresh()));
+    await assertSucceeds(setDoc(doc(staffAuth(), "orders/new-pending"), fresh({ paymentStatus: "pending" })));
+    // No name / phone is still accepted by the rules (a queued sale must never get stuck).
+    await assertSucceeds(
+      setDoc(doc(staffAuth(), "orders/new-pending-anon"), fresh({ paymentStatus: "pending", customerName: "" })),
+    );
+    await assertSucceeds(
+      setDoc(doc(coworkerAuth(), "orders/new-pending-upload"), {
+        ...fresh({ paymentStatus: "pending" }),
+        ...stampBy("staff2"),
+      }),
+    );
+    await assertFails(setDoc(doc(staffAuth(), "orders/new-paidat"), fresh({ paidAt: "2026-10-09T12:00:00.000Z" })));
+    await assertFails(
+      setDoc(doc(ownerAuth(), "orders/new-paidat-owner"), fresh({ createdBy: "owner1", paidAt: "2026-10-09T12:00:00.000Z" })),
+    );
+    await assertFails(
+      setDoc(doc(staffAuth(), "orders/new-paidby"), fresh({ paymentStatus: "pending", paidBy: "staff1" })),
+    );
+    await assertFails(
+      setDoc(doc(staffAuth(), "orders/new-paidsrv"), fresh({ paidAtServer: serverTimestamp() })),
+    );
+    await assertFails(setDoc(doc(staffAuth(), "orders/new-weird"), fresh({ paymentStatus: "paid" })));
+    await assertFails(setDoc(doc(staffAuth(), "orders/new-null"), fresh({ paymentStatus: null })));
   });
 });
 

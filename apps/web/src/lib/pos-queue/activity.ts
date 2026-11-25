@@ -1,5 +1,5 @@
-import type { ActivityEntityType, ActivityLog } from "@bravobites/domain";
-import { formatPkr } from "@bravobites/domain";
+import type { ActivityAction, ActivityEntityType, ActivityLog, PaymentMethod } from "@bravobites/domain";
+import { formatPkr, money, orderRefundedAmount } from "@bravobites/domain";
 import { expenseLogSnapshot, expenseSnapshotLabel, orderLogSnapshot } from "@/lib/firestore";
 import { listAllQueuedExpenses, listAllQueuedMutations } from "./db";
 import {
@@ -7,7 +7,33 @@ import {
   expenseOpTarget,
   isExpenseActive,
   isMutationActive,
+  type QueuedMutation,
 } from "./types";
+
+/** Same words as the log setOrderPayment writes (firestore.ts). */
+const PAYMENT_LOG_LABEL: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  card: "Card",
+  digital: "Online",
+};
+
+/** Local copy of the payment log setOrderPayment writes on upload. */
+function paymentLog(m: QueuedMutation, num: string, by: string) {
+  const to = m.paymentTo === "pending" ? "pending" : "paid";
+  const after = m.orderAfter;
+  const method: PaymentMethod =
+    to === "paid" ? (m.paidMethod ?? after.paymentMethod) : after.paymentMethod;
+  const amount = money(Math.max(0, after.total - orderRefundedAmount(after)));
+  const head =
+    to === "paid"
+      ? `Payment received for order ${num}`
+      : `Payment set back to pending for order ${num}`;
+  return {
+    summary: `${head} · ${formatPkr(amount)} · ${PAYMENT_LOG_LABEL[method] ?? method} · by ${by}`,
+    detail: `Payment status: ${to === "paid" ? "pending → paid" : "paid → pending"}`,
+    payment: { to, method, amount } as const,
+  };
+}
 
 /**
  * Activity rows for every action kept on this PC (pending and synced) — the
@@ -20,13 +46,16 @@ export async function listLocalActivityLogs(
 ): Promise<{ logs: ActivityLog[]; pendingIds: Set<string> }> {
   const pendingIds = new Set<string>();
   if (entityType === "order") {
-    // "dropped" = owner deleted/cancelled first; the edit never happened.
+    // "dropped" = owner deleted/cancelled first; the edit never happened. A
+    // dropped payment change / refund is not a log row (reports would read it
+    // as an edit): it is shown by the sync pill + sheet instead (issues.ts).
     const muts = (await listAllQueuedMutations()).filter((m) => m.outcome !== "dropped");
     for (const m of muts) if (isMutationActive(m)) pendingIds.add(`act_${m.mutationId}`);
     const logs = muts.map((m): ActivityLog => {
       const o = m.orderBefore;
       const by = m.user.displayName || m.user.email;
       const num = `#${o.orderNumber}`;
+      const pay = m.kind === "payment" ? paymentLog(m, num, by) : null;
       const summary =
         m.kind === "edit"
           ? `Edited order ${num} · ${formatPkr(o.total)} → ${formatPkr(m.orderAfter.total)} · by ${by}`
@@ -34,24 +63,27 @@ export async function listLocalActivityLogs(
             ? `Cancelled order ${num} · ${formatPkr(o.total)} · by ${by}`
             : m.kind === "delete"
               ? `Deleted order ${num} · ${formatPkr(o.total)} · by ${by}`
-              : `Refunded order ${num} · ${formatPkr(m.refundAmount ?? 0)} · by ${by}`;
+              : m.kind === "refund"
+                ? `Refunded order ${num} · ${formatPkr(m.refundAmount ?? 0)} · by ${by}`
+                : pay
+                  ? pay.summary
+                  : `Changed order ${num} · by ${by}`;
+      const action: ActivityAction =
+        m.kind === "cancel" ? "cancel" : m.kind === "delete" ? "delete" : "update";
       return {
         id: `act_${m.mutationId}`,
         branchId: o.branchId,
         entityType: "order",
         entityId: m.orderId,
-        action:
-          m.kind === "edit" || m.kind === "refund"
-            ? "update"
-            : m.kind === "cancel"
-              ? "cancel"
-              : "delete",
+        action,
         summary,
         ...(m.kind === "refund" && m.refundReason ? { detail: m.refundReason } : {}),
+        ...(pay ? { detail: pay.detail } : {}),
         change: {
           kind: "order",
           before: orderLogSnapshot(o),
-          ...(m.kind === "edit" ? { after: orderLogSnapshot(m.orderAfter) } : {}),
+          ...(m.kind === "edit" || pay ? { after: orderLogSnapshot(m.orderAfter) } : {}),
+          ...(pay ? { payment: pay.payment } : {}),
           ...(m.kind === "refund"
             ? {
                 refund: {

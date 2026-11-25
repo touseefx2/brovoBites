@@ -208,6 +208,7 @@ function BillCard({
           </div>
           <p className="pt-1 text-[11px] text-stone-500">
             {t(bill.paymentMethod)}
+            {bill.paymentStatus === "pending" ? ` · ${t("paymentUnpaid")}` : ""}
             {typeKey ? ` · ${t(typeKey)}` : ""}
             {bill.tableNumber ? ` · ${t("tableNumber")} ${bill.tableNumber}` : ""}
             {bill.customerName ? ` · ${bill.customerName}` : ""}
@@ -390,6 +391,39 @@ export function ActivityChangeView({
     );
   }
 
+  if (view.kind === "orderPayment" && view.payment) {
+    const p = view.payment;
+    const received = p.to === "paid";
+    const bill = view.after ?? view.before;
+    return (
+      <div className="space-y-2" data-testid="log-view" data-kind={view.kind}>
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+          <span className="text-stone-500">{t("paymentStatusLabel")}</span>
+          <span className={received ? "text-red-700" : "text-emerald-700"}>{t(received ? "paymentUnpaid" : "paymentPaid")}</span>
+          <Arrow />
+          <span className={`font-bold ${received ? "text-emerald-700" : "text-red-700"}`}>
+            {t(received ? "paymentPaid" : "paymentUnpaid")}
+          </span>
+          {p.amount != null ? (
+            <>
+              <span className="text-stone-400">·</span>
+              <Money value={p.amount} className="font-bold text-[var(--ink)]" />
+            </>
+          ) : null}
+          {p.method ? <span className="text-xs text-stone-500">· {t(p.method)}</span> : null}
+        </div>
+        {view.lines.length > 0 ? <ChangeList lines={view.lines} /> : null}
+        {bill ? (
+          <>
+            {billsOpen ? null : <Toggle open={open} onClick={() => setOpen((v) => !v)} show={t("lgShowItems")} hide={t("lgHideBill")} />}
+            {open ? <BillCard title={t("lgBill")} bill={bill} /> : null}
+          </>
+        ) : null}
+        {footer}
+      </div>
+    );
+  }
+
   if (view.kind === "orderCancel" || view.kind === "orderDelete" || view.kind === "orderRefund") {
     const b = view.before;
     return (
@@ -421,7 +455,8 @@ export function ActivityChangeView({
             {view.amount != null ? <Money value={view.amount} className="font-bold text-red-700" /> : null}
             {b ? (
               <span className="text-xs text-stone-500">
-                · {t(b.paymentMethod)} ·{" "}
+                · {t(b.paymentMethod)}
+                {b.paymentStatus === "pending" ? ` · ${t("paymentUnpaid")}` : ""} ·{" "}
                 {(() => {
                   const n = b.items.reduce((s, i) => s + i.qty, 0);
                   return n === 1 ? t("lgItemOne") : fill(t("lgItemsN"), { n });

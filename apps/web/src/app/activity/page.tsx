@@ -17,7 +17,7 @@ import { LoadError, PageSpinner } from "@/components/Loading";
 import { ActivityLogList } from "@/components/ActivityLogPanel";
 import { useRetryOnReconnect } from "@/lib/use-retry-on-reconnect";
 import { listLocalActivityLogs, subscribeQueue } from "@/lib/pos-queue";
-import { isRefundLog } from "@/lib/activity-change";
+import { isPaymentLog, isRefundLog } from "@/lib/activity-change";
 import { mergeActivityLogs } from "@/lib/activity-merge";
 import {
   fetchBranches,
@@ -27,7 +27,7 @@ import {
 } from "@/lib/firestore";
 
 type DatePreset = "today" | "last7" | "month" | "all";
-type ActionFilter = "all" | "create" | "update" | "cancel" | "delete" | "refund";
+type ActionFilter = "all" | "create" | "update" | "cancel" | "delete" | "refund" | "payment";
 
 function parseEntityType(raw: string | null): ActivityEntityType {
   if (raw === "expense" || raw === "inventory" || raw === "order") return raw;
@@ -250,11 +250,14 @@ function ActivityPageInner() {
       if (fromKey && day < fromKey) return false;
       if (toKey && day > toKey) return false;
 
+      // Payments (received / set back to pending) are their own kind, not edits.
       if (actionFilter === "refund") {
         if (!isRefundLog(log)) return false;
+      } else if (actionFilter === "payment") {
+        if (!isPaymentLog(log)) return false;
       } else if (actionFilter !== "all") {
         if (log.action !== actionFilter) return false;
-        if (actionFilter === "update" && isRefundLog(log)) return false;
+        if (actionFilter === "update" && (isRefundLog(log) || isPaymentLog(log))) return false;
       }
 
       if (q) {
@@ -316,6 +319,7 @@ function ActivityPageInner() {
             <option value="update">{t("activityUpdate")}</option>
             <option value="cancel">{t("activityCancel")}</option>
             <option value="refund">{t("activityRefund")}</option>
+            <option value="payment">{t("activityPayment")}</option>
             <option value="delete">{t("activityDelete")}</option>
           </select>
 

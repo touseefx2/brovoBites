@@ -26,6 +26,7 @@ import {
   fetchUsers,
   onExpensesSnapshot,
   onOrdersSnapshot,
+  onPaidInRangeSnapshot,
   onSettingsSnapshot,
 } from "@/lib/firestore";
 import { openDatePicker } from "@/lib/open-date-picker";
@@ -50,6 +51,8 @@ export default function DayReportPage() {
     { uid: string; name: string; email: string }[]
   >([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  /** Orders paid in the period (credit sales) — "Old bills collected". */
+  const [paidOrders, setPaidOrders] = useState<Order[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [settings, setSettings] = useState<ShopSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -173,6 +176,7 @@ export default function DayReportPage() {
   useEffect(() => {
     if (!branchId || branches.length === 0 || !guard.approved) {
       setOrders([]);
+      setPaidOrders([]);
       setExpenses([]);
       setLoading(false);
       return;
@@ -183,6 +187,9 @@ export default function DayReportPage() {
     const expensesByBranch = new Map<string, Expense[]>();
     const ready = new Set<string>();
     const merge = () => setOrders(Array.from(ordersByBranch.values()).flat());
+    const paidByBranch = new Map<string, Order[]>();
+    const mergePaid = () => setPaidOrders(Array.from(paidByBranch.values()).flat());
+    setPaidOrders([]);
     const mergeExpenses = () => setExpenses(Array.from(expensesByBranch.values()).flat());
     const unsubs: Unsubscribe[] = [];
 
@@ -198,6 +205,16 @@ export default function DayReportPage() {
           (err) => setLoadError(mapFirebaseError(err, locale)),
           rangeFrom ? { fromKey: rangeFrom, toKey: rangeTo } : undefined),
       );
+      // Old bills paid in the period (none before "all time" starts). A
+      // failure (index not deployed yet) only leaves that line out.
+      if (sinceIso) {
+        unsubs.push(
+          onPaidInRangeSnapshot(bid, sinceIso, untilIso, (o) => {
+            paidByBranch.set(bid, o);
+            mergePaid();
+          }),
+        );
+      }
     }
 
     return () => unsubs.forEach((u) => u());
@@ -216,8 +233,9 @@ export default function DayReportPage() {
         toKey: rangeTo,
         staffFilter,
         branchNameFor: (id) => branchNameById.get(id),
+        collectedOrders: paidOrders,
       }),
-    [orders, expenses, rangeFrom, rangeTo, dayHours, staffFilter, branchNameById],
+    [orders, paidOrders, expenses, rangeFrom, rangeTo, dayHours, staffFilter, branchNameById],
   );
 
   const datePresets: { id: DatePreset; label: string }[] = [
@@ -366,6 +384,13 @@ export default function DayReportPage() {
                 </p>
                 <p className="mt-1.5 text-lg font-bold text-[var(--ink)]" dir="ltr">{formatPkr(report.digitalSales)}</p>
               </div>
+              <div className="bg-white p-4" data-testid="report-unpaid">
+                <p className="text-xs font-medium text-[var(--muted)]">{t("paymentUnpaid")}</p>
+                <p className="mt-1.5 text-lg font-bold text-red-600" dir="ltr">{formatPkr(report.pendingSales)}</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  {report.pendingOrders} {t("orders").toLowerCase()} · {t("reportUnpaidHint")}
+                </p>
+              </div>
               <div className="bg-white p-4">
                 <p className="text-xs font-medium text-[var(--muted)]">{t("totalRefunds")}</p>
                 <p className="mt-1 text-lg font-bold text-orange-600" dir="ltr">{formatPkr(report.totalRefunds)}</p>
@@ -379,6 +404,33 @@ export default function DayReportPage() {
               </div>
             </div>
           </section>
+
+          {/* Old bills collected: credit sales of earlier days paid in this period — not sales of it. */}
+          {report.collected.total > 0 ? (
+            <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm" data-testid="report-collected">
+              <div className="border-b border-[var(--border)] px-4 py-3 sm:px-5">
+                <h2 className="font-bold text-[var(--ink)]">
+                  {t("oldBillsCollected")} · <span dir="ltr">{formatPkr(report.collected.total)}</span>
+                </h2>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">
+                  {report.collected.orders.length} {t("orders").toLowerCase()} · {t("reportNotInSales")}
+                </p>
+              </div>
+              <div className="admin-stat-grid">
+                {(["cash", "card", "digital"] as const)
+                  .filter((m) => report.collected[m] > 0)
+                  .map((m) => (
+                    <div key={m} className="bg-white p-4">
+                      <p className="flex items-center gap-2 text-xs font-medium text-[var(--muted)]">
+                        <PaymentTile method={m} size={26} />
+                        {t(m)}
+                      </p>
+                      <p className="mt-1.5 text-lg font-bold text-green-700" dir="ltr">{formatPkr(report.collected[m])}</p>
+                    </div>
+                  ))}
+              </div>
+            </section>
+          ) : null}
 
           {/* Expenses + Net (branch-wide for owner and staff) */}
           <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-white shadow-sm">
@@ -486,7 +538,7 @@ export default function DayReportPage() {
                             ) : null}
                           </div>
 
-                          {(s.cash > 0 || s.card > 0 || s.digital > 0 || s.refunds > 0 || s.cancelledAmount > 0) && (
+                          {(s.cash > 0 || s.card > 0 || s.digital > 0 || s.pending > 0 || s.refunds > 0 || s.cancelledAmount > 0) && (
                             <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
                               {s.cash > 0 ? (
                                 <div className="rounded-lg border border-[var(--border)] bg-[var(--bb-cream-50)] px-2.5 py-1.5">
@@ -518,6 +570,16 @@ export default function DayReportPage() {
                                   </p>
                                   <p className="mt-0.5 text-xs font-bold tabular-nums text-[var(--ink)]" dir="ltr">
                                     {formatPkr(s.digital)}
+                                  </p>
+                                </div>
+                              ) : null}
+                              {s.pending > 0 ? (
+                                <div className="rounded-lg border border-red-200/70 bg-red-50/50 px-2.5 py-1.5">
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-red-700/80">
+                                    {t("paymentUnpaid")}
+                                  </p>
+                                  <p className="mt-0.5 text-xs font-bold tabular-nums text-red-600" dir="ltr">
+                                    {formatPkr(s.pending)}
                                   </p>
                                 </div>
                               ) : null}

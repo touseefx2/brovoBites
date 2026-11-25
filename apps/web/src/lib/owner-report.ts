@@ -5,12 +5,14 @@ import type {
   InventoryItem,
   Order,
   OrderType,
+  PaymentMethod,
   Product,
   StockDayRow,
   StockMovement,
 } from "@bravobites/domain";
 import { computeItemsMade, money, summarizeStockDay, type ItemMadeRow } from "@bravobites/domain";
-import { computeDayReport, type DayReport } from "@/lib/day-report";
+import { paymentFromLog } from "@/lib/activity-change";
+import { computeDayReport, paymentBucket, type DayReport } from "@/lib/day-report";
 
 /**
  * Owner report — who did what in a period: each person's sales, discounts,
@@ -23,6 +25,8 @@ import { computeDayReport, type DayReport } from "@/lib/day-report";
 
 export type ReportEventKind =
   | "edit"
+  /** Payment received on a payment-pending order, or set back to pending (not an edit). */
+  | "payment"
   | "cancel"
   | "refund"
   | "delete"
@@ -44,8 +48,11 @@ export interface ReportEvent {
   /** edit: bill before / after; expenseEdit: amount before / after. */
   before?: number;
   after?: number;
-  /** cancel / refund / delete / expense add & delete. */
+  /** cancel / refund / delete / expense add & delete / payment. */
   amount?: number;
+  /** payment: which way (received / set back to pending) and the method. */
+  paymentTo?: "paid" | "pending";
+  method?: PaymentMethod;
   summary: string;
   detail?: string;
   /** Still on this PC, not on the cloud yet. */
@@ -103,6 +110,8 @@ export interface StaffAudit {
   cash: number;
   card: number;
   digital: number;
+  /** Their sales still payment pending at the period end (net of refunds). */
+  pending: number;
   dineIn: number;
   takeaway: number;
   delivery: number;
@@ -236,9 +245,18 @@ export interface OwnerReport {
     deletes: number;
     expenseEdits: number;
     expenseDeletes: number;
+    /** Payments received on payment-pending orders / set back to pending (from the log). */
+    paymentsReceived: number;
+    paymentsSetPending: number;
   };
   byType: TypeRow[];
+  /** Money received by the period end, per method (sales still unpaid then are in `unpaid`). */
   byPayment: PaymentRow[];
+  /** Sales of the period still payment pending at its end — byPayment + this = net sales. */
+  unpaid: { orders: number; amount: number };
+  /** Old bills collected: credit sales of earlier days paid in the period, per method — not in sales. */
+  collected: PaymentRow[];
+  collectedTotal: number;
   staff: StaffAudit[];
   drawers: DrawerRow[];
   drawerShort: number;
@@ -306,6 +324,8 @@ function lastAmount(text: string): number | undefined {
  *   "Deleted order #12 · Rs 900 · by Owner"
  *   "Added expense · Rs 500" / "Edited expense → Rs 800" (+ Before/After detail)
  *   "Deleted expense other · gas · Rs 500 · 2026-10-24"
+ *   "Payment received for order #12 · Rs 900 · Cash · by Ali"
+ *   "Payment set back to pending for order #12 · Rs 900 · Cash · by Owner"
  * Stock changes and anything unknown → null.
  */
 export function eventFromLog(log: ActivityLog, pending = false): ReportEvent | null {
@@ -328,6 +348,11 @@ export function eventFromLog(log: ActivityLog, pending = false): ReportEvent | n
   const orderNumber = order?.before?.orderNumber || (num ? Number(num[1]) : undefined);
 
   if (log.entityType === "order") {
+    // A payment change is logged as an "update" but is not an edit (never "many edits").
+    const payment = paymentFromLog(log);
+    if (payment) {
+      return { ...base, kind: "payment", orderNumber, amount: payment.amount, paymentTo: payment.to, method: payment.method };
+    }
     if (log.action === "update" && /^refund/i.test(log.summary)) {
       return { ...base, kind: "refund", orderNumber, amount: order?.refund?.amount ?? firstAmount(log.summary) };
     }
@@ -476,6 +501,7 @@ function emptyStaff(uid: string, name: string): StaffAudit {
     cash: 0,
     card: 0,
     digital: 0,
+    pending: 0,
     dineIn: 0,
     takeaway: 0,
     delivery: 0,
@@ -529,6 +555,8 @@ export function computeOwnerReport(params: {
   catalog?: ReportCatalog | null;
   /** Stock rows + every stock movement from `from` up to now. */
   stock?: { items: InventoryItem[]; movements: StockMovement[] } | null;
+  /** Orders paid in the period (a "paid in range" query) — "Old bills collected". Optional. */
+  collectedOrders?: Order[];
 }): OwnerReport {
   const from = params.from ?? new Date(0);
   const fromKey = params.fromKey ?? "0000-00-00";
@@ -539,7 +567,9 @@ export function computeOwnerReport(params: {
     to: params.to,
     fromKey,
     toKey: params.toKey,
+    collectedOrders: params.collectedOrders,
   });
+  const endIso = params.to.toISOString();
   const isOwner = (uid: string | undefined) => !!uid && !!params.ownerUids?.has(uid);
   const ordersById = new Map<string, Order>();
   for (const o of params.orders) ordersById.set(o.id, o);
@@ -558,6 +588,7 @@ export function computeOwnerReport(params: {
   const active = day.dayOrders.filter((o) => o.status !== "cancelled");
   const typeMap = new Map<TypeRow["type"], TypeRow>();
   const payMap = new Map<PaymentRow["method"], PaymentRow>();
+  const unpaid = { orders: 0, amount: 0 };
   let discountOrders = 0;
   let refundOrders = 0;
   for (const o of day.dayOrders) {
@@ -570,9 +601,12 @@ export function computeOwnerReport(params: {
     const net = o.total - (o.refundAmount ?? 0);
     r.orders += 1;
     r.sales += o.total;
-    if (o.paymentMethod === "cash") r.cash += net;
-    else if (o.paymentMethod === "card") r.card += net;
-    else if (o.paymentMethod === "digital") r.digital += net;
+    // Still unpaid at the period end: not money in hand by any method.
+    const bucket = paymentBucket(o, endIso);
+    if (bucket === "pending") r.pending += net;
+    else if (bucket === "cash") r.cash += net;
+    else if (bucket === "card") r.card += net;
+    else if (bucket === "digital") r.digital += net;
     if (o.orderType === "dine-in") r.dineIn += 1;
     else if (o.orderType === "takeaway") r.takeaway += 1;
     else if (o.orderType === "delivery") r.delivery += 1;
@@ -588,10 +622,15 @@ export function computeOwnerReport(params: {
     t.orders += 1;
     t.amount += o.total;
     typeMap.set(type, t);
-    const p = payMap.get(o.paymentMethod) ?? { method: o.paymentMethod, orders: 0, amount: 0 };
-    p.orders += 1;
-    p.amount += net;
-    payMap.set(o.paymentMethod, p);
+    if (bucket === "pending") {
+      unpaid.orders += 1;
+      unpaid.amount += net;
+    } else {
+      const p = payMap.get(bucket) ?? { method: bucket, orders: 0, amount: 0 };
+      p.orders += 1;
+      p.amount += net;
+      payMap.set(bucket, p);
+    }
   }
 
   for (const e of day.dayExpenses) {
@@ -621,6 +660,8 @@ export function computeOwnerReport(params: {
   let deletes = 0;
   let expenseEdits = 0;
   let expenseDeletes = 0;
+  let paymentsReceived = 0;
+  let paymentsSetPending = 0;
 
   for (const ev of events) {
     const r = row(ev.byUid, ev.byName);
@@ -669,7 +710,9 @@ export function computeOwnerReport(params: {
         if (sale && sale.createdBy === ev.byUid) r.cancelsOwn += 1;
         // A sale from before the period isn't loaded: the log's own copy of the bill says how it was paid.
         const before = ev.log.change?.kind === "order" ? ev.log.change.before : undefined;
-        const cash = (sale?.paymentMethod ?? before?.paymentMethod) === "cash";
+        // A payment-pending order took no cash, so its cancel hands none back.
+        const unpaid = before ? before.paymentStatus === "pending" : sale?.paymentStatus === "pending";
+        const cash = (sale?.paymentMethod ?? before?.paymentMethod) === "cash" && !unpaid;
         flags.push({
           ...common,
           id: `flag_${ev.id}`,
@@ -704,6 +747,11 @@ export function computeOwnerReport(params: {
           });
         }
         break;
+      case "payment":
+        // Not an edit: no flag, never "many edits". Counted for the summary only.
+        if (ev.paymentTo === "pending") paymentsSetPending += 1;
+        else paymentsReceived += 1;
+        break;
       case "expenseDelete":
         expenseDeletes += 1;
         r.expenseDeletes += 1;
@@ -721,7 +769,7 @@ export function computeOwnerReport(params: {
     const by = o.updatedBy ?? o.createdBy;
     const byName = o.updatedByName ?? o.createdByName;
     const at = o.updatedAt ?? o.createdAt;
-    const cash = o.paymentMethod === "cash";
+    const cash = o.paymentMethod === "cash" && o.paymentStatus !== "pending";
     flags.push({
       id: `flag_cancel_${o.id}`,
       level: cash ? "high" : "medium",
@@ -849,6 +897,11 @@ export function computeOwnerReport(params: {
   const byPayment = (["cash", "card", "digital"] as const).map(
     (m) => payMap.get(m) ?? { method: m, orders: 0, amount: 0 },
   );
+  const collected: PaymentRow[] = (["cash", "card", "digital"] as const).map((m) => ({
+    method: m,
+    orders: day.collected.orders.filter((o) => o.paymentMethod === m).length,
+    amount: day.collected[m],
+  }));
 
   const gross = day.totalSales;
   const net = money(gross - day.totalRefunds);
@@ -876,9 +929,14 @@ export function computeOwnerReport(params: {
       deletes,
       expenseEdits,
       expenseDeletes,
+      paymentsReceived,
+      paymentsSetPending,
     },
     byType,
     byPayment,
+    unpaid: { orders: unpaid.orders, amount: money(unpaid.amount) },
+    collected,
+    collectedTotal: day.collected.total,
     staff: [...staff.values()].sort((a, b) => b.sales - a.sales || b.flags - a.flags),
     drawers,
     drawerShort: money(drawerShort),

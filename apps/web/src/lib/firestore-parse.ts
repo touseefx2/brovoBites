@@ -24,7 +24,7 @@ import type {
   StockMovementType,
   StockUnit,
 } from "@bravobites/domain";
-import { DEFAULT_SETTINGS, SHARED_MENU_ID, businessDateKey, cleanParts, coerceBusinessTime, readChanged } from "@bravobites/domain";
+import { DEFAULT_SETTINGS, SHARED_MENU_ID, businessDateKey, cleanParts, coerceBusinessTime, isPaymentMethod, readChanged } from "@bravobites/domain";
 
 /**
  * Firestore documents → app types. No Firebase SDK calls here, so the app
@@ -128,6 +128,13 @@ export function asOrder(id: string, data: DocumentData): Order {
     data.refundedAt || data.refundedAtServer
       ? resolveServerTime(data, "refundedAtServer", "refundedAt")
       : undefined;
+  // Payment status: only the exact value "pending" is unpaid; anything else
+  // (absent on every older order) reads as paid.
+  const paymentPending = data.paymentStatus === "pending";
+  const paidAt =
+    data.paidAt || data.paidAtServer
+      ? resolveServerTime(data, "paidAtServer", "paidAt")
+      : undefined;
   return {
     id,
     ...(typeof data.clientId === "string" && data.clientId
@@ -164,7 +171,7 @@ export function asOrder(id: string, data: DocumentData): Order {
     ...(data.taxPercent ? { taxPercent: Number(data.taxPercent) } : {}),
     ...(data.deliveryCharges ? { deliveryCharges: Number(data.deliveryCharges) } : {}),
     total: Number(data.total ?? 0),
-    paymentMethod: (data.paymentMethod === "other" ? "digital" : data.paymentMethod as PaymentMethod) ?? "cash",
+    paymentMethod: asPaymentMethod(data.paymentMethod),
     status: data.status === "cancelled" ? "cancelled" : "completed",
     createdBy: String(data.createdBy ?? ""),
     createdByName: String(data.createdByName ?? ""),
@@ -191,7 +198,17 @@ export function asOrder(id: string, data: DocumentData): Order {
       : {}),
     ...(data.reviewSentByName ? { reviewSentByName: String(data.reviewSentByName) } : {}),
     ...(data.reviewSentByEmail ? { reviewSentByEmail: String(data.reviewSentByEmail) } : {}),
+    ...(paymentPending ? { paymentStatus: "pending" as const } : {}),
+    ...(paidAt ? { paidAt } : {}),
+    ...(data.paidBy ? { paidBy: String(data.paidBy) } : {}),
+    ...(data.paidByName ? { paidByName: String(data.paidByName) } : {}),
   };
+}
+
+/** cash | card | digital — "other" (old name) is digital, anything else cash. Never "pending". */
+export function asPaymentMethod(raw: unknown): PaymentMethod {
+  if (raw === "other") return "digital";
+  return isPaymentMethod(raw) ? raw : "cash";
 }
 
 export function asOrderRefunds(raw: unknown[]): OrderRefund[] {
@@ -267,7 +284,7 @@ export function asOrderLogSnapshot(raw: unknown): ActivityOrderSnapshot | undefi
     taxAmount: Number(d.taxAmount ?? 0),
     deliveryCharges: Number(d.deliveryCharges ?? 0),
     total: Number(d.total ?? 0),
-    paymentMethod: (d.paymentMethod as PaymentMethod) ?? "cash",
+    paymentMethod: asPaymentMethod(d.paymentMethod),
   };
   const label = str(d.discountLabel);
   if (label) snap.discountLabel = label;
@@ -277,6 +294,7 @@ export function asOrderLogSnapshot(raw: unknown): ActivityOrderSnapshot | undefi
     if (v) snap[k] = v;
   }
   if (Number(d.refundAmount ?? 0) > 0) snap.refundAmount = Number(d.refundAmount);
+  if (d.paymentStatus === "pending") snap.paymentStatus = "pending";
   return snap;
 }
 
@@ -297,6 +315,7 @@ export function asActivityChange(raw: unknown): ActivityChange | undefined {
   const d = raw as Record<string, unknown>;
   if (d.kind === "order") {
     const r = d.refund as Record<string, unknown> | undefined;
+    const p = d.payment as Record<string, unknown> | undefined;
     const before = asOrderLogSnapshot(d.before);
     const after = asOrderLogSnapshot(d.after);
     return {
@@ -309,6 +328,15 @@ export function asActivityChange(raw: unknown): ActivityChange | undefined {
               amount: Number(r.amount ?? 0),
               ...(typeof r.reason === "string" && r.reason ? { reason: r.reason } : {}),
               totalRefunded: Number(r.totalRefunded ?? 0),
+            },
+          }
+        : {}),
+      ...(p && typeof p === "object" && (p.to === "paid" || p.to === "pending")
+        ? {
+            payment: {
+              to: p.to,
+              method: asPaymentMethod(p.method),
+              amount: Number(p.amount ?? 0),
             },
           }
         : {}),

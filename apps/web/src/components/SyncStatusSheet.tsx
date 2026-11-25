@@ -5,7 +5,13 @@ import type { AppUser } from "@bravobites/domain";
 import { formatOrderDateTime, formatOrderNumber, formatPkr } from "@bravobites/domain";
 import { useLocale } from "@/i18n/locale-context";
 import type { MessageKey } from "@/i18n/dictionaries";
-import { listSyncIssues, subscribeQueue, type SyncIssue, type SyncIssueReason } from "@/lib/pos-queue";
+import {
+  acknowledgeDroppedChanges,
+  listSyncIssues,
+  subscribeQueue,
+  type SyncIssue,
+  type SyncIssueReason,
+} from "@/lib/pos-queue";
 
 const NUM: CSSProperties = { fontFamily: "var(--font-en), system-ui, sans-serif" };
 
@@ -19,6 +25,8 @@ const REASON_KEY: Record<SyncIssueReason, MessageKey> = {
   afterEarlier: "syncReasonAfterEarlier",
   retry: "syncReasonRetry",
   noAnswer: "syncReasonNoAnswer",
+  paymentDropped: "paymentChangeDropped",
+  refundUnpaid: "refundUnpaidDropped",
 };
 
 const ACTION_KEY: Record<NonNullable<SyncIssue["action"]>, MessageKey> = {
@@ -28,6 +36,7 @@ const ACTION_KEY: Record<NonNullable<SyncIssue["action"]>, MessageKey> = {
   cancel: "activityCancel",
   delete: "activityDelete",
   refund: "activityRefund",
+  payment: "activityPayment",
 };
 
 /**
@@ -60,7 +69,11 @@ export function SyncStatusSheet({ user, onClose }: { user: AppUser; onClose: () 
   const title = (i: SyncIssue) => {
     if (i.kind === "sale") return `${t("syncKindSale")} · #${formatOrderNumber(i.orderNumber ?? 0)}`;
     if (i.kind === "change") {
-      return `${t(ACTION_KEY[i.action ?? "edit"])} · ${t("order")} #${formatOrderNumber(i.orderNumber ?? 0)}`;
+      const label =
+        i.action === "payment" && i.paymentTo
+          ? t(i.paymentTo === "paid" ? "activityPaymentReceived" : "activityPaymentSetPending")
+          : t(ACTION_KEY[i.action ?? "edit"]);
+      return `${label} · ${t("order")} #${formatOrderNumber(i.orderNumber ?? 0)}`;
     }
     return `${t("expenses")} · ${t(ACTION_KEY[i.action ?? "create"])}`;
   };
@@ -140,6 +153,16 @@ export function SyncStatusSheet({ user, onClose }: { user: AppUser; onClose: () 
                   </p>
                   {i.reason === "retry" && i.error ? (
                     <p className="mt-1 text-[11px] text-stone-400">{i.error}</p>
+                  ) : null}
+                  {/* A dropped change keeps the sync pill red until someone has read it. */}
+                  {i.dropped && !i.seen ? (
+                    <button
+                      type="button"
+                      className="mt-2 inline-flex min-h-9 items-center rounded-full bg-stone-900 px-4 text-xs font-bold text-white transition hover:bg-stone-700 pointer-coarse:min-h-11"
+                      onClick={() => void acknowledgeDroppedChanges([i.id])}
+                    >
+                      {t("ok")}
+                    </button>
                   ) : null}
                 </li>
               ))}

@@ -13,6 +13,9 @@ import {
   businessDayHoursFromSettings,
   endOfBusinessDay,
   formatPkr,
+  isOrderUnpaid,
+  money,
+  orderRefundedAmount,
   shiftBusinessDateKey,
   startOfBusinessDay,
   startOfBusinessMonthKey,
@@ -28,7 +31,13 @@ import { OrderDetailSheet } from "@/components/OrderDetailSheet";
 import { OrderListCard } from "@/components/OrderListCard";
 import { SeeActivityLogLink } from "@/components/SeeActivityLogLink";
 import { useRetryOnReconnect } from "@/lib/use-retry-on-reconnect";
-import { fetchBranches, fetchUsers, onOrdersSnapshot, onSettingsSnapshot } from "@/lib/firestore";
+import {
+  fetchBranches,
+  fetchUsers,
+  onOrdersSnapshot,
+  onSettingsSnapshot,
+  onUnpaidOrdersSnapshot,
+} from "@/lib/firestore";
 import { openDatePicker } from "@/lib/open-date-picker";
 import {
   matchesOrderSearch,
@@ -104,6 +113,12 @@ export default function OrdersPage() {
   const [allLimit, setAllLimit] = useState(ALL_ORDERS_PAGE);
   /** Some branch filled its page — older orders exist that aren't loaded. */
   const [hasMore, setHasMore] = useState(false);
+  /** Every payment-pending order of the shown branch(es), any date. */
+  const [unpaidOrders, setUnpaidOrders] = useState<Order[]>([]);
+  const [unpaidReady, setUnpaidReady] = useState(false);
+  const [unpaidError, setUnpaidError] = useState<string | null>(null);
+  // "Payment pending" ignores the dates: customers pay days later.
+  const unpaidMode = statusFilter === "unpaid";
   const isOwner = profile?.role === "owner";
   const dayHours = useMemo(
     () => businessDayHoursFromSettings(settings),
@@ -233,6 +248,56 @@ export default function OrdersPage() {
     return () => unsubs.forEach((u) => u());
   }, [branchId, branches, locale, t, sinceIso, untilIso, pageLimit, listKey]);
 
+  // Payment-pending orders (all dates) — feeds the "Rs X pending" strip and the
+  // "Payment pending" filter. Few docs: only orders still owed.
+  useEffect(() => {
+    setUnpaidOrders([]);
+    setUnpaidReady(false);
+    setUnpaidError(null);
+    if (!branchId || branches.length === 0) return;
+    const ids = branchId === "all" ? branches.map((b) => b.id) : [branchId];
+    const byBranch = new Map<string, Order[]>();
+    const ready = new Set<string>();
+    const merge = () => {
+      setUnpaidOrders(
+        Array.from(byBranch.values())
+          .flat()
+          .filter(isOrderUnpaid)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      );
+    };
+    const markReady = (bid: string) => {
+      ready.add(bid);
+      if (ready.size >= ids.length) setUnpaidReady(true);
+    };
+    const unsubs: Unsubscribe[] = ids.map((bid) =>
+      onUnpaidOrdersSnapshot(
+        bid,
+        (list) => {
+          byBranch.set(bid, list);
+          merge();
+          markReady(bid);
+        },
+        (err) => {
+          setUnpaidError(mapFirebaseError(err, locale) || t("loadFailed"));
+          markReady(bid);
+        },
+      ),
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [branchId, branches, locale, t]);
+
+  const unpaidSummary = useMemo(
+    () => ({
+      count: unpaidOrders.length,
+      amount: unpaidOrders.reduce(
+        (s, o) => s + money(Math.max(0, o.total - orderRefundedAmount(o))),
+        0,
+      ),
+    }),
+    [unpaidOrders],
+  );
+
   useRetryOnReconnect(Boolean(loadError) && !pageLoading, () => {
     void load();
   });
@@ -258,9 +323,10 @@ export default function OrdersPage() {
   }
 
   const filtered = useMemo(() => {
-    const { from, to } = dateRange;
+    const { from, to } = unpaidMode ? { from: null, to: null } : dateRange;
+    const source = unpaidMode ? unpaidOrders : orders;
 
-    return orders.filter((o) => {
+    return source.filter((o) => {
       if (!matchesOrderSearch(o, query)) return false;
 
       if (!matchesOrderStatus(o, statusFilter)) return false;
@@ -269,7 +335,13 @@ export default function OrdersPage() {
         const type = o.orderType ?? "dine-in";
         if (type !== orderTypeFilter) return false;
       }
-      if (paymentFilter !== "all" && o.paymentMethod !== paymentFilter) return false;
+      // A payment-pending order's method is only the expected one: it is not
+      // cash / card / online money yet (the "Payment pending" status finds it;
+      // there the method filter means the expected method).
+      if (paymentFilter !== "all") {
+        if (o.paymentMethod !== paymentFilter) return false;
+        if (!unpaidMode && isOrderUnpaid(o)) return false;
+      }
 
       // Owner (or staff): optional filter by cashier
       if (createdByFilter !== "all" && o.createdBy !== createdByFilter) return false;
@@ -282,6 +354,8 @@ export default function OrdersPage() {
     });
   }, [
     orders,
+    unpaidOrders,
+    unpaidMode,
     query,
     dateRange,
     statusFilter,
@@ -347,6 +421,7 @@ export default function OrdersPage() {
     { id: "discounted", label: t("statusDiscounted") },
     { id: "cancelled", label: t("cancelled") },
     { id: "refunded", label: t("refunded") },
+    { id: "unpaid", label: t("paymentUnpaidFilter") },
   ];
 
   const orderTypeOptions: { id: OrderTypeFilter; label: string }[] = [
@@ -418,7 +493,7 @@ export default function OrdersPage() {
             className="input w-full min-w-0 text-sm"
             value={datePreset}
             onChange={(e) => applyPreset(e.target.value as DatePreset)}
-            disabled={pageLoading || Boolean(loadError)}
+            disabled={pageLoading || Boolean(loadError) || unpaidMode}
           >
             {datePresets.map((p) => (
               <option key={p.id} value={p.id}>{p.label}</option>
@@ -500,8 +575,14 @@ export default function OrdersPage() {
           ) : null}
         </div>
 
+        {unpaidMode ? (
+          <p className="mt-2 text-[11px] font-semibold leading-snug text-red-300">
+            {t("paymentUnpaidAllDates")}
+          </p>
+        ) : null}
+
         {/* Custom date range — only when "Custom" is selected */}
-        {datePreset === "custom" && (
+        {datePreset === "custom" && !unpaidMode && (
           <div className="mt-2 grid grid-cols-2 gap-2">
             <input
               type="date"
@@ -584,7 +665,23 @@ export default function OrdersPage() {
             {t("resetFilters")}
           </button>
         </div>
-        {hasMore ? (
+        {unpaidSummary.count > 0 ? (
+          <button
+            type="button"
+            className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-lg border border-red-400/50 bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-200 transition hover:bg-red-500/25 disabled:cursor-default"
+            disabled={unpaidMode}
+            onClick={() => setStatusFilter("unpaid")}
+            data-testid="orders-unpaid-strip"
+          >
+            <span className="size-2 rounded-full bg-red-400" aria-hidden />
+            <span>
+              {t("unpaidTotal")
+                .replace("{amount}", formatPkr(unpaidSummary.amount))
+                .replace("{n}", String(unpaidSummary.count))}
+            </span>
+          </button>
+        ) : null}
+        {hasMore && !unpaidMode ? (
           <p className="admin-filter-muted mt-2 text-[11px] leading-snug">
             {t("ordersNewestShown").replace("{n}", String(orders.length))}
           </p>
@@ -592,13 +689,17 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {pageLoading ? <PageSpinner label={t("loading")} /> : null}
+      {pageLoading || (unpaidMode && !unpaidReady) ? <PageSpinner label={t("loading")} /> : null}
+
+      {!pageLoading && unpaidMode && unpaidError ? (
+        <div className="toast-error mb-3">{unpaidError}</div>
+      ) : null}
 
       {!pageLoading && loadError ? (
         <LoadError message={loadError} onRetry={() => void load()} retryLabel={t("retry")} />
       ) : null}
 
-      {!pageLoading && !loadError ? (
+      {!pageLoading && !loadError && (!unpaidMode || unpaidReady) ? (
         <CollapsibleSection
           title={t("ordersHistory")}
           count={filtered.length}
@@ -615,14 +716,14 @@ export default function OrdersPage() {
             ))}
             {filtered.length === 0 ? (
               <p className="rounded-xl border border-dashed border-[var(--border)] bg-white/70 px-4 py-10 text-center text-sm text-[var(--muted)]">
-                {orders.length === 0
+                {(unpaidMode ? unpaidOrders : orders).length === 0
                   ? t("noOrders")
                   : filtersActive || query.trim()
                     ? t("noOrderMatches")
                     : t("noOrders")}
               </p>
             ) : null}
-            {hasMore ? (
+            {hasMore && !unpaidMode ? (
               <div className="flex justify-center pt-1">
                 <button
                   type="button"
@@ -655,9 +756,16 @@ export default function OrdersPage() {
           onClose={() => setSelected(null)}
           onSaved={(o) => {
             setOrders((list) => list.map((x) => (x.id === o.id ? o : x)));
+            // Paid / cancelled now → off the pending list until the listener agrees.
+            setUnpaidOrders((list) =>
+              isOrderUnpaid(o)
+                ? list.map((x) => (x.id === o.id ? o : x))
+                : list.filter((x) => x.id !== o.id),
+            );
           }}
           onDeleted={(id) => {
             setOrders((list) => list.filter((x) => x.id !== id));
+            setUnpaidOrders((list) => list.filter((x) => x.id !== id));
           }}
         />
       ) : null}

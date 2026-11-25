@@ -21,6 +21,7 @@ import {
   formatOrderDateTime,
   openingOfBusinessDay,
   formatPkr,
+  isOrderUnpaid,
   shiftBusinessDateKey,
   startOfBusinessDay,
 } from "@bravobites/domain";
@@ -39,6 +40,7 @@ import {
   computeItemSales,
   computeItemsMadeInRange,
   computeSalesBridge,
+  paymentBucket,
   type DayReport,
   type ItemStat,
   type SalesBridgeKey,
@@ -47,7 +49,7 @@ import { expenseCategoryLabelKey } from "@/lib/expense-labels";
 import { computeOwnerReport } from "@/lib/owner-report";
 import { DayStockTab } from "@/components/inventory/DayStockTab";
 import { periodText } from "@/lib/owner-report-text";
-import { fetchOwners, onExpensesSnapshot, onOrdersSnapshot, uncachedOrderIds } from "@/lib/firestore";
+import { fetchOwners, onExpensesSnapshot, onOrdersSnapshot, onPaidInRangeSnapshot, uncachedOrderIds } from "@/lib/firestore";
 import {
   matchesOrderSearch,
   matchesOrderStatus,
@@ -499,6 +501,8 @@ export function PosDayReport({
   const [pcPending, setPcPending] = useState<number | null>(null);
   /** Of those, how many failed (no answer / refused) — the chip turns red. */
   const [pcFailed, setPcFailed] = useState(0);
+  /** Payment changes / refunds the cloud refused, not yet acknowledged in the sheet. */
+  const [pcDropped, setPcDropped] = useState(0);
   const [online, setOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -520,6 +524,7 @@ export function PosDayReport({
     const unsub = subscribeQueue((snap) => {
       setPcPending(snap.pendingCount);
       setPcFailed(snap.failedCount);
+      setPcDropped(snap.droppedCount ?? 0);
       void Promise.all([
         listActiveQueuedOrders(),
         listActiveQueuedMutations(),
@@ -583,6 +588,16 @@ export function PosDayReport({
     );
   }, [branchId, fromIso, toIso]);
 
+  // Credit sales of earlier days paid on the picked day — "Old bills collected"
+  // (money in, not sales of the day). Offline: from the cache; on an error
+  // (index not deployed yet) that line is just left out. A payment taken on
+  // this PC and not uploaded yet is in orderView (its queued change).
+  const [paidOrders, setPaidOrders] = useState<Order[]>([]);
+  useEffect(() => {
+    setPaidOrders([]);
+    return onPaidInRangeSnapshot(branchId, fromIso, toIso, (o) => setPaidOrders(o));
+  }, [branchId, fromIso, toIso]);
+
   // Offline, a synced day can be missing from the Firestore cache (transaction
   // writes only land there once a listener saw them). Fill it from this PC's
   // synced local copy — only ids the cache knows nothing about, so a cloud
@@ -635,8 +650,9 @@ export function PosDayReport({
         to,
         fromKey: dayKey,
         toKey: dayKey,
+        collectedOrders: paidOrders,
       }),
-    [orderView.list, expenseView.list, from, to, dayKey],
+    [orderView.list, expenseView.list, from, to, dayKey, paidOrders],
   );
   /**
    * Everyone who sold or spent in this branch (any day) — the staff filter
@@ -668,8 +684,9 @@ export function PosDayReport({
             fromKey: dayKey,
             toKey: dayKey,
             staffFilter: staff,
+            collectedOrders: paidOrders,
           }),
-    [staff, allStaffReport, orderView.list, expenseView.list, from, to, dayKey],
+    [staff, allStaffReport, orderView.list, expenseView.list, from, to, dayKey, paidOrders],
   );
   const items = useMemo(
     () =>
@@ -740,9 +757,10 @@ export function PosDayReport({
             toKey: dayKey,
             ownerUids: isOwner ? new Set([...ownerUids, user.uid]) : ownerUids,
             catalog: reportCatalog,
+            collectedOrders: paidOrders,
           })
         : null,
-    [isOwner, ownerTab, ownerUids, orderView.list, expenseView.list, ownerExtras.logs, ownerExtras.pendingIds, ownerExtras.drawers, ownerExtras.stock, from, to, dayKey, user.uid, reportCatalog],
+    [paidOrders, isOwner, ownerTab, ownerUids, orderView.list, expenseView.list, ownerExtras.logs, ownerExtras.pendingIds, ownerExtras.drawers, ownerExtras.stock, from, to, dayKey, user.uid, reportCatalog],
   );
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
@@ -947,9 +965,22 @@ export function PosDayReport({
                   className="group inline-flex min-h-11 items-center px-1 focus:outline-none"
                   title={t("syncStatusTitle")}
                 >
-                  <span className={`inline-flex min-h-6 items-center gap-1 rounded-full bg-white/[0.06] px-2.5 text-[11px] font-semibold ${pcFailed > 0 ? "text-rose-300" : "text-orange-300"} ring-1 ring-white/10 transition group-hover:bg-white/15 group-focus-visible:ring-2 group-focus-visible:ring-[var(--bb-mustard-500)]`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${pcFailed > 0 ? "bg-rose-500" : "bg-orange-400"}`} aria-hidden />
+                  <span className={`inline-flex min-h-6 items-center gap-1 rounded-full bg-white/[0.06] px-2.5 text-[11px] font-semibold ${pcFailed > 0 || pcDropped > 0 ? "text-rose-300" : "text-orange-300"} ring-1 ring-white/10 transition group-hover:bg-white/15 group-focus-visible:ring-2 group-focus-visible:ring-[var(--bb-mustard-500)]`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${pcFailed > 0 || pcDropped > 0 ? "bg-rose-500" : "bg-orange-400"}`} aria-hidden />
                     <span style={NUM}>{pcPending}</span> {t("reportSyncShort")}
+                  </span>
+                </button>
+              ) : pcDropped > 0 ? (
+                /* Nothing to upload, but a payment change / refund was refused: never show "Synced". */
+                <button
+                  type="button"
+                  onClick={() => setSyncOpen(true)}
+                  className="group inline-flex min-h-11 items-center px-1 focus:outline-none"
+                  title={t("syncStatusTitle")}
+                >
+                  <span className="inline-flex min-h-6 items-center gap-1 rounded-full bg-white/[0.06] px-2.5 text-[11px] font-semibold text-rose-300 ring-1 ring-white/10 transition group-hover:bg-white/15 group-focus-visible:ring-2 group-focus-visible:ring-[var(--bb-mustard-500)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500" aria-hidden />
+                    {t("syncStateFailed")}
                   </span>
                 </button>
               ) : (
@@ -980,7 +1011,7 @@ export function PosDayReport({
           ) : !ordersReady ? (
             <p className="py-16 text-center text-sm text-stone-600">{t("loading")}</p>
           ) : tab === "summary" ? (
-            <SummaryTab report={report} items={items} itemImage={itemImage} onViewItems={() => setTab("items")} />
+            <SummaryTab report={report} endIso={toIso} items={items} itemImage={itemImage} onViewItems={() => setTab("items")} />
           ) : tab === "items" ? (
             <ItemsTab items={items} report={report} itemImage={itemImage} />
           ) : tab === "made" ? (
@@ -1022,6 +1053,7 @@ export function PosDayReport({
           ) : tab === "orders" ? (
             <OrdersTab
               orders={report.dayOrders}
+              endIso={toIso}
               pendingIds={orderView.pendingIds}
               onOpenOrder={onOpenOrder}
             />
@@ -1066,18 +1098,23 @@ export function PosDayReport({
 
 function SummaryTab({
   report,
+  endIso,
   items,
   itemImage,
   onViewItems,
 }: {
   report: DayReport;
+  /** The day's end (ISO): a sale still unpaid then is "Payment pending", not its method. */
+  endIso: string;
   items: ItemStat[];
   itemImage?: ItemImage;
   onViewItems: () => void;
 }) {
   const { t } = useLocale();
   const netSales = report.totalSales - report.totalRefunds;
-  const netInHand = report.netProfit;
+  // Cash basis: a sale still payment pending is not in hand yet; old bills
+  // paid today are (they are not today's sales).
+  const netInHand = report.netProfit - report.pendingSales + report.collected.total;
   const itemRevenue = items.reduce((s, i) => s + i.revenue, 0);
   const itemsSold = items.reduce((s, i) => s + i.qty, 0);
   const avgOrder = report.totalOrders > 0 ? Math.round(report.totalSales / report.totalOrders) : 0;
@@ -1088,7 +1125,7 @@ function SummaryTab({
   const topItems = items.slice(0, 5);
   const topMax = Math.max(1, ...topItems.map((i) => i.qty));
 
-  const methodCount = (m: PaymentMethod) => active.filter((o) => o.paymentMethod === m).length;
+  const methodCount = (m: PaymentMethod) => active.filter((o) => paymentBucket(o, endIso) === m).length;
   const payments: { id: PaymentMethod; label: string; amount: number; count: number }[] = [
     { id: "cash", label: t("cash"), amount: report.cashSales, count: methodCount("cash") },
     { id: "card", label: t("card"), amount: report.cardSales, count: methodCount("card") },
@@ -1099,6 +1136,8 @@ function SummaryTab({
   const salesLines = useBridgeLines(report, itemRevenue);
   const bridge: BridgeLine[] = [
     ...salesLines,
+    ...(report.pendingSales > 0 ? [{ label: t("paymentUnpaid"), value: report.pendingSales, sign: "−" as const }] : []),
+    ...(report.collected.total > 0 ? [{ label: t("oldBillsCollected"), value: report.collected.total, sign: "+" as const }] : []),
     { label: t("totalExpenses"), value: report.totalExpenses, sign: "−" },
     { label: t("reportNetInHand"), value: netInHand, strong: true },
   ];
@@ -1210,6 +1249,24 @@ function SummaryTab({
                 </span>
                 <span className="font-semibold text-white" dir="ltr">−{formatPkr(report.totalExpenses)}</span>
               </div>
+              {report.pendingSales > 0 ? (
+                <div className="flex items-center justify-between gap-3 text-stone-300">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-red-400" aria-hidden />
+                    {t("paymentUnpaid")} ({report.pendingOrders})
+                  </span>
+                  <span className="font-semibold text-white" dir="ltr">−{formatPkr(report.pendingSales)}</span>
+                </div>
+              ) : null}
+              {report.collected.total > 0 ? (
+                <div className="flex items-center justify-between gap-3 text-stone-300">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+                    {t("oldBillsCollected")} ({report.collected.orders.length})
+                  </span>
+                  <span className="font-semibold text-white" dir="ltr">+{formatPkr(report.collected.total)}</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -1312,6 +1369,50 @@ function SummaryTab({
               );
             })}
           </ul>
+          {/* Sold today, not paid yet (always shown): cash + card + online + this = net sales. */}
+          <div className="flex items-center gap-3.5 border-t border-stone-100 px-5 py-3" data-testid="report-unpaid">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-red-700">{t("paymentUnpaid")}</p>
+              <p className="mt-0.5 text-xs text-stone-500" style={NUM}>
+                <span className="tabular-nums">{report.pendingOrders}</span> {t("orders")} · {t("reportUnpaidHint")}
+              </p>
+            </div>
+            <p className="text-base font-bold tabular-nums text-red-700" style={NUM} dir="ltr">
+              {formatPkr(report.pendingSales)}
+            </p>
+          </div>
+          {report.collected.total > 0 ? (
+            // Old bills paid today: money in, but earlier days' sales.
+            <div className="border-t border-stone-100 px-5 py-3" data-testid="report-collected">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm font-semibold text-[var(--ink)]">
+                  {t("oldBillsCollected")}{" "}
+                  <span className="text-xs font-medium text-stone-500" style={NUM}>
+                    · <span className="tabular-nums">{report.collected.orders.length}</span> {t("orders")}
+                  </span>
+                </p>
+                <p className="text-base font-bold tabular-nums text-emerald-700" style={NUM} dir="ltr">
+                  +{formatPkr(report.collected.total)}
+                </p>
+              </div>
+              <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-stone-500" style={NUM}>
+                {(["cash", "card", "digital"] as const)
+                  .filter((m) => report.collected[m] > 0)
+                  .map((m) => (
+                    <span key={m}>
+                      {t(m)} <span dir="ltr">{formatPkr(report.collected[m])}</span>
+                    </span>
+                  ))}
+              </p>
+              <p className="mt-1 text-[11px] text-stone-500">{t("reportNotInSales")}</p>
+            </div>
+          ) : null}
         </Card>
 
         {/* Bridge */}
@@ -1384,7 +1485,14 @@ function SummaryTab({
                       <td className="px-3 py-2.5 text-end tabular-nums" style={NUM} dir="ltr">{formatPkr(r.cash)}</td>
                       <td className="hidden px-3 py-2.5 text-end tabular-nums sm:table-cell" style={NUM} dir="ltr">{formatPkr(r.card)}</td>
                       <td className="hidden px-3 py-2.5 text-end tabular-nums sm:table-cell" style={NUM} dir="ltr">{formatPkr(r.digital)}</td>
-                      <td className="px-4 py-2.5 text-end font-bold tabular-nums" style={NUM} dir="ltr">{formatPkr(r.total - r.refunds)}</td>
+                      <td className="px-4 py-2.5 text-end font-bold tabular-nums" style={NUM} dir="ltr">
+                        {formatPkr(r.total - r.refunds)}
+                        {r.pending > 0 ? (
+                          <span className="block text-[11px] font-semibold text-red-600">
+                            {t("paymentUnpaid")} {formatPkr(r.pending)}
+                          </span>
+                        ) : null}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1601,6 +1709,7 @@ function OrderRow({
   const edited = !cancelled && Boolean(o.updatedAt);
   const discountAmount = cancelled ? 0 : o.discountAmount ?? 0;
   const discounted = discountAmount > 0;
+  const unpaid = isOrderUnpaid(o);
   const discountPct =
     discounted && o.discountType === "percent" && (o.discountValue ?? 0) > 0 ? `${o.discountValue}%` : null;
   const taxAmount = cancelled ? 0 : o.taxAmount ?? 0;
@@ -1670,9 +1779,10 @@ function OrderRow({
       </td>
       <td className="max-w-[22rem] px-3 py-3.5">
         <p className={`font-medium leading-snug text-[var(--ink)] ${cancelled ? "line-through" : ""}`}>{items}</p>
-        {cancelled || edited || refunded || discounted ? (
+        {cancelled || unpaid || edited || refunded || discounted ? (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {cancelled ? tag(t("cancelled"), "bg-red-50 text-red-700") : null}
+            {unpaid ? tag(t("paymentUnpaid"), "bg-red-600 text-white") : null}
             {edited ? tag(t("amended"), "bg-amber-50 text-amber-800") : null}
             {refunded
               ? tag(
@@ -1710,6 +1820,8 @@ function OrderRow({
       <td className="whitespace-nowrap px-3 py-3.5 text-stone-600">
         <span className="block">{type}</span>
         <span className="block text-xs text-stone-500">{pay}</span>
+        {/* The method above is only the expected one until it is paid. */}
+        {unpaid ? <span className="block text-xs font-semibold text-red-700">{t("paymentUnpaid")}</span> : null}
       </td>
       <td className="whitespace-nowrap px-3 py-3.5 capitalize text-stone-600">{cashier}</td>
       <td className="whitespace-nowrap px-5 py-3.5 text-end">
@@ -1738,10 +1850,13 @@ function OrderRow({
 
 function OrdersTab({
   orders,
+  endIso,
   pendingIds,
   onOpenOrder,
 }: {
   orders: Order[];
+  /** End of the report window — a method filter uses the same bucket as the Summary tab. */
+  endIso: string;
   pendingIds: Set<string>;
   onOpenOrder: (o: Order) => void;
 }) {
@@ -1758,6 +1873,7 @@ function OrdersTab({
     { id: "discounted", label: t("statusDiscounted") },
     { id: "cancelled", label: t("cancelled") },
     { id: "refunded", label: t("refunded") },
+    { id: "unpaid", label: t("paymentUnpaidFilter") },
     { id: "pending", label: t("recentPendingLocal") },
   ];
   const matchesChip = (o: Order, c: OrderChip) =>
@@ -1768,11 +1884,13 @@ function OrdersTab({
     () =>
       orders.filter((o) => {
         if (!matchesOrderSearch(o, query)) return false;
-        if (payment !== "all" && o.paymentMethod !== payment) return false;
+        // The money's bucket, not the expected method: a payment-pending sale
+        // is not cash (Summary tab / drawer) — the "Payment pending" chip finds it.
+        if (payment !== "all" && paymentBucket(o, endIso) !== payment) return false;
         if (type !== "all" && (o.orderType ?? "dine-in") !== type) return false;
         return true;
       }),
-    [orders, query, payment, type],
+    [orders, query, payment, type, endIso],
   );
   const shown = base.filter((o) => matchesChip(o, chip));
   const shownSales = shown

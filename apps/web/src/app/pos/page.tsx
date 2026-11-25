@@ -15,7 +15,9 @@ import {
   DEFAULT_SETTINGS,
   formatPkr,
   isCartEmpty,
+  isOrderUnpaid,
   money,
+  orderRefundableAmount,
   partText,
   applyVisit,
   formatPhone,
@@ -55,9 +57,11 @@ import {
   onInventorySnapshot,
   onProductsSnapshot,
   onSettingsSnapshot,
+  onUnpaidOrdersSnapshot,
 } from "@/lib/firestore";
 import type { Unsubscribe } from "firebase/firestore";
 import {
+  applyPendingOrderOps,
   enqueueCheckout,
   kickSync,
   listActiveQueuedMutations,
@@ -67,7 +71,7 @@ import {
   peekLocalNextOrderNumber,
   queuedToOrder,
   reconcileFromServer,
-
+  UnpaidNeedsCustomerError,
   subscribeQueue,
   type QueueSnapshot,
 } from "@/lib/pos-queue";
@@ -90,7 +94,21 @@ import {
 } from "@/lib/shop-clock";
 import { resolveCategoryImage, resolveProductImage } from "@/lib/menu-images";
 import type { Customer, CustomerVisit, Order, PaymentMethod, ShopSettings } from "@bravobites/domain";
-import type { QueuedMutation } from "@/lib/pos-queue";
+import type { QueuedMutation, QueuedOrder } from "@/lib/pos-queue";
+
+/**
+ * This PC's queued changes over a shown list: edits / cancels / refunds as
+ * before, a payment change only overlays the payment fields (never the stale
+ * rest of its orderAfter). Never adds or removes orders (deletes are
+ * filtered by deletedOrderIds), keeps the list order.
+ */
+function withQueuedChanges(list: Order[], muts: QueuedMutation[]): Order[] {
+  const ids = new Set(list.map((o) => o.id));
+  const mine = muts.filter((m) => m.kind !== "delete" && ids.has(m.orderId));
+  if (mine.length === 0) return list;
+  const byId = new Map(applyPendingOrderOps(list, [], mine).list.map((o) => [o.id, o]));
+  return list.map((o) => byId.get(o.id) ?? o);
+}
 
 /** A sale on this PC for the customer list; `inCloud`: uploaded (the cloud may count it already). */
 type LocalVisit = CustomerVisit & { inCloud: boolean };
@@ -446,6 +464,17 @@ function PosApp() {
   const [recentLoading, setRecentLoading] = useState(false);
   /** Bumped on every open — late responses from an older open are dropped. */
   const recentReqRef = useRef(0);
+  /** Recent orders dialog: today's orders, or every payment-pending order of the branch (any date). */
+  const [recentView, setRecentView] = useState<"today" | "unpaid">("today");
+  /** Cloud payment-pending orders (null until the first snapshot). */
+  const [unpaidCloud, setUnpaidCloud] = useState<Order[] | null>(null);
+  const [unpaidCloudFailed, setUnpaidCloudFailed] = useState(false);
+  /** This PC's unsynced sales + changes, merged over unpaidCloud. */
+  const [unpaidLocal, setUnpaidLocal] = useState<{ queued: QueuedOrder[]; muts: QueuedMutation[] }>({
+    queued: [],
+    muts: [],
+  });
+  const [unpaidLocalTick, setUnpaidLocalTick] = useState(0);
   const [expensesOpen, setExpensesOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   // Keep the branch's stock rows in this PC's cache, so the Inventory sheet
@@ -457,6 +486,8 @@ function PosApp() {
   const [reportOpen, setReportOpen] = useState(false);
   const [orderLogsOpen, setOrderLogsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  /** Orders saved from the sheet on this PC — their copy here is newer than any list read. */
+  const sheetSavedRef = useRef<Set<string>>(new Set());
   const [orderType, setOrderType] = useState<OrderType>("dine-in");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -468,6 +499,8 @@ function PosApp() {
   const [customerNote, setCustomerNote] = useState("");
   const [customerNoteDirty, setCustomerNoteDirty] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  /** Checkout: Paid (default) or Payment pending — never persisted, back to Paid after every sale. */
+  const [paymentPending, setPaymentPending] = useState(false);
   const [lockedTaxPercent, setLockedTaxPercent] = useState<number | null>(null);
   const [lockedDlvCharges, setLockedDlvCharges] = useState<number | null>(null);
   const [discountType, setDiscountType] = useState<DiscountType>("percent");
@@ -564,19 +597,17 @@ function PosApp() {
           listActiveQueuedMutations(),
           fetchOrders(branchId, null, { sinceIso: todayStartIso(settings) }),
         ]).then(([pending, activeMuts, freshOrders]) => {
-          const mutByOrder = new Map(
-            activeMuts.map((m) => [m.orderId, m.orderAfter]),
-          );
           const since = todayStartIso(settings);
           setLocalPendingOrders(
-            pending
-              // Today only, like the cloud list (older unsynced sales show in Report).
-              .filter((q) => q.branchId === branchId && q.createdAt >= since)
-              .map((q) => mutByOrder.get(q.clientId) ?? queuedToOrder(q)),
+            withQueuedChanges(
+              pending
+                // Today only, like the cloud list (older unsynced sales show in Report).
+                .filter((q) => q.branchId === branchId && q.createdAt >= since)
+                .map((q) => queuedToOrder(q)),
+              activeMuts,
+            ),
           );
-          setRecentOrders(
-            freshOrders.map((o) => mutByOrder.get(o.id) ?? o),
-          );
+          setRecentOrders(withQueuedChanges(freshOrders, activeMuts));
           setMutationOrderIds(new Set(activeMuts.map((m) => m.orderId)));
           setDeletedOrderIds(new Set(
             activeMuts.filter((m) => m.kind === "delete").map((m) => m.orderId),
@@ -586,6 +617,57 @@ function PosApp() {
       prevPendingRef.current = snap.pendingCount;
     });
   }, [profile, branchId, recentOpen, settings]);
+
+  // Recent orders → "Payment pending": every unpaid order of the branch, any
+  // date (the customer pays days later). Listened to only while the dialog is open.
+  useEffect(() => {
+    if (!recentOpen || !branchId) return;
+    setUnpaidCloud(null);
+    setUnpaidCloudFailed(false);
+    return onUnpaidOrdersSnapshot(
+      branchId,
+      (orders) => {
+        setUnpaidCloud(orders);
+        setUnpaidCloudFailed(false);
+      },
+      () => {
+        setUnpaidCloudFailed(true);
+        setUnpaidCloud((list) => list ?? []);
+      },
+    );
+  }, [recentOpen, branchId]);
+  // … plus this PC's unsynced sales and changes (a pending sale made offline,
+  // a mark-paid not uploaded yet), re-read on every queue change.
+  useEffect(() => {
+    if (!recentOpen || !branchId) return;
+    let alive = true;
+    const load = () => {
+      void Promise.all([listActiveQueuedOrders(), listActiveQueuedMutations()])
+        .then(([queued, muts]) => {
+          if (alive) setUnpaidLocal({ queued, muts });
+        })
+        .catch(() => {});
+    };
+    load();
+    const unsub = subscribeQueue(load);
+    return () => {
+      alive = false;
+      unsub();
+    };
+  }, [recentOpen, branchId, unpaidLocalTick]);
+  const unpaidView = useMemo(() => {
+    if (!branchId) return { orders: [] as Order[], pendingIds: new Set<string>(), total: 0 };
+    const { list, pendingIds } = applyPendingOrderOps(
+      unpaidCloud ?? [],
+      unpaidLocal.queued.filter((q) => q.branchId === branchId),
+      unpaidLocal.muts,
+    );
+    const orders = list.filter(
+      (o) => o.branchId === branchId && isOrderUnpaid(o) && !deletedOrderIds.has(o.id),
+    );
+    // What is owed (net of refunds, as the order sheet's amount due).
+    return { orders, pendingIds, total: money(orders.reduce((sum, o) => sum + orderRefundableAmount(o), 0)) };
+  }, [branchId, unpaidCloud, unpaidLocal, deletedOrderIds]);
 
   // When network returns, retry all broken images (catalog, cart, receipt).
   useEffect(() => {
@@ -951,6 +1033,7 @@ function PosApp() {
         ...(discountAmount > 0 ? { discountType, discountValue, discountAmount } : {}),
         total,
         paymentMethod,
+        ...(paymentPending ? { paymentStatus: "pending" as const } : {}),
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         ...(orderType === "delivery" ? { deliveryAddress: deliveryAddress.trim() } : {}),
@@ -983,6 +1066,7 @@ function PosApp() {
     discountAmount,
     total,
     paymentMethod,
+    paymentPending,
     customerName,
     customerPhone,
     deliveryAddress,
@@ -1150,6 +1234,7 @@ function PosApp() {
     resetCustomerFields();
     setTableNumber("");
     setPaymentMethod("cash");
+    setPaymentPending(false);
     setDiscountType("percent");
     setDiscountValue(0);
   }
@@ -1180,6 +1265,7 @@ function PosApp() {
     setPreviewOrderNumber(null);
     resetCustomerFields();
     setTableNumber("");
+    setPaymentPending(false);
     setCheckoutPreviewOpen(true);
     void (async () => {
       try {
@@ -1282,6 +1368,11 @@ function PosApp() {
     // Ref lock only — no "Saving…" UI. Fast double-tap must not mint two numbers.
     if (checkoutLockRef.current) return;
     if (!discountAllowed) return;
+    // Payment pending: who owes it (enqueueCheckout refuses it too).
+    if (paymentPending && !customerName.trim() && !customerPhone.trim()) {
+      setCheckoutModalError(t("unpaidNeedsCustomer"));
+      return;
+    }
     checkoutLockRef.current = true;
     setError(null);
     setCheckoutModalError(null);
@@ -1293,6 +1384,7 @@ function PosApp() {
         branchName,
         lines: cart,
         paymentMethod,
+        ...(paymentPending ? { paymentStatus: "pending" as const } : {}),
         orderType,
         ...(customerName.trim() ? { customerName: customerName.trim() } : {}),
         ...(customerPhone.trim() ? { customerPhone: customerPhone.trim() } : {}),
@@ -1331,12 +1423,17 @@ function PosApp() {
       setManualDlvAmount(0);
       setOrderType("dine-in");
       setPaymentMethod("cash");
+      setPaymentPending(false);
 
       void kickSync();
       if (autoPrint && printCopies.size > 0) printOrderTicket(order);
     } catch (e) {
       setCheckoutModalError(
-        e instanceof PcClockWrongError ? t("pcClockBlocked") : checkoutFailMessage(e),
+        e instanceof PcClockWrongError
+          ? t("pcClockBlocked")
+          : e instanceof UnpaidNeedsCustomerError
+            ? t("unpaidNeedsCustomer")
+            : checkoutFailMessage(e),
       );
     } finally {
       checkoutLockRef.current = false;
@@ -1421,6 +1518,7 @@ function PosApp() {
       return;
     }
     setRecentOpen(true);
+    setRecentView("today");
     setRecentLoading(true);
     setError(null);
     const reqId = ++recentReqRef.current;
@@ -1429,9 +1527,6 @@ function PosApp() {
         listActiveQueuedOrders(),
         listActiveQueuedMutations(),
       ]);
-      const mutByOrder = new Map(
-        activeMuts.map((m) => [m.orderId, m.orderAfter]),
-      );
       const mutIds = new Set(activeMuts.map((m) => m.orderId));
       const delIds = new Set(
         activeMuts.filter((m) => m.kind === "delete").map((m) => m.orderId),
@@ -1444,17 +1539,17 @@ function PosApp() {
         (q) => q.branchId === branchId && q.createdAt >= since,
       );
       setLocalPendingOrders(
-        branchPending.map((q) => mutByOrder.get(q.clientId) ?? queuedToOrder(q)),
+        withQueuedChanges(branchPending.map((q) => queuedToOrder(q)), activeMuts),
       );
-      const apply = (list: Order[]) =>
-        setRecentOrders(list.map((o) => mutByOrder.get(o.id) ?? o));
 
       // 1) Local Firestore cache — instant, same as offline.
       let shown = false;
+      let cachedShown: Order[] = [];
       try {
         const cached = await fetchOrders(branchId, null, { source: "cache", sinceIso: todayStartIso(settings) });
         if (reqId !== recentReqRef.current) return;
-        apply(cached);
+        cachedShown = withQueuedChanges(cached, activeMuts);
+        setRecentOrders(cachedShown);
         shown = cached.length > 0 || branchPending.length > 0;
       } catch {
         // cache miss — fall through to the server read
@@ -1465,7 +1560,16 @@ function PosApp() {
       try {
         const fresh = await fetchOrders(branchId, null, { sinceIso: todayStartIso(settings) });
         if (reqId !== recentReqRef.current) return;
-        apply(fresh);
+        const freshShown = withQueuedChanges(fresh, activeMuts);
+        setRecentOrders(freshShown);
+        // A sheet opened from the cached copy before this landed follows the server's
+        // payment state (e.g. another PC marked it paid) — never one saved here since.
+        const paySig = (o: Order) => `${o.paymentStatus ?? ""}|${o.paidAt ?? ""}|${o.paymentMethod}`;
+        setSelectedOrder((cur) => {
+          if (!cur || !cachedShown.includes(cur) || sheetSavedRef.current.has(cur.id)) return cur;
+          const f = freshShown.find((o) => o.id === cur.id);
+          return f && paySig(f) !== paySig(cur) ? f : cur;
+        });
       } catch {
         if (!shown && reqId === recentReqRef.current) setRecentOrders([]);
       }
@@ -1611,14 +1715,15 @@ function PosApp() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
               {t("report")}
               {/* Failed needs the cashier (red + count); pending only waits (amber). */}
-              {queueSnap.failedCount > 0 ? (
+              {/* Dropped = a payment change / refund the cloud refused (cash may be in the drawer). */}
+              {queueSnap.failedCount + (queueSnap.droppedCount ?? 0) > 0 ? (
                 <span
                   className="absolute end-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white"
-                  title={t("syncFailedBanner").replace("{n}", String(queueSnap.failedCount))}
-                  aria-label={t("syncFailedBanner").replace("{n}", String(queueSnap.failedCount))}
+                  title={t("syncFailedBanner").replace("{n}", String(queueSnap.failedCount + (queueSnap.droppedCount ?? 0)))}
+                  aria-label={t("syncFailedBanner").replace("{n}", String(queueSnap.failedCount + (queueSnap.droppedCount ?? 0)))}
                   dir="ltr"
                 >
-                  {queueSnap.failedCount}
+                  {queueSnap.failedCount + (queueSnap.droppedCount ?? 0)}
                 </span>
               ) : queueSnap.pendingCount > 0 ? (
                 <span
@@ -2532,6 +2637,34 @@ function PosApp() {
                       );
                     })}
                   </div>
+                  {/* Paid (default) | Payment pending — the customer pays later. */}
+                  <div
+                    className="pos-paystat mt-2.5 shrink-0"
+                    role="radiogroup"
+                    aria-label={t("paymentStatusLabel")}
+                  >
+                    {([false, true] as const).map((pending) => {
+                      const on = paymentPending === pending;
+                      return (
+                        <button
+                          key={pending ? "pending" : "paid"}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          data-testid={pending ? "checkout-payment-pending" : "checkout-payment-paid"}
+                          className={`pos-paystat-btn${pending ? " is-unpaid" : ""}${on ? " is-on" : ""}`}
+                          onClick={() => setPaymentPending(pending)}
+                        >
+                          {pending ? t("paymentUnpaid") : t("paymentPaid")}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {paymentPending && !customerName.trim() && !customerPhone.trim() ? (
+                    <p className="pos-paystat-hint" role="status">
+                      {t("unpaidNeedsCustomer")}
+                    </p>
+                  ) : null}
                 </div>
             </div>
 
@@ -2558,6 +2691,11 @@ function PosApp() {
                   <p className="pos-foot-total text-2xl leading-tight sm:text-[1.75rem]" dir="ltr">
                     {formatPkr(total)}
                   </p>
+                  {paymentPending ? (
+                    <p className="pos-unpaid-pill mt-0.5" data-testid="checkout-unpaid-pill">
+                      {t("paymentUnpaid")}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="grid w-full grid-cols-[2fr_3fr] gap-2 sm:flex sm:w-auto sm:gap-3">
                   <button
@@ -2664,23 +2802,95 @@ function PosApp() {
             onClick={() => setRecentOpen(false)}
           />
           <div className="pos-dialog relative z-10 flex max-h-[min(90dvh,44rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl shadow-2xl sm:rounded-2xl">
-            <div className="modal-dark-head flex shrink-0 items-center justify-between gap-3 px-4 pb-3.5 pt-4 sm:px-5">
-              <div>
-                <p className="modal-dark-gold text-[11px] font-bold uppercase tracking-[0.14em]">
-                  {t("orders")}
-                </p>
-                <h2 id="recent-orders-title" className="pos-dialog-title text-xl">{t("recentOrders")}</h2>
+            <div className="modal-dark-head shrink-0 px-4 pb-3.5 pt-4 sm:px-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="modal-dark-gold text-[11px] font-bold uppercase tracking-[0.14em]">
+                    {t("orders")}
+                  </p>
+                  <h2 id="recent-orders-title" className="pos-dialog-title text-xl">{t("recentOrders")}</h2>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setRecentOpen(false)}
+                >
+                  {t("close")}
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setRecentOpen(false)}
-              >
-                {t("close")}
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2" role="tablist" aria-label={t("orders")}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={recentView === "today"}
+                  className={`admin-filter-chip${recentView === "today" ? " is-active" : ""}`}
+                  onClick={() => setRecentView("today")}
+                >
+                  {t("today")}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={recentView === "unpaid"}
+                  data-testid="recent-unpaid-tab"
+                  className={`admin-filter-chip${recentView === "unpaid" ? " is-active" : ""}`}
+                  onClick={() => setRecentView("unpaid")}
+                >
+                  {t("paymentUnpaidTab").replace(
+                    "{n}",
+                    unpaidCloud === null ? "…" : String(unpaidView.orders.length),
+                  )}
+                </button>
+              </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-              {recentLoading ? (
+              {recentView === "unpaid" ? (
+                unpaidCloud === null ? (
+                  <p className="py-8 text-center text-sm text-[var(--muted)]">{t("loading")}</p>
+                ) : (
+                  <>
+                    <div className="pos-unpaid-strip mb-3" data-testid="recent-unpaid-summary">
+                      <p className="pos-unpaid-strip-total" dir="auto">
+                        {t("unpaidTotal")
+                          .replace("{amount}", formatPkr(unpaidView.total))
+                          .replace("{n}", String(unpaidView.orders.length))}
+                      </p>
+                      <p className="pos-unpaid-strip-note">{t("paymentUnpaidAllDates")}</p>
+                      {unpaidCloudFailed ? (
+                        <p className="pos-unpaid-strip-note is-warn">{t("paymentUnpaidLoadFailed")}</p>
+                      ) : null}
+                    </div>
+                    {unpaidView.orders.length === 0 ? (
+                      <p className="pos-menu-note">{t("noOrders")}</p>
+                    ) : (
+                      <ul className="space-y-2 sm:space-y-2.5" data-testid="recent-unpaid-list">
+                        {unpaidView.orders.map((o) => {
+                          const needsSync = unpaidView.pendingIds.has(o.id) || mutationOrderIds.has(o.id);
+                          return (
+                            <li key={o.id}>
+                              <OrderListCard
+                                order={o}
+                                dense
+                                onClick={() => {
+                                  setSelectedOrder(o);
+                                  setRecentOpen(false);
+                                }}
+                                badge={needsSync ? (
+                                  <span
+                                    className="block h-2 w-2 rounded-full bg-amber-400"
+                                    title={t("recentPendingLocal")}
+                                    aria-label={t("recentPendingLocal")}
+                                  />
+                                ) : undefined}
+                              />
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </>
+                )
+              ) : recentLoading ? (
                 <p className="py-8 text-center text-sm text-[var(--muted)]">{t("loading")}</p>
               ) : recentOrders.length === 0 && localPendingOrders.length === 0 ? (
                 <p className="pos-menu-note">
@@ -2790,6 +3000,7 @@ function PosApp() {
           }
           onClose={() => setSelectedOrder(null)}
           onSaved={(o) => {
+            sheetSavedRef.current.add(o.id);
             if (o.status === "cancelled") {
               setLocalPendingOrders((list) => list.filter((x) => x.id !== o.id));
             } else {
@@ -2797,6 +3008,7 @@ function PosApp() {
             }
             setRecentOrders((list) => list.map((x) => (x.id === o.id ? o : x)));
             setMutationOrderIds((s) => new Set(s).add(o.id));
+            setUnpaidLocalTick((n) => n + 1);
             if (lastOrder?.id === o.id) setLastOrder(o);
           }}
           onDeleted={(id) => {

@@ -1,5 +1,5 @@
 import type { Order } from "@bravobites/domain";
-import { formatOrderNumber } from "@bravobites/domain";
+import { formatOrderNumber, isOrderUnpaid } from "@bravobites/domain";
 
 /** Shared by admin Orders and the POS day report so both filter the same way. */
 export type OrderStatusFilter =
@@ -8,7 +8,9 @@ export type OrderStatusFilter =
   | "edited"
   | "cancelled"
   | "refunded"
-  | "discounted";
+  | "discounted"
+  /** Payment pending (customer pays later) — never cancelled ones. */
+  | "unpaid";
 
 /** Order #, cashier name/email, or item name. */
 export function matchesOrderSearch(order: Order, raw: string): boolean {
@@ -56,5 +58,7 @@ export function matchesOrderStatus(o: Order, filter: OrderStatusFilter): boolean
       return Boolean(o.discountAmount && o.discountAmount > 0) && o.status !== "cancelled";
     case "original":
       return !o.updatedAt && o.status !== "cancelled" && !refunded;
+    case "unpaid":
+      return isOrderUnpaid(o);
   }
 }

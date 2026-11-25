@@ -1,6 +1,32 @@
 import type { AppUser } from "@bravobites/domain";
-import { listActiveQueuedExpenses, listActiveQueuedMutations, listActiveQueuedOrders } from "./db";
-import { expenseOpKind, expenseOpTarget } from "./types";
+import {
+  listActiveQueuedExpenses,
+  listActiveQueuedMutations,
+  listActiveQueuedOrders,
+  listAllQueuedMutations,
+} from "./db";
+import { expenseOpKind, expenseOpTarget, type QueuedMutation } from "./types";
+
+/** How long a dropped payment change / refund stays in the sheet. */
+export const DROPPED_VISIBLE_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** A change the cloud refused that the cashier must know about (cash may be in the drawer). */
+export function visibleDropReason(m: QueuedMutation): SyncIssueReason | null {
+  if (m.outcome !== "dropped") return null;
+  if (m.kind === "payment") return "paymentDropped";
+  if (m.kind === "refund" && m.droppedReason === "unpaid") return "refundUnpaid";
+  return null;
+}
+
+/** Dropped change still shown in the sync-status sheet (last few days). */
+export function isDropVisible(m: QueuedMutation, now = Date.now()): boolean {
+  return visibleDropReason(m) != null && (m.syncedAt ?? m.updatedAt) >= now - DROPPED_VISIBLE_MS;
+}
+
+/** Shown and not yet acknowledged ("Got it") — keeps the sync pill red. */
+export function isDropUnseen(m: QueuedMutation, now = Date.now()): boolean {
+  return isDropVisible(m, now) && m.droppedSeenAt == null;
+}
 
 export type SyncIssueReason =
   /** No internet right now. */
@@ -20,13 +46,26 @@ export type SyncIssueReason =
   /** Upload failed for another reason — retried every minute. */
   | "retry"
   /** The server never answered (line dead while the PC says online) — retried every minute. */
-  | "noAnswer";
+  | "noAnswer"
+  /**
+   * Payment change NOT saved: the order was already paid / set pending on
+   * another device, cancelled or deleted (i18n: paymentChangeDropped). Check the drawer.
+   */
+  | "paymentDropped"
+  /** Refund NOT saved: the order's payment is pending (i18n: refundUnpaidDropped). */
+  | "refundUnpaid";
 
 export type SyncIssue = {
   id: string;
   kind: "sale" | "change" | "expense";
   /** Mutation / expense action. */
-  action?: "edit" | "cancel" | "delete" | "refund" | "create" | "update";
+  action?: "edit" | "cancel" | "delete" | "refund" | "payment" | "create" | "update";
+  /** action "payment": mark paid, or set back to payment pending. */
+  paymentTo?: "paid" | "pending";
+  /** Dropped by the cloud (never applied) — state is "failed" (needs attention). */
+  dropped?: boolean;
+  /** Dropped and already acknowledged ("Got it") — no longer turns the pill red. */
+  seen?: boolean;
   orderNumber?: number;
   amount?: number;
   /** When it happened (ISO). */
@@ -52,10 +91,11 @@ export async function listSyncIssues(
   signedIn: AppUser | null,
   online: boolean,
 ): Promise<SyncIssue[]> {
-  const [orders, muts, exps] = await Promise.all([
+  const [orders, muts, exps, allMuts] = await Promise.all([
     listActiveQueuedOrders(),
     listActiveQueuedMutations(),
     listActiveQueuedExpenses(),
+    listAllQueuedMutations(),
   ]);
   const isOwner = signedIn?.role === "owner";
   const issues: SyncIssue[] = [];
@@ -85,6 +125,10 @@ export async function listSyncIssues(
   }
 
   const pendingSales = new Set(orders.map((q) => q.clientId));
+  // A payment change waits only for the sale doc, not its stock (sync.ts).
+  const saleDocWaiting = new Set(
+    orders.filter((q) => q.status !== "synced").map((q) => q.clientId),
+  );
   const failedOrders = new Set<string>();
   for (const m of muts) {
     const actorName = m.user.displayName || m.user.email;
@@ -95,9 +139,12 @@ export async function listSyncIssues(
       }
       else reason = online ? failReason(m.lastErrorCode) : "offline";
       failedOrders.add(m.orderId);
-    } else if (m.kind === "delete" && !isOwner) {
+    } else if (
+      (m.kind === "delete" || (m.kind === "payment" && m.paymentTo === "pending")) &&
+      !isOwner
+    ) {
       reason = "ownerOnly";
-    } else if (pendingSales.has(m.orderId)) {
+    } else if ((m.kind === "payment" ? saleDocWaiting : pendingSales).has(m.orderId)) {
       reason = "afterSale";
     } else if (failedOrders.has(m.orderId)) {
       reason = "afterEarlier";
@@ -106,6 +153,7 @@ export async function listSyncIssues(
       id: m.mutationId,
       kind: "change",
       action: m.kind,
+      ...(m.kind === "payment" && m.paymentTo ? { paymentTo: m.paymentTo } : {}),
       orderNumber: m.orderBefore.orderNumber,
       amount: m.kind === "refund" ? m.refundAmount : m.orderAfter.total,
       at: m.occurredAt ?? new Date(m.enqueuedAt).toISOString(),
@@ -113,6 +161,28 @@ export async function listSyncIssues(
       state: m.status === "failed" ? "failed" : m.status === "syncing" ? "uploading" : "waiting",
       reason,
       error: m.lastError,
+    });
+  }
+
+  // Never dropped silently: a payment change (or a refund of an unpaid order)
+  // the cloud refused stays here a few days — the cash may be in the drawer.
+  const now = Date.now();
+  for (const m of allMuts) {
+    const reason = visibleDropReason(m);
+    if (!reason || !isDropVisible(m, now)) continue;
+    issues.push({
+      id: m.mutationId,
+      kind: "change",
+      action: m.kind,
+      ...(m.kind === "payment" && m.paymentTo ? { paymentTo: m.paymentTo } : {}),
+      dropped: true,
+      ...(m.droppedSeenAt != null ? { seen: true } : {}),
+      orderNumber: m.orderBefore.orderNumber,
+      amount: m.kind === "refund" ? m.refundAmount : m.orderAfter.total,
+      at: m.occurredAt ?? new Date(m.enqueuedAt).toISOString(),
+      by: m.user.displayName || m.user.email,
+      state: "failed",
+      reason,
     });
   }
 

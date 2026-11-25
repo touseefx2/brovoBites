@@ -4,12 +4,14 @@ import type { ActivityEntityType, ActivityLog } from "@bravobites/domain";
 import { formatOrderDateTime } from "@bravobites/domain";
 import { ActivityChangeView } from "@/components/ActivityChangeView";
 import { useLocale } from "@/i18n/locale-context";
-import { buildLogView, isRefundLog } from "@/lib/activity-change";
+import { buildLogView, isPaymentLog, isRefundLog, paymentFromLog } from "@/lib/activity-change";
 
-type Tone = "create" | "update" | "delete" | "cancel" | "refund";
+type Tone = "create" | "update" | "delete" | "cancel" | "refund" | "payment" | "unpaid";
 
 function toneFor(log: ActivityLog, isRefund: boolean): Tone {
   if (isRefund) return "refund";
+  const payment = paymentFromLog(log);
+  if (payment) return payment.to === "paid" ? "payment" : "unpaid";
   if (log.action === "delete") return "delete";
   if (log.action === "cancel") return "cancel";
   if (log.action === "update") return "update";
@@ -26,6 +28,16 @@ const TONE: Record<Tone, { bar: string; label: string; dot: string }> = {
     bar: "bg-amber-500",
     label: "text-amber-700",
     dot: "bg-amber-500",
+  },
+  payment: {
+    bar: "bg-emerald-500",
+    label: "text-emerald-700",
+    dot: "bg-emerald-500",
+  },
+  unpaid: {
+    bar: "bg-red-500",
+    label: "text-red-700",
+    dot: "bg-red-500",
   },
   refund: {
     bar: "bg-orange-500",
@@ -62,6 +74,9 @@ export function ActivityLogList({
 
   const actionLabel = (log: ActivityLog, isRefund: boolean) => {
     if (isRefund) return t("activityRefund");
+    if (isPaymentLog(log)) {
+      return t(paymentFromLog(log)?.to === "pending" ? "activityPaymentSetPending" : "activityPaymentReceived");
+    }
     if (log.action === "create") return t("activityCreate");
     if (log.action === "update") return t("activityUpdate");
     if (log.action === "delete") return t("activityDelete");

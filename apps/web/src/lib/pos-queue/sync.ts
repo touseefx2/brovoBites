@@ -18,6 +18,7 @@ import {
   deleteOrder,
   getCloudLastOrderNumber,
   refundOrder,
+  setOrderPayment,
   deleteExpense,
   syncQueuedExpenseToFirestore,
   syncQueuedOrderToFirestore,
@@ -28,9 +29,11 @@ import {
 import {
   clearSyncedLocalData,
   getQueueMeta,
+  getQueuedMutation,
   listActiveQueuedExpenses,
   listActiveQueuedMutations,
   listActiveQueuedOrders,
+  listQueuedMutationsSince,
   markOrderSynced,
   pruneOldSyncedLocalData,
   putQueuedExpense,
@@ -39,6 +42,7 @@ import {
   reconcileAndAllocate,
   reconcileFromServer,
 } from "./db";
+import { DROPPED_VISIBLE_MS, isDropUnseen } from "./issues";
 import type { QueuedExpense, QueuedMutation, QueuedOrder } from "./types";
 import { expenseOpKind, expenseOpTarget } from "./types";
 
@@ -64,6 +68,14 @@ const STALL_MS = 2 * 60 * 1000;
 export type QueueSnapshot = {
   pendingCount: number;
   failedCount: number;
+  /**
+   * Payment changes / refunds the cloud refused (already paid elsewhere,
+   * cancelled, deleted, payment pending) in the last few days that nobody has
+   * acknowledged yet. Not in pendingCount or failedCount (nothing to upload or
+   * retry) — the sync pill turns red and opens the sheet that explains them.
+   * Optional so older snapshot literals still compile; absent = 0.
+   */
+  droppedCount?: number;
   /** Subset of pendingCount — POS expenses not yet on Firestore. */
   expensePendingCount: number;
   syncing: boolean;
@@ -136,15 +148,24 @@ const isPermissionDenied = (code?: string) =>
 /** A row the rules refused is tried again this rarely by the timer (cheap, and it heals after a rules change). */
 const REFUSED_RETRY_MS = 30 * 60 * 1000;
 
+/**
+ * Dropped changes are looked for among rows queued this recently (bounded
+ * index read). A change kept offline longer than this and then dropped still
+ * shows in the sheet, just not in the pill count.
+ */
+const DROPPED_SCAN_MS = DROPPED_VISIBLE_MS + 14 * 24 * 60 * 60 * 1000;
+
 async function queueCounts(): Promise<
-  Pick<QueueSnapshot, "pendingCount" | "failedCount" | "expensePendingCount">
+  Pick<QueueSnapshot, "pendingCount" | "failedCount" | "droppedCount" | "expensePendingCount">
 > {
   // One read per store — synced rows stay as the local copy until cleared, so
   // these stores grow; never scan them more than needed.
-  const [orders, muts, exps] = await Promise.all([
+  const now = Date.now();
+  const [orders, muts, exps, recentMuts] = await Promise.all([
     listActiveQueuedOrders(),
     listActiveQueuedMutations(),
     listActiveQueuedExpenses(),
+    listQueuedMutationsSince(now - DROPPED_SCAN_MS),
   ]);
   const failed =
     orders.filter((q) => q.status === "failed" || q.stockStatus === "failed").length +
@@ -153,6 +174,7 @@ async function queueCounts(): Promise<
   return {
     pendingCount: orders.length + muts.length + exps.length,
     failedCount: failed,
+    droppedCount: recentMuts.filter((m) => isDropUnseen(m, now)).length,
     expensePendingCount: exps.length,
   };
 }
@@ -184,6 +206,20 @@ function emit() {
       }
     })();
   }, 50);
+}
+
+/**
+ * "Got it" on dropped changes in the sync-status sheet: they stay listed there
+ * for a few days but no longer turn the sync pill red.
+ */
+export async function acknowledgeDroppedChanges(mutationIds: string[]): Promise<void> {
+  const now = Date.now();
+  for (const id of mutationIds) {
+    const m = await getQueuedMutation(id);
+    if (!m || m.outcome !== "dropped" || m.droppedSeenAt != null) continue;
+    await putQueuedMutation({ ...m, droppedSeenAt: now });
+  }
+  emit();
 }
 
 export function subscribeQueue(listener: Listener): () => void {
@@ -509,6 +545,9 @@ async function doSync(
   // cancel/delete then restore stock that was really deducted, and nothing
   // runs against an order that doesn't exist yet. It also never overtakes a
   // failed earlier mutation on the same order (edit → cancel stays ordered).
+  // A payment change needs only the order doc (it touches no stock), so it
+  // goes once the sale is up even while its stock still waits — unless an
+  // earlier change to that order is still waiting (order kept).
   guard = 0;
   while (guard++ < MAX_PER_PASS) {
     live(epoch);
@@ -517,7 +556,12 @@ async function doSync(
       listActiveQueuedMutations(),
       listActiveQueuedOrders(),
     ]);
-    const blocked = new Set(queuedOrders.map((q) => q.clientId));
+    const blocked = new Set(
+      queuedOrders.filter((q) => q.status !== "synced").map((q) => q.clientId),
+    );
+    const stockWaiting = new Set(
+      queuedOrders.filter((q) => q.status === "synced").map((q) => q.clientId),
+    );
     let next: QueuedMutation | undefined;
     for (const m of active) {
       if (m.status === "failed") {
@@ -525,12 +569,20 @@ async function doSync(
         continue;
       }
       // Delete is owner-only: if staff is signed in now, wait for an owner
-      // login instead of failing (or half-applying) it.
-      if (m.kind === "delete" && user.role !== "owner") {
+      // login instead of failing (or half-applying) it. Same for setting a
+      // payment back to pending.
+      if (
+        (m.kind === "delete" || (m.kind === "payment" && m.paymentTo === "pending")) &&
+        user.role !== "owner"
+      ) {
         blocked.add(m.orderId);
         continue;
       }
       if (blocked.has(m.orderId)) continue;
+      if (m.kind !== "payment" && stockWaiting.has(m.orderId)) {
+        blocked.add(m.orderId);
+        continue;
+      }
       next = m;
       break;
     }
@@ -656,6 +708,8 @@ async function syncOne(q: QueuedOrder, user: AppUser, epoch: number): Promise<vo
         discountAmount: q.discountAmount,
         total: q.total,
         paymentMethod: q.paymentMethod,
+        // Written only when pending: a paid sale uploads exactly as before.
+        ...(q.paymentStatus === "pending" ? { paymentStatus: "pending" as const } : {}),
         createdBy: q.createdBy,
         createdByName: q.createdByName,
         createdByEmail: q.createdByEmail,
@@ -869,6 +923,23 @@ async function syncOneMutation(m: QueuedMutation, epoch: number): Promise<void> 
           occurredAt,
           signal,
         });
+      } else if (m.kind === "payment") {
+        if (m.paymentTo !== "paid" && m.paymentTo !== "pending") {
+          throw new Error("Payment change has no direction (paid / pending)");
+        }
+        await setOrderPayment({
+          orderId: m.orderId,
+          to: m.paymentTo,
+          method: m.paidMethod,
+          user,
+          clientMutationId: m.mutationId,
+          // The tap time — the order's paidAt, never the sync time.
+          occurredAt,
+          signal,
+        });
+      } else {
+        // Never mark an unknown change synced: it would be lost silently.
+        throw new Error(`Unknown order change: ${String(m.kind)}`);
       }
     });
 
@@ -880,17 +951,21 @@ async function syncOneMutation(m: QueuedMutation, epoch: number): Promise<void> 
       updatedAt: Date.now(),
       syncedAt: Date.now(),
     });
-    // The order changed (edit, cancel, refund, delete): its customer(s), old and new number.
+    // The order changed (edit, cancel, refund, delete, payment): its customer(s), old and new number.
     customerUpdate(m.orderBefore?.customerPhone, m.orderAfter?.customerPhone);
     lastError = null;
   } catch (err) {
     if (err instanceof PassAbandonedError) throw err;
     if (err instanceof OrderConflictError) {
-      // Owner deleted/cancelled the order first — their change wins.
+      // Owner deleted/cancelled the order first — their change wins. The
+      // reason is kept: a dropped payment change (already paid elsewhere /
+      // cancelled / deleted) or a refund of a payment-pending order stays
+      // visible in the sync-status sheet — cash may be in the drawer.
       await putQueuedMutation({
         ...m,
         status: "synced",
         outcome: "dropped",
+        droppedReason: err.reason,
         lastError: undefined,
         updatedAt: Date.now(),
         syncedAt: Date.now(),

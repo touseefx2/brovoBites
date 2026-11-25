@@ -6,7 +6,7 @@ import {
   afterSaleText,
   buildOwnerSummary,
   dayKeyOf,
-  EVENT_KEY,
+  eventKey,
   eventParsed,
   eventVars,
   expenseChangeParts,
@@ -143,6 +143,7 @@ const KIND_ICON: Record<FlagKind, string> = {
 
 const EVENT_ICON: Record<ReportEventKind, string> = {
   edit: PATH.pencil,
+  payment: PATH.banknote,
   cancel: PATH.xCircle,
   refund: PATH.undo,
   delete: PATH.trash,
@@ -600,7 +601,7 @@ function staffHtml(c: Ctx, staff: StaffAudit[]): string {
         const ln = (l: StaffLine) => `<div class="ln">${l.tone === "red" ? "!" : "•"} ${l.html}</div>`;
         return `<div class="person"><div class="p-name">${e(s.name)}${tag}</div>
           ${row(e(t("orStaffSold")), rs(s.sales), orders(t, s.orders))}
-          ${row(e(t("cash")), pay(s.cash))}${row(e(t("card")), pay(s.card))}${row(e(t("digital")), pay(s.digital))}
+          ${row(e(t("cash")), pay(s.cash))}${row(e(t("card")), pay(s.card))}${row(e(t("digital")), pay(s.digital))}${s.pending ? row(e(t("paymentUnpaid")), pay(s.pending)) : ""}
           <small>${types(s)}</small>
           ${theirs.length ? `<div class="p-chg"><b>${e(t("orStaffOnTheirOrders"))}</b>${theirs.map(ln).join("")}</div>` : ""}
           <div class="p-chg">${
@@ -632,6 +633,7 @@ function staffHtml(c: Ctx, staff: StaffAudit[]): string {
           <div class="p-sold"><p class="k">${e(t("orStaffSold"))}</p><p class="val">${rs(s.sales)}</p><p class="k">${orders(t, s.orders)}</p></div></div>
         <p class="p-cap">${e(t("orPaidBy"))}</p>
         <div class="p-pay">${cell(t("cash"), s.cash)}${cell(t("card"), s.card)}${cell(t("digital"), s.digital)}</div>
+        ${s.pending ? `<p class="p-types">${e(t("paymentUnpaid"))}: <b>${rs(s.pending)}</b></p>` : ""}
         <p class="p-types">${types(s)}</p>
         ${theirs.length ? `<div class="p-chg"><p class="p-cap">${e(t("orStaffOnTheirOrders"))}</p><ul>${theirs.map(li).join("")}</ul></div>` : ""}
         <div class="p-chg"><p class="p-cap">${e(t("orStaffChanges"))}</p><ul>${
@@ -744,6 +746,8 @@ function eventTone(ev: OwnerReport["events"][number]): Tone {
   if (ev.kind === "delete") return "red";
   if (ev.kind === "edit" && ev.before != null && ev.after != null && ev.after < ev.before) return "red";
   if (ev.kind === "cancel" || ev.kind === "refund" || ev.kind === "expenseDelete" || ev.kind === "expenseEdit") return "amber";
+  // Set back to pending lowers the money received: worth a look.
+  if (ev.kind === "payment" && ev.paymentTo === "pending") return "amber";
   return "neutral";
 }
 
@@ -765,7 +769,7 @@ function eventsHtml(c: Ctx): string {
       const day = dayKeyOf(ev.at);
       const dayHead = c.multiDay && day !== lastDay ? `<li class="ev-day">${e(c.fd.day(day))}</li>` : "";
       lastDay = day;
-      const text = eventParsed(ev) ? tpl(t(EVENT_KEY[ev.kind]), eventVars(ev)) : e(`${ev.byName}: ${ev.summary}`);
+      const text = eventParsed(ev) ? tpl(t(eventKey(ev)), eventVars(ev, undefined, t)) : e(`${ev.byName}: ${ev.summary}`);
       const level = flagged.get(ev.id);
       const inCheck = level != null;
       // Slip: what changed only (its bills are under the flags, the roll stays short).
@@ -1107,9 +1111,21 @@ export function buildOwnerReportHtml(
       </header>`;
 
   const ordered = report.byType.map((r) => ({ label: t(TYPE_LABEL[r.type]), orders: r.orders, amount: r.amount }));
-  const paid = report.byPayment.map((r) => ({ label: t(r.method), orders: r.orders, amount: r.amount }));
+  // Sales still unpaid at the period end get their own row, so the rows add up to net sales.
+  const paid = [
+    ...report.byPayment.map((r) => ({ label: t(r.method), orders: r.orders, amount: r.amount })),
+    ...(report.unpaid.orders > 0 ? [{ label: t("paymentUnpaid"), orders: report.unpaid.orders, amount: report.unpaid.amount }] : []),
+  ];
+  // Old bills collected: money in, but sales of earlier days — listed apart, never in the sales.
+  const collectedRows = report.collected
+    .filter((r) => r.orders > 0 || r.amount > 0)
+    .map((r) => ({ label: t(r.method), orders: r.orders, amount: r.amount }));
+  const collectedHtml =
+    report.collectedTotal > 0
+      ? `<p class="cap">${e(t("oldBillsCollected"))} · ${rs(report.collectedTotal)}</p>${splitHtml(c, collectedRows, t("reportNotInSales"))}`
+      : "";
   const orderedSec = sec(c, { title: t("orOrderedTitle"), icon: PATH.bag, body: splitHtml(c, ordered) });
-  const paidSec = sec(c, { title: t("orPayments"), icon: PATH.wallet, body: splitHtml(c, paid, t("orPaidAfterRefunds")) });
+  const paidSec = sec(c, { title: t("orPayments"), icon: PATH.wallet, body: splitHtml(c, paid, t("orPaidAfterRefunds")) + collectedHtml });
   const itemsTotal = report.items.qty > 0 ? `${tpl(t(nKey(report.items.qty, "orItemsTotalOne", "orItemsTotal")), { n: report.items.qty })} · ${rs(report.items.revenue)}` : "";
   // Item prices are before the bill's discount: tie the total to the Sales tile when they differ.
   const sales = report.totals.refunds > 0 ? report.totals.gross : report.totals.net;

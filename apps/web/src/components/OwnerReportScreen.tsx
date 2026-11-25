@@ -27,7 +27,7 @@ import {
   afterSaleText,
   buildOwnerSummary,
   dayKeyOf,
-  EVENT_KEY,
+  eventKey,
   eventParsed,
   eventVars,
   expenseChangeParts,
@@ -1575,6 +1575,11 @@ function StaffPerson({ s, onPerson }: { s: StaffAudit; onPerson: (uid: string) =
         {pay(t("card"), s.card)}
         {pay(t("digital"), s.digital)}
       </div>
+      {s.pending > 0 ? (
+        <p className="mt-2 text-sm font-semibold text-red-700">
+          {t("paymentUnpaid")}: <Rs value={s.pending} />
+        </p>
+      ) : null}
       <p className="mt-2 text-sm text-stone-700">
         {t("dineIn")} <b style={NUM}>{s.dineIn}</b> · {t("takeaway")} <b style={NUM}>{s.takeaway}</b> · {t("delivery")} <b style={NUM}>{s.delivery}</b>
       </p>
@@ -1645,6 +1650,11 @@ function StaffTable({ staff }: { staff: StaffAudit[] }) {
                 <span className={`${small} text-stone-600`}>
                   <Tpl text={t(nKey(s.orders, "orOneOrder", "orNOrders"))} vars={{ n: s.orders }} />
                 </span>
+                {s.pending > 0 ? (
+                  <span className={`${small} font-semibold text-red-700`}>
+                    {t("paymentUnpaid")}: <Rs value={s.pending} />
+                  </span>
+                ) : null}
               </td>
               <td className={cell}>{s.cash ? <Rs value={s.cash} /> : zero}</td>
               <td className={cell}>{s.card ? <Rs value={s.card} /> : zero}</td>
@@ -2042,7 +2052,9 @@ export function StockSection({ rows, log, multiDay }: { rows: StockDayRow[] | un
   );
 }
 
-function SplitSection({ title, icon, rows, foot }: { title: string; icon: string; rows: { id: string; label: string; icon: string; orders: number; amount: number }[]; foot?: string }) {
+type SplitRow = { id: string; label: string; icon: string; orders: number; amount: number };
+
+function SplitSection({ title, icon, rows, foot, after }: { title: string; icon: string; rows: SplitRow[]; foot?: string; after?: ReactNode }) {
   const { t } = useLocale();
   const total = rows.reduce((s, r) => s + Math.max(0, r.amount), 0);
   // Payments always list cash / card / online: all at zero is "no orders" too.
@@ -2081,17 +2093,50 @@ function SplitSection({ title, icon, rows, foot }: { title: string; icon: string
         </ul>
       )}
       {foot && !empty ? <p className="px-4 pb-4 text-sm text-stone-600 sm:px-6">{foot}</p> : null}
+      {after}
     </Section>
+  );
+}
+
+/** Old bills collected: credit sales of earlier days paid in the period — money in, not sales. */
+function CollectedList({ rows, total }: { rows: SplitRow[]; total: number }) {
+  const { t } = useLocale();
+  if (!(total > 0)) return null;
+  return (
+    <div className="border-t border-[#f0dcc6] px-4 py-4 sm:px-6" data-testid="owner-collected">
+      <p className="flex items-baseline justify-between gap-3">
+        <span className="text-[15px] font-bold text-[var(--ink)]">{t("oldBillsCollected")}</span>
+        <Rs value={total} className="text-[15px] font-bold text-emerald-700" />
+      </p>
+      <ul className="mt-2 space-y-1">
+        {rows
+          .filter((r) => r.orders > 0 || r.amount > 0)
+          .map((r) => (
+            <li key={r.id} className="flex items-baseline justify-between gap-3 text-sm text-stone-700">
+              <span className="flex min-w-0 items-center gap-2">
+                <Svg d={r.icon} size={16} className="text-[var(--gold-deep)]" />
+                {r.label}
+                <span className="text-stone-600">
+                  · <Tpl text={t(nKey(r.orders, "orOneOrder", "orNOrders"))} vars={{ n: r.orders }} />
+                </span>
+              </span>
+              <Rs value={r.amount} className="font-semibold" />
+            </li>
+          ))}
+      </ul>
+      <p className="mt-2 text-sm text-stone-600">{t("reportNotInSales")}</p>
+    </div>
   );
 }
 
 /* ── 8. Every change, by time ── */
 
-type FilterId = "all" | "edits" | "cancels" | "refunds" | "deletes" | "expenses";
+type FilterId = "all" | "edits" | "payments" | "cancels" | "refunds" | "deletes" | "expenses";
 
 const FILTERS: { id: FilterId; key: MessageKey; kinds: ReportEventKind[] }[] = [
   { id: "all", key: "orFilterAll", kinds: [] },
   { id: "edits", key: "orFilterEdits", kinds: ["edit"] },
+  { id: "payments", key: "orFilterPayments", kinds: ["payment"] },
   { id: "cancels", key: "orFilterCancels", kinds: ["cancel"] },
   { id: "refunds", key: "orFilterRefunds", kinds: ["refund"] },
   { id: "deletes", key: "orFilterDeletes", kinds: ["delete"] },
@@ -2114,11 +2159,14 @@ function eventTone(ev: ReportEvent): Tone {
   if (ev.kind === "delete") return "red";
   if (ev.kind === "edit" && ev.before != null && ev.after != null && ev.after < ev.before) return "red";
   if (ev.kind === "cancel" || ev.kind === "refund" || ev.kind === "expenseDelete" || ev.kind === "expenseEdit") return "amber";
+  // Set back to pending lowers the money received: worth a look.
+  if (ev.kind === "payment" && ev.paymentTo === "pending") return "amber";
   return "neutral";
 }
 
 const EVENT_ICON: Record<ReportEventKind, string> = {
   edit: PATH.pencil,
+  payment: PATH.banknote,
   cancel: PATH.xCircle,
   refund: PATH.undo,
   delete: PATH.trash,
@@ -2208,7 +2256,7 @@ function TimelineSection({
       ) : (
         <ol data-testid="owner-timeline">
           {shown.map((ev, i) => {
-            const vars = eventVars(ev);
+            const vars = eventVars(ev, undefined, t);
             const parsed = eventParsed(ev);
             const isOrder = !ev.kind.startsWith("expense") && ev.kind !== "delete";
             const openable = isOrder && !!onOpenOrder && (canOpenOrder?.(ev.entityId) ?? true);
@@ -2235,7 +2283,7 @@ function TimelineSection({
                   </span>
                   <div className="min-w-0">
                     <p className="text-[15px] leading-6 text-[var(--ink)]">
-                      {parsed ? <Tpl text={t(EVENT_KEY[ev.kind])} vars={vars} /> : `${ev.byName}: ${ev.summary}`}
+                      {parsed ? <Tpl text={t(eventKey(ev))} vars={vars} /> : `${ev.byName}: ${ev.summary}`}
                     </p>
                     {changes ? <p className="text-sm text-stone-600">{changes}</p> : null}
                     <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-stone-600">
@@ -2431,8 +2479,20 @@ function ReportBody({
         <SplitSection
           title={t("orPayments")}
           icon={PATH.wallet}
-          rows={report.byPayment.map((r) => ({ id: r.method, label: t(r.method), icon: PAY_ICON[r.method] ?? PATH.wallet, orders: r.orders, amount: r.amount }))}
+          rows={[
+            ...report.byPayment.map((r) => ({ id: r.method, label: t(r.method), icon: PAY_ICON[r.method] ?? PATH.wallet, orders: r.orders, amount: r.amount })),
+            // Sales still unpaid at the period end: their own row, so the rows add up to net sales.
+            ...(report.unpaid.orders > 0
+              ? [{ id: "unpaid", label: t("paymentUnpaid"), icon: PATH.clock, orders: report.unpaid.orders, amount: report.unpaid.amount }]
+              : []),
+          ]}
           foot={t("orPaidAfterRefunds")}
+          after={
+            <CollectedList
+              total={report.collectedTotal}
+              rows={report.collected.map((r) => ({ id: r.method, label: t(r.method), icon: PAY_ICON[r.method] ?? PATH.wallet, orders: r.orders, amount: r.amount }))}
+            />
+          }
         />
       </div>
       <ItemsSection items={report.items} sales={report.totals.refunds > 0 ? report.totals.gross : report.totals.net} />

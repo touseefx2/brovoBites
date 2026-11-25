@@ -43,6 +43,7 @@ export const FLAG_KEY: Record<ReportFlag["kind"], MessageKey> = {
 
 export const EVENT_KEY: Record<ReportEventKind, MessageKey> = {
   edit: "evEdit",
+  payment: "evPaymentReceived",
   cancel: "evCancel",
   refund: "evRefund",
   delete: "evDelete",
@@ -83,13 +84,24 @@ export function flagVars(f: ReportFlag, day: (key: string) => string, wrap: Wrap
   };
 }
 
-export function eventVars(ev: ReportEvent, wrap: Wrap = keep): Record<string, string | number> {
+/** The sentence for an event (a payment set back to pending has its own). */
+export function eventKey(ev: ReportEvent): MessageKey {
+  if (ev.kind === "payment" && ev.paymentTo === "pending") return "evPaymentSetPending";
+  return EVENT_KEY[ev.kind];
+}
+
+const METHOD_KEY: Record<string, MessageKey> = { cash: "cash", card: "card", digital: "digital" };
+
+/** `t` translates a payment's method ({method}); without it the raw value is used. */
+export function eventVars(ev: ReportEvent, wrap: Wrap = keep, t?: T): Record<string, string | number> {
+  const method = ev.method ? (t && METHOD_KEY[ev.method] ? t(METHOD_KEY[ev.method]) : ev.method) : "—";
   return {
     name: wrap(ev.byName),
     num: wrap(ev.orderNumber ?? "?"),
     amount: wrap(ev.amount != null ? formatPkr(ev.amount) : "—"),
     before: wrap(ev.before != null ? formatPkr(ev.before) : "—"),
     after: wrap(ev.after != null ? formatPkr(ev.after) : "—"),
+    method: wrap(method),
   };
 }
 

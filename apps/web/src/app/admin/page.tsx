@@ -12,6 +12,7 @@ import {
   formatPkr,
   openingOfBusinessDay,
   money,
+  paymentBucket,
   shiftBusinessDateKey,
   startOfBusinessDay,
   startOfBusinessMonthKey,
@@ -35,6 +36,7 @@ import {
   onExpensesSnapshot,
   onOrdersSnapshot,
   onSettingsSnapshot,
+  onUnpaidOrdersSnapshot,
 } from "@/lib/firestore";
 import type { Unsubscribe } from "firebase/firestore";
 import { PaymentMethodIcon } from "@/components/PaymentMethodIcon";
@@ -203,9 +205,16 @@ function KpiIcon({
 function TileIcon({
   name,
 }: {
-  name: "discount" | "tax" | "delivery" | "expenses" | "refunds" | "cancelled";
+  name: "discount" | "tax" | "delivery" | "expenses" | "refunds" | "cancelled" | "unpaid";
 }) {
   switch (name) {
+    case "unpaid":
+      return (
+        <svg {...ICON}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      );
     case "discount":
       return (
         <svg {...ICON}>
@@ -548,6 +557,29 @@ function AdminDashboardPage() {
     return () => unsubs.forEach((u) => u());
   }, [branchKey, sinceIso, hoursKnown, locale, t, maybeDone]);
 
+  // Every payment-pending order of the shown branches, any day (what is still owed).
+  const [unpaidAll, setUnpaidAll] = useState<Order[]>([]);
+  useEffect(() => {
+    const ids = branchKey ? branchKey.split(",") : [];
+    if (ids.length === 0) {
+      setUnpaidAll([]);
+      return;
+    }
+    const byBranch = new Map<string, Order[]>();
+    const unsubs = ids.map((id) =>
+      onUnpaidOrdersSnapshot(
+        id,
+        (list) => {
+          byBranch.set(id, list);
+          setUnpaidAll(Array.from(byBranch.values()).flat());
+        },
+        () => {},
+      ),
+    );
+    return () => unsubs.forEach((u) => u());
+  }, [branchKey]);
+  const unpaidAllAmount = unpaidAll.reduce((s, o) => s + Math.max(0, o.total - (o.refundAmount ?? 0)), 0);
+
   // Expenses: the dashboard only shows today's.
   useEffect(() => {
     const ids = branchKey ? branchKey.split(",") : [];
@@ -759,15 +791,18 @@ function AdminDashboardPage() {
     today.length > 0 &&
     (todayDiscounts > 0 || todayTax > 0 || todayDelivery > 0);
 
-  const todayCash = today
-    .filter((o) => o.paymentMethod === "cash")
-    .reduce((s, o) => s + o.total - (o.refundAmount ?? 0), 0);
-  const todayCard = today
-    .filter((o) => o.paymentMethod === "card")
-    .reduce((s, o) => s + o.total - (o.refundAmount ?? 0), 0);
-  const todayDigital = today
-    .filter((o) => o.paymentMethod === "digital")
-    .reduce((s, o) => s + o.total - (o.refundAmount ?? 0), 0);
+  // Money received by method; a sale still payment pending is in its own
+  // tile, so cash + card + online + pending = today's net sales.
+  const todayEndIso = endOfBusinessDay(todayKey, dayHours).toISOString();
+  const todayBucket = (b: ReturnType<typeof paymentBucket>) =>
+    today
+      .filter((o) => paymentBucket(o, todayEndIso) === b)
+      .reduce((s, o) => s + o.total - (o.refundAmount ?? 0), 0);
+  const todayCash = todayBucket("cash");
+  const todayCard = todayBucket("card");
+  const todayDigital = todayBucket("digital");
+  const todayUnpaid = todayBucket("pending");
+  const todayUnpaidCount = today.filter((o) => paymentBucket(o, todayEndIso) === "pending").length;
 
   const todayExpenses = useMemo(() => {
     return expenses
@@ -831,6 +866,28 @@ function AdminDashboardPage() {
     { key: "cash", label: t("cash"), value: todayCash, tone: "cash", icon: <PaymentMethodIcon method="cash" size={18} /> },
     { key: "card", label: t("card"), value: todayCard, tone: "card", icon: <PaymentMethodIcon method="card" size={18} /> },
     { key: "digital", label: t("digital"), value: todayDigital, tone: "digital", icon: <PaymentMethodIcon method="digital" size={18} /> },
+    // Always shown: today's sales still payment pending (not in cash / card / online).
+    {
+      key: "unpaid",
+      label: t("paymentUnpaid"),
+      value: todayUnpaid,
+      tone: "bad",
+      count: todayUnpaidCount,
+      icon: <TileIcon name="unpaid" />,
+    },
+    // Still owed from every day (incl. today) — the Orders page "Payment pending" filter lists them.
+    ...(unpaidAll.length > 0
+      ? [
+          {
+            key: "unpaidAll",
+            label: t("paymentUnpaidAllDays"),
+            value: unpaidAllAmount,
+            tone: "bad" as const,
+            count: unpaidAll.length,
+            icon: <TileIcon name="unpaid" />,
+          },
+        ]
+      : []),
     ...(todayDiscounts > 0
       ? [{ key: "discounts", label: t("todayDiscounts"), value: todayDiscounts, tone: "good" as const, icon: <TileIcon name="discount" /> }]
       : []),

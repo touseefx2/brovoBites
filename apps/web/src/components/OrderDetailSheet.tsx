@@ -19,6 +19,8 @@ import {
   canCancelOrder,
   canDeleteOrder,
   canEditOrder,
+  canMarkOrderPaid,
+  canMarkOrderUnpaid,
   canRefundOrder,
   CUSTOM_DEAL_ID,
   dealParts,
@@ -26,6 +28,8 @@ import {
   formatOrderDateTime,
   formatOrderNumber,
   formatPkr,
+  isOrderUnpaid,
+  isPaymentMethod,
   lineTotal,
   money,
   orderRefundableAmount,
@@ -34,7 +38,7 @@ import {
   partText,
 } from "@bravobites/domain";
 import { useLocale } from "@/i18n/locale-context";
-import { pcClockBlocksSales, shopNow } from "@/lib/shop-clock";
+import { PcClockWrongError, pcClockBlocksSales, shopNow } from "@/lib/shop-clock";
 import { mapFirebaseError } from "@/lib/errors";
 import {
   fetchProducts,
@@ -45,6 +49,7 @@ import {
   enqueueOrderCancel,
   enqueueOrderDelete,
   enqueueOrderEdit,
+  enqueueOrderPayment,
   enqueueOrderRefund,
   kickSync,
 } from "@/lib/pos-queue";
@@ -161,6 +166,12 @@ export function OrderDetailSheet({
   const [refundFormOpen, setRefundFormOpen] = useState(false);
   const [refundAmt, setRefundAmt] = useState(0);
   const [refundReason, setRefundReason] = useState("");
+  // Payment status is its own saved action — never part of the edit draft, so a
+  // reprint can't print an unsaved status.
+  const [payFormOpen, setPayFormOpen] = useState(false);
+  const [payMethod, setPayMethod] = useState<PaymentMethod>(() => order.paymentMethod);
+  const [confirmPaid, setConfirmPaid] = useState(false);
+  const [confirmUnpaid, setConfirmUnpaid] = useState(false);
   const [successNotice, setSuccessNotice] = useState<{
     title: string;
     message: string;
@@ -201,6 +212,7 @@ export function OrderDetailSheet({
     setDraftDiscountType(d.type);
     setDraftDiscountValue(d.value);
     setError(null);
+    setPayMethod(isPaymentMethod(order.paymentMethod) ? order.paymentMethod : "cash");
   }, [order]);
 
   const shopDeliveryFee = money(settings?.deliveryCharges ?? 0);
@@ -312,7 +324,14 @@ export function OrderDetailSheet({
     !staffWaitsForHours &&
     !(user.role !== "owner" && pcClockBlocksSales()) &&
     canRefundOrder(user, order, shopNow().getTime(), dayHours);
-  const allowRefund = !isCancelled && refundableAmount > 0 && mayRefundNow();
+  // Payment pending: no money came in, so nothing to refund (edit or cancel instead).
+  const isUnpaid = isOrderUnpaid(order);
+  const refundBlockedUnpaid = isUnpaid && refundableAmount > 0 && mayRefundNow();
+  const allowRefund = !isCancelled && !isUnpaid && refundableAmount > 0 && mayRefundNow();
+  // Any active staff of the branch may collect, on any day's order and anyone's.
+  const allowMarkPaid = canMarkOrderPaid(user, order);
+  const allowMarkUnpaid = canMarkOrderUnpaid(user, order);
+  const amountDue = money(Math.max(0, order.total - refundedSoFar));
   const isAmended = Boolean(order.updatedAt) || dirty;
 
   const loadProducts = useCallback(async () => {
@@ -467,6 +486,12 @@ export function OrderDetailSheet({
       setConfirmSave(false);
       return;
     }
+    // Who owes the money must stay known.
+    if (isUnpaid && !norm(draftCustomerName) && !norm(draftCustomerPhone)) {
+      setError(t("unpaidNeedsCustomer"));
+      setConfirmSave(false);
+      return;
+    }
     setBusy(true);
     try {
       const saved = await enqueueOrderEdit({
@@ -597,6 +622,44 @@ export function OrderDetailSheet({
     }
   }
 
+  async function onPayment(to: "paid" | "pending") {
+    setError(null);
+    if (dirty) {
+      setError(t("markPaidSaveFirst"));
+      setConfirmPaid(false);
+      setConfirmUnpaid(false);
+      return;
+    }
+    setBusy(true);
+    try {
+      const saved = await enqueueOrderPayment({
+        order,
+        user,
+        to,
+        ...(to === "paid" ? { method: payMethod } : {}),
+      });
+      setConfirmPaid(false);
+      setConfirmUnpaid(false);
+      setPayFormOpen(false);
+      onSaved(saved);
+      void kickSync();
+      // Same as the other actions: OK closes the sheet (parents don't all
+      // swap in the saved order), reopening shows the new status.
+      const parts = [`#${formatOrderNumber(saved.orderNumber)}`, formatPkr(amountDue)];
+      if (to === "paid") parts.push(payLabelOf(payMethod));
+      showSuccess(
+        to === "paid" ? t("activityPaymentReceived") : t("activityPaymentSetPending"),
+        parts.join(" · "),
+      );
+    } catch (e) {
+      setError(e instanceof PcClockWrongError ? t("pcClockBlocked") : mapFirebaseError(e, locale));
+      setConfirmPaid(false);
+      setConfirmUnpaid(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function printSnapshot(): Order {
     const nextTable =
       draftOrderType === "dine-in" ? norm(draftTableNumber) : "";
@@ -684,8 +747,9 @@ export function OrderDetailSheet({
       paperWidthMm: settings?.receiptPrintWidthMm,
       copies: [...printCopies] as ReceiptCopy[],
     });
+    // `order`: a payment change (no updatedAt) must refresh an open preview.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [printPreviewOpen, printCopies, dirty, draft, draftOrderType, draftPayment, draftCustomerName, draftCustomerPhone, draftDeliveryAddress, draftTableNumber, draftDiscountType, draftDiscountValue]);
+  }, [printPreviewOpen, printCopies, order, dirty, draft, draftOrderType, draftPayment, draftCustomerName, draftCustomerPhone, draftDeliveryAddress, draftTableNumber, draftDiscountType, draftDiscountValue]);
 
   const typeOptions: { id: OrderType; label: string }[] = [
     { id: "dine-in", label: t("dineIn") },
@@ -711,6 +775,10 @@ export function OrderDetailSheet({
         : "text-stone-600 hover:bg-white hover:text-stone-900"
     }`;
   const itemCount = draft.reduce((n, i) => n + i.qty, 0);
+  const payLabelOf = (m: PaymentMethod) =>
+    m === "card" ? t("card") : m === "digital" ? t("digital") : t("cash");
+  // Cancelled: only a paid-later order still has something worth showing.
+  const showPaymentRow = !isCancelled || Boolean(order.paidAt);
 
   return (
     <>
@@ -758,6 +826,11 @@ export function OrderDetailSheet({
                   ) : order.updatedAt ? (
                     <span className="rounded-full bg-[rgba(240,176,40,0.14)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#f6c95a] ring-1 ring-[rgba(240,176,40,0.35)]">
                       {t("amended")}
+                    </span>
+                  ) : null}
+                  {isUnpaid ? (
+                    <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white ring-1 ring-red-300/50">
+                      {t("paymentUnpaid")}
                     </span>
                   ) : null}
                   {(order.refundAmount ?? 0) > 0 ? (
@@ -811,6 +884,119 @@ export function OrderDetailSheet({
           {/* Body — one scroll region: details → items → picker */}
           <div className="min-h-0 flex-auto space-y-3 overflow-y-auto overscroll-contain px-3 py-3 sm:px-5">
             {error ? <div className="toast-error">{error}</div> : null}
+
+            {showPaymentRow ? (
+              <section
+                className={`space-y-2 rounded-2xl border p-3 shadow-[0_1px_3px_rgba(42,20,14,0.05)] sm:px-4 ${
+                  isUnpaid ? "border-red-200 bg-red-50/70" : "border-stone-200/80 bg-white"
+                }`}
+                data-testid="order-payment-row"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className={sectionTitle}>{t("paymentStatusLabel")}</span>
+                    {isUnpaid ? (
+                      <span className="rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+                        {t("paymentUnpaid")}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">
+                        {t("paymentPaid")}
+                      </span>
+                    )}
+                    {isUnpaid ? (
+                      <span className="text-sm font-bold tabular-nums text-red-700" dir="ltr">
+                        {formatPkr(amountDue)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {!payFormOpen && (allowMarkPaid || allowMarkUnpaid) ? (
+                    <div className="flex flex-wrap gap-2">
+                      {allowMarkPaid ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm gap-1.5"
+                          style={{ minHeight: 36 }}
+                          disabled={busy || dirty}
+                          title={dirty ? t("markPaidSaveFirst") : undefined}
+                          onClick={() => {
+                            setError(null);
+                            setPayMethod(isPaymentMethod(order.paymentMethod) ? order.paymentMethod : "cash");
+                            setPayFormOpen(true);
+                          }}
+                        >
+                          {t("markPaid")}
+                        </button>
+                      ) : null}
+                      {allowMarkUnpaid ? (
+                        <button
+                          type="button"
+                          className="inline-flex min-h-9 items-center justify-center rounded-xl border border-red-200 bg-white px-2.5 text-xs font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 disabled:opacity-50 pointer-coarse:min-h-11"
+                          disabled={busy || dirty}
+                          title={dirty ? t("markPaidSaveFirst") : undefined}
+                          onClick={() => {
+                            setError(null);
+                            setConfirmUnpaid(true);
+                          }}
+                        >
+                          {t("markUnpaid")}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+                {!isUnpaid && order.paidAt ? (
+                  <p className="text-xs leading-snug text-stone-600">
+                    {t("paidOnBy")
+                      .replace("{date}", formatOrderDateTime(order.paidAt))
+                      .replace("{method}", payLabelOf(order.paymentMethod))
+                      .replace("{name}", order.paidByName || "—")}
+                  </p>
+                ) : null}
+                {dirty && (allowMarkPaid || allowMarkUnpaid) ? (
+                  <p className="text-[11px] leading-snug text-stone-500">{t("markPaidSaveFirst")}</p>
+                ) : null}
+                {payFormOpen && allowMarkPaid ? (
+                  <div className="space-y-2">
+                    <p className={fieldLabel}>{t("markPaidHow")}</p>
+                    <div className={segWrap}>
+                      {payOptions.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          disabled={busy}
+                          aria-pressed={payMethod === opt.id}
+                          onClick={() => setPayMethod(opt.id)}
+                          className={segBtn(payMethod === opt.id)}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm flex-1"
+                        style={{ minHeight: 40 }}
+                        disabled={busy}
+                        onClick={() => setPayFormOpen(false)}
+                      >
+                        {t("cancel")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm flex-[1.4]"
+                        style={{ minHeight: 40 }}
+                        disabled={busy || dirty}
+                        onClick={() => setConfirmPaid(true)}
+                      >
+                        {busy ? t("saving") : t("markPaid")}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
 
             {allowEdit ? (
               <section className="space-y-2.5 rounded-2xl border border-stone-200/80 bg-white p-3 shadow-[0_1px_3px_rgba(42,20,14,0.05)] sm:px-4">
@@ -1323,6 +1509,12 @@ export function OrderDetailSheet({
               </p>
             ) : null}
 
+            {!refundFormOpen && !isCancelled && refundBlockedUnpaid ? (
+              <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-center text-xs font-medium text-red-700">
+                {t("unpaidRefundBlocked")}
+              </p>
+            ) : null}
+
             {!refundFormOpen && (allowRefund || allowCancel || allowDelete) ? (
               <div className="mt-3 border-t border-stone-100 pt-3">
                 {/* Labelled so "Cancel" reads as cancelling the ORDER, not closing this popup (✕ does that). */}
@@ -1499,7 +1691,11 @@ export function OrderDetailSheet({
       <ConfirmDialog
         open={confirmCancel}
         title={t("cancelOrderTitle")}
-        message={t("confirmCancelOrder")}
+        message={
+          isUnpaid
+            ? `${t("confirmCancelOrder")} ${t("unpaidCancelNoCash")}`
+            : t("confirmCancelOrder")
+        }
         confirmLabel={t("yes")}
         cancelLabel={t("no")}
         busy={busy}
@@ -1508,6 +1704,36 @@ export function OrderDetailSheet({
           if (!busy) setConfirmCancel(false);
         }}
         onConfirm={() => void onCancel()}
+      />
+
+      <ConfirmDialog
+        open={confirmPaid}
+        title={t("markPaid")}
+        message={t("markPaidConfirm")
+          .replace("{amount}", formatPkr(amountDue))
+          .replace("{method}", payLabelOf(payMethod))}
+        confirmLabel={t("yes")}
+        cancelLabel={t("no")}
+        busy={busy}
+        focusConfirm
+        onCancel={() => {
+          if (!busy) setConfirmPaid(false);
+        }}
+        onConfirm={() => void onPayment("paid")}
+      />
+
+      <ConfirmDialog
+        open={confirmUnpaid}
+        title={t("markUnpaid")}
+        message={t("markUnpaidConfirm")}
+        confirmLabel={t("yes")}
+        cancelLabel={t("no")}
+        busy={busy}
+        danger
+        onCancel={() => {
+          if (!busy) setConfirmUnpaid(false);
+        }}
+        onConfirm={() => void onPayment("pending")}
       />
 
       <ConfirmDialog

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Order, OrderItem, OrderType, PaymentMethod } from "@bravobites/domain";
-import { formatOrderDateTime, formatOrderNumber, formatPkr } from "@bravobites/domain";
+import { formatOrderDateTime, formatOrderNumber, formatPkr, isOrderUnpaid } from "@bravobites/domain";
 import { ReviewRequest } from "@/components/ReviewRequest";
 import { useLocale } from "@/i18n/locale-context";
 
@@ -87,6 +87,7 @@ function orderTypeLabel(
 
 function orderAccent(order: Order) {
   if (order.status === "cancelled") return "bg-red-500";
+  if (isOrderUnpaid(order)) return "bg-red-600";
   if (order.refundAmount && order.refundAmount > 0) return "bg-orange-500";
   if (order.updatedAt) return "bg-amber-500";
   if (order.discountAmount && order.discountAmount > 0) return "bg-emerald-600";
@@ -109,6 +110,8 @@ export function OrderListCard({
   const { t, locale } = useLocale();
   const cancelled = order.status === "cancelled";
   const refunded = Boolean(order.refundAmount && order.refundAmount > 0);
+  // Customer pays later — never shown on a cancelled order.
+  const unpaid = isOrderUnpaid(order);
   const amended = !cancelled && Boolean(order.updatedAt);
   const discounted =
     !cancelled && Boolean(order.discountAmount && order.discountAmount > 0);
@@ -210,6 +213,14 @@ export function OrderListCard({
                 |
               </span>
               <span className="font-medium">{payLabel}</span>
+              {unpaid ? (
+                <span
+                  className="rounded-full bg-red-600 px-1.5 py-px text-[10.5px] font-bold uppercase tracking-wide text-white"
+                  data-testid="order-unpaid-badge"
+                >
+                  {t("paymentUnpaid")}
+                </span>
+              ) : null}
               {typeLabel ? (
                 <>
                   <span className="text-stone-300" aria-hidden>

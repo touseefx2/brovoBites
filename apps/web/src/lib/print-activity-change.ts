@@ -103,6 +103,7 @@ function billCard(
     ];
     const meta = [
       t(bill.paymentMethod),
+      bill.paymentStatus === "pending" ? t("paymentUnpaid") : "",
       typeKey ? t(typeKey) : "",
       bill.tableNumber ? `${t("tableNumber")} ${bill.tableNumber}` : "",
       bill.customerName ?? "",
@@ -189,6 +190,20 @@ export function logDetailHtml(log: ActivityLog, t: T, opts: { bills?: boolean } 
     return wrap(parts.join(""));
   }
 
+  if (view.kind === "orderPayment" && view.payment) {
+    const p = view.payment;
+    const received = p.to === "paid";
+    const was = t(received ? "paymentUnpaid" : "paymentPaid");
+    const now = t(received ? "paymentPaid" : "paymentUnpaid");
+    const head = `<p class="ld-tot"><span class="dim">${e(t("paymentStatusLabel"))}</span> ${e(was)}${arrow(t)}<span class="b ${received ? "pos" : "neg"}">${e(now)}</span>${
+      p.amount != null ? ` · ${money(p.amount, "b")}` : ""
+    }${p.method ? ` <span class="dim sm">· ${e(t(p.method))}</span>` : ""}</p>`;
+    const lines = view.lines.length > 0 ? changeList(view.lines, t) : "";
+    const b = view.after ?? view.before;
+    const bill = bills && b ? `<div class="bills one">${billCard(t, t("lgBill"), b)}</div>` : "";
+    return wrap(head + lines + bill);
+  }
+
   if (view.kind === "orderCancel" || view.kind === "orderDelete" || view.kind === "orderRefund") {
     const b = view.before;
     let headLine: string;
@@ -206,7 +221,7 @@ export function logDetailHtml(log: ActivityLog, t: T, opts: { bills?: boolean } 
       headLine = `<p class="ld-tot"><span class="dim">${e(t("lgRefund"))}</span> ${money(view.refund?.amount ?? 0, "b refund")}${total}</p>${reason}`;
     } else {
       const n = b ? b.items.reduce((s, i) => s + i.qty, 0) : 0;
-      const sub = b ? ` <span class="dim sm">· ${e(t(b.paymentMethod))} · ${e(n === 1 ? t("lgItemOne") : fill(t("lgItemsN"), { n }))}</span>` : "";
+      const sub = b ? ` <span class="dim sm">· ${e(t(b.paymentMethod))}${b.paymentStatus === "pending" ? ` · ${e(t("paymentUnpaid"))}` : ""} · ${e(n === 1 ? t("lgItemOne") : fill(t("lgItemsN"), { n }))}</span>` : "";
       headLine = `<p class="ld-tot"><span class="dim">${e(t(view.kind === "orderCancel" ? "lgCancelledBill" : "lgDeletedBill"))}</span> ${
         view.amount != null ? money(view.amount, "b neg") : ""
       }${sub}</p>`;
@@ -278,6 +293,16 @@ export function logDetailSlipHtml(log: ActivityLog, t: T, opts: { bills?: boolea
     }
     if (bills && (view.before || view.beforeItemsText)) parts.push(slipBill(t, t("lgBefore"), view.before, view.beforeItemsText));
     if (bills && (view.after || view.afterItemsText)) parts.push(slipBill(t, t("lgAfter"), view.after, view.afterItemsText));
+  } else if (view.kind === "orderPayment" && view.payment) {
+    const received = view.payment.to === "paid";
+    const amount = view.payment.amount != null ? ` · <bdi dir="ltr">${e(keepRs(formatPkr(view.payment.amount)))}</bdi>` : "";
+    const method = view.payment.method ? ` · ${e(t(view.payment.method))}` : "";
+    parts.push(
+      `<div><b>${e(t("paymentStatusLabel"))}:</b> ${e(t(received ? "paymentUnpaid" : "paymentPaid"))}${e(to)}<b>${e(t(received ? "paymentPaid" : "paymentUnpaid"))}</b>${amount}${method}</div>`,
+    );
+    for (const l of view.lines) parts.push(`<div class="ln">${MARK[l.kind].sym} ${e(keepRs(changeLineText(l, t)))}</div>`);
+    const b = view.after ?? view.before;
+    if (bills && b) parts.push(slipBill(t, t("lgBill"), b));
   } else if (view.kind === "orderCancel" || view.kind === "orderDelete" || view.kind === "orderRefund") {
     if (view.kind === "orderRefund") {
       parts.push(`<div><b>${e(t("lgRefund"))}:</b> <bdi dir="ltr">${e(formatPkr(view.refund?.amount ?? 0))}</bdi></div>`);

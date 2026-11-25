@@ -6,7 +6,7 @@
 
 import type { ReceiptOrder, ReceiptCopy, ReceiptOptions, PrintReceiptLabels } from "./print-receipt";
 import { CUSTOM_DEAL_ID, formatOrderDateTime, formatOrderNumber, formatPkr, partText } from "@bravobites/domain";
-import { RECEIPT_SITE } from "./print-receipt";
+import { RECEIPT_PAID_ON, RECEIPT_SITE, receiptPayment } from "./print-receipt";
 import { RECEIPT_LOGO } from "./receipt-logo";
 
 /** Most rows per GS v 0 command — keeps the height in one byte (see image()). */
@@ -203,12 +203,6 @@ function orderTypeLabel(labels: PrintReceiptLabels, type?: string): string {
   return labels.dineIn;
 }
 
-function paymentLabel(labels: PrintReceiptLabels, method: string): string {
-  if (method === "card") return labels.card;
-  if (method === "digital") return labels.digital;
-  return labels.cash;
-}
-
 function buildCopyEscPos(
   buf: EscPosBuffer,
   opts: {
@@ -335,7 +329,20 @@ function buildCopyEscPos(
   buf.boldOn();
   buf.lr(labels.total, formatPkr(order.total));
   buf.boldOff();
-  buf.lr(labels.paymentMethod, paymentLabel(labels, order.paymentMethod));
+  // Same lines as print-receipt.ts (receiptPayment): fixed ASCII status words.
+  const payment = receiptPayment(order, labels);
+  buf.lr(labels.paymentMethod, payment.value);
+  if (payment.paidOn) buf.lr(RECEIPT_PAID_ON, payment.paidOn);
+  if (payment.banner) {
+    // Only commands already proven on the POS80 (shop-name line): ESC a 1,
+    // ESC E 1, GS ! 0x11 — 15 chars at double width = 30 of 48 columns.
+    // Always back to normal / bold off / left before anything else prints.
+    buf.separator("*");
+    buf.center().boldOn().doubleSize();
+    buf.line(payment.banner);
+    buf.normalSize().boldOff().left();
+    buf.separator("*");
+  }
   buf.lf();
 
   // Thank you + QR

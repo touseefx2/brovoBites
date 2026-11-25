@@ -229,6 +229,7 @@ export function orderLogSnapshot(o: {
   deliveryAddress?: string;
   refundAmount?: number;
   createdAt?: string;
+  paymentStatus?: "pending";
 }): ActivityOrderSnapshot {
   const snap: ActivityOrderSnapshot = {
     orderNumber: Number(o.orderNumber) || 0,
@@ -255,6 +256,8 @@ export function orderLogSnapshot(o: {
   }
   if ((o.refundAmount ?? 0) > 0) snap.refundAmount = money(o.refundAmount ?? 0);
   if (o.createdAt) snap.createdAt = o.createdAt;
+  // Only when unpaid — paid snapshots stay exactly as before (old == new).
+  if (o.paymentStatus === "pending") snap.paymentStatus = "pending";
   return snap;
 }
 
@@ -793,6 +796,8 @@ export async function syncQueuedOrderToFirestore(params: {
   discountAmount?: number;
   total: number;
   paymentMethod: PaymentMethod;
+  /** "pending" = the customer pays later. Written only when pending (paid sales stay byte-identical). */
+  paymentStatus?: "pending";
   createdBy: string;
   createdByName: string;
   createdByEmail?: string;
@@ -896,6 +901,7 @@ export async function syncQueuedOrderToFirestore(params: {
         : {}),
       total: params.total,
       paymentMethod: params.paymentMethod,
+      ...(params.paymentStatus === "pending" ? { paymentStatus: "pending" as const } : {}),
       status: "completed" as const,
       createdBy: params.createdBy,
       createdByName: params.createdByName,
@@ -957,6 +963,7 @@ export async function syncQueuedOrderToFirestore(params: {
       : {}),
     total: params.total,
     paymentMethod: params.paymentMethod,
+    ...(params.paymentStatus === "pending" ? { paymentStatus: "pending" as const } : {}),
     status: "completed",
     createdBy: params.createdBy,
     createdByName: params.createdByName,
@@ -966,10 +973,21 @@ export async function syncQueuedOrderToFirestore(params: {
 }
 
 /** Amend order lines + meta (type / payment / customer / discount). Owner or staff with edit access. */
-/** A queued edit hit an order the owner already deleted or cancelled. */
+/**
+ * A queued edit hit an order the owner already deleted or cancelled.
+ * "paid": a queued payment change found the order already in that payment
+ * state (e.g. marked paid on another device). "unpaid": a queued refund found
+ * the order payment pending (no money came in, so none can go back).
+ */
 export class OrderConflictError extends Error {
-  constructor(public reason: "deleted" | "cancelled" | "refunded") {
-    super(`Order was ${reason} before this edit synced`);
+  constructor(public reason: "deleted" | "cancelled" | "refunded" | "paid" | "unpaid") {
+    super(
+      reason === "paid"
+        ? "Order payment was already changed before this synced"
+        : reason === "unpaid"
+          ? "Order payment is pending — it cannot be refunded"
+          : `Order was ${reason} before this edit synced`,
+    );
     this.name = "OrderConflictError";
   }
 }
@@ -1011,6 +1029,10 @@ export async function updateOrderItems(params: {
   // and retry later: a write sent blind would wait in the SDK's own queue,
   // hang this sync pass, and could land much later over newer changes.
   let alreadyApplied = false;
+  // Payment fields belong to setOrderPayment, never to an edit. When the live
+  // order's payment changed since this edit was made (e.g. another PC marked
+  // it paid by card), keep the live paymentMethod instead of the stale one.
+  let livePaymentMethod: PaymentMethod | undefined;
   if (params.clientMutationId) {
     const existing = await getDocFromServer(doc(getClientDb(), "orders", params.order.id));
     // Owner deleted or cancelled it meanwhile → their change wins; the sync
@@ -1029,6 +1051,13 @@ export async function updateOrderItems(params: {
     // Write already landed (ack lost): skip the write but still finish the
     // stock movements and log — both have fixed ids, so no double counting.
     alreadyApplied = existing.data().lastClientMutationId === params.clientMutationId;
+    const live = asOrder(existing.id, existing.data());
+    if (
+      (live.paymentStatus ?? "") !== (params.order.paymentStatus ?? "") ||
+      (live.paidAt ?? "") !== (params.order.paidAt ?? "")
+    ) {
+      livePaymentMethod = live.paymentMethod;
+    }
   }
   const items = sanitizeOrderItems(params.items);
   if (items.length === 0) {
@@ -1036,7 +1065,12 @@ export async function updateOrderItems(params: {
   }
 
   const orderType = params.orderType ?? params.order.orderType ?? "dine-in";
-  const paymentMethod = params.paymentMethod ?? params.order.paymentMethod;
+  const requestedPaymentMethod = params.paymentMethod ?? params.order.paymentMethod;
+  // Write the method only when this edit itself changed it — and never over a
+  // live payment change made after this edit's "before".
+  const paymentMethodChanged =
+    requestedPaymentMethod !== params.order.paymentMethod && livePaymentMethod === undefined;
+  const paymentMethod = livePaymentMethod ?? requestedPaymentMethod;
   const customerName = (params.customerName ?? params.order.customerName ?? "").trim();
   const customerPhone = (params.customerPhone ?? params.order.customerPhone ?? "").trim();
   const deliveryAddress =
@@ -1090,7 +1124,7 @@ export async function updateOrderItems(params: {
     {
       items,
       orderType,
-      paymentMethod,
+      ...(paymentMethodChanged ? { paymentMethod } : {}),
       subtotal: totals.subtotal,
       taxAmount: totals.taxAmount,
       ...(taxPercent > 0 ? { taxPercent } : {}),
@@ -1141,9 +1175,11 @@ export async function updateOrderItems(params: {
   try {
     const staffName = params.user.displayName || params.user.email;
     const itemDiff = describeOrderItemsDiff(params.order.items, items);
+    // The log shows only what this edit changed (not a live payment change).
+    const loggedPaymentMethod = paymentMethodChanged ? paymentMethod : params.order.paymentMethod;
     const metaDiff = describeOrderMetaDiff(params.order, {
       orderType,
-      paymentMethod,
+      paymentMethod: loggedPaymentMethod,
       customerName,
       customerPhone,
       deliveryAddress,
@@ -1177,7 +1213,7 @@ export async function updateOrderItems(params: {
           ...params.order,
           items,
           orderType,
-          paymentMethod,
+          paymentMethod: loggedPaymentMethod,
           subtotal: totals.subtotal,
           taxAmount: totals.taxAmount,
           discountType: hasDiscount ? nextDiscountType : null,
@@ -3411,7 +3447,14 @@ export async function refundOrder(params: {
     const appliedIds = Array.isArray(data.appliedClientMutationIds)
       ? (data.appliedClientMutationIds as string[])
       : [];
-    if (clientMutationId && appliedIds.includes(clientMutationId)) {
+    const alreadyApplied = Boolean(clientMutationId && appliedIds.includes(clientMutationId));
+    // Payment pending: no money came in, so none can go back (anyone, owner
+    // too). Lower the bill by editing items / discount, or cancel the order.
+    if (!alreadyApplied && data.paymentStatus === "pending") {
+      if (clientMutationId) throw new OrderConflictError("unpaid");
+      throw new Error("Payment is pending — this order cannot be refunded");
+    }
+    if (clientMutationId && alreadyApplied) {
       // Already applied this offline mutation (the answer was lost, e.g. the
       // line dropped during the stock restore) — no second bump. Rebuild the
       // bill as it was before this refund, so the activity log can still be
@@ -3590,6 +3633,181 @@ export async function refundOrder(params: {
   };
 }
 
+const PAYMENT_LOG_LABEL: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  card: "Card",
+  digital: "Online",
+};
+
+/**
+ * Change an order's payment status: mark a payment-pending order paid (with
+ * the method actually used), or — owner only — set it back to pending.
+ *
+ * A transaction modelled on refundOrder. It writes ONLY the payment fields
+ * (+ mutation ids and the uploader stamp): never updatedAt / updatedBy — a
+ * payment is not an edit, so it must not show "Edited", print "REPRINT" or
+ * move the order in the drawer's cancel window.
+ *
+ * Conflicts (OrderConflictError): "deleted" (no doc), "cancelled", "paid"
+ * (already in the target state, e.g. marked paid on another device),
+ * "refunded" (back to pending on an order with a refund).
+ * A retry of a mutation that already landed skips the write but still writes
+ * the activity log (fixed id → once).
+ */
+export async function setOrderPayment(params: {
+  orderId: string;
+  to: "paid" | "pending";
+  /** The method the customer actually paid with (required when to = "paid"). */
+  method?: PaymentMethod;
+  user: AppUser;
+  /** POS offline queue — idempotency (appliedClientMutationIds) + fixed log id. */
+  clientMutationId?: string;
+  /** Shop time (shopNow ISO) of the tap — stored as paidAt, never the sync time. */
+  occurredAt?: string;
+  /** POS offline queue — aborted when the sync gave up waiting: a late wake-up stops instead of committing. */
+  signal?: AbortSignal;
+}): Promise<{ order?: Order; skippedDuplicate: boolean }> {
+  const { orderId, to, user, clientMutationId } = params;
+  if (to === "paid" && !params.method) {
+    throw new Error("Choose how the order was paid");
+  }
+  const db = getClientDb();
+  const orderRef = doc(db, "orders", orderId);
+  const paidAt = params.occurredAt ?? shopNow().toISOString();
+  const actorName = user.displayName || user.email;
+
+  const meta = await runTransaction(db, async (tx) => {
+    params.signal?.throwIfAborted();
+    const snap = await tx.get(orderRef);
+    if (!snap.exists()) throw new OrderConflictError("deleted");
+    const data = snap.data();
+    const live = asOrder(snap.id, data);
+    if (live.status === "cancelled") throw new OrderConflictError("cancelled");
+
+    const appliedIds = Array.isArray(data.appliedClientMutationIds)
+      ? (data.appliedClientMutationIds as string[])
+      : [];
+    const amount = money(Math.max(0, live.total - orderRefundedAmount(live)));
+    const base = {
+      branchId: live.branchId,
+      orderNumber: live.orderNumber,
+      amount,
+    };
+
+    if (clientMutationId && appliedIds.includes(clientMutationId)) {
+      // Landed already (answer lost): no second write. Rebuild before/after
+      // so the log (fixed id) can still be completed once.
+      const after = live;
+      const before: Order =
+        to === "paid"
+          ? { ...live, paymentStatus: "pending", paidAt: undefined, paidBy: undefined, paidByName: undefined }
+          : { ...live, paymentStatus: undefined };
+      return {
+        ...base,
+        method: to === "paid" ? (params.method ?? live.paymentMethod) : live.paymentMethod,
+        skippedDuplicate: true,
+        before: orderLogSnapshot(before),
+        after: orderLogSnapshot(after),
+      };
+    }
+
+    const livePending = live.paymentStatus === "pending";
+    if ((to === "paid" && !livePending) || (to === "pending" && livePending)) {
+      throw new OrderConflictError("paid");
+    }
+    // A payment-pending order never has refunds: the drawer counts its whole
+    // total when it is paid (the rules refuse it too).
+    if (to === "pending" && orderRefundedAmount(live) > 0) {
+      throw new OrderConflictError("refunded");
+    }
+
+    const method: PaymentMethod = to === "paid" ? params.method! : live.paymentMethod;
+    const nextApplied = clientMutationId
+      ? [...appliedIds, clientMutationId].slice(-40)
+      : appliedIds;
+    const mutationFields = clientMutationId
+      ? { lastClientMutationId: clientMutationId, appliedClientMutationIds: nextApplied }
+      : {};
+
+    if (to === "paid") {
+      tx.set(
+        orderRef,
+        {
+          paymentStatus: deleteField(),
+          paymentMethod: method,
+          paidAt,
+          // Server stamp only when written online at the tap; a queued
+          // payment keeps the shop time it was really taken.
+          paidAtServer: params.occurredAt ? deleteField() : serverTimestamp(),
+          paidBy: user.uid,
+          paidByName: actorName,
+          ...uploadStamp(user.uid),
+          ...mutationFields,
+        },
+        { merge: true },
+      );
+    } else {
+      tx.set(
+        orderRef,
+        {
+          paymentStatus: "pending",
+          paidAt: deleteField(),
+          paidAtServer: deleteField(),
+          paidBy: deleteField(),
+          paidByName: deleteField(),
+          ...uploadStamp(user.uid),
+          ...mutationFields,
+        },
+        { merge: true },
+      );
+    }
+
+    const after: Order =
+      to === "paid"
+        ? { ...live, paymentStatus: undefined, paymentMethod: method, paidAt, paidBy: user.uid, paidByName: actorName }
+        : { ...live, paymentStatus: "pending", paidAt: undefined, paidBy: undefined, paidByName: undefined };
+    return {
+      ...base,
+      method,
+      skippedDuplicate: false,
+      before: orderLogSnapshot(live),
+      after: orderLogSnapshot(after),
+    };
+  });
+
+  // Also on a retry whose write already landed: the log id is fixed, so a
+  // written log is refused again (ignored) and a missing one is made.
+  if (!meta.skippedDuplicate || clientMutationId) {
+    try {
+      const head =
+        to === "paid"
+          ? `Payment received for order #${meta.orderNumber}`
+          : `Payment set back to pending for order #${meta.orderNumber}`;
+      await writeActivityLog({
+        branchId: meta.branchId,
+        entityType: "order",
+        entityId: orderId,
+        action: "update",
+        summary: `${head} · ${formatPkr(meta.amount)} · ${PAYMENT_LOG_LABEL[meta.method]} · by ${actorName}`,
+        detail: `Payment status: ${to === "paid" ? "pending → paid" : "paid → pending"}`,
+        change: {
+          kind: "order",
+          before: meta.before,
+          after: meta.after,
+          payment: { to, method: meta.method, amount: meta.amount },
+        },
+        user,
+        ...queuedLogFields(clientMutationId, params.occurredAt),
+      });
+    } catch {
+      // ignore audit failure
+    }
+  }
+
+  const fresh = await readDocAfterWrite(orderRef, asOrder);
+  return { order: fresh ?? undefined, skippedDuplicate: meta.skippedDuplicate };
+}
+
 /* ── Cash Drawer ── */
 
 export async function openCashDrawer(params: {
@@ -3744,40 +3962,85 @@ function changedSince(branchId: string, sinceIso: string) {
 }
 
 /**
- * Orders that may have handed cash back since sinceIso, whatever day they were
- * sold: refunded, or changed (cancelled) since then — the cash leaves the
- * drawer when that happens. Until an index ((branchId, refundedAt) /
- * (branchId, updatedAt)) is deployed that part is empty, as before.
+ * Paid since (a credit sale marked paid — the cash comes in at paidAt, any
+ * day it was sold). No upper bound: paidAt is the payment's own time, so an
+ * order paid in this drawer is found even when it was sold days earlier.
+ * Needs the (branchId, paidAt) index.
+ */
+function paidSince(branchId: string, sinceIso: string) {
+  return query(
+    collection(getClientDb(), "orders"),
+    where("branchId", "==", branchId),
+    where("paidAt", ">=", sinceIso),
+  );
+}
+
+/** Paid in [sinceIso, untilIso] — "old bills collected" on a report day / range. */
+function paidBetween(branchId: string, sinceIso: string, untilIso: string) {
+  return query(
+    collection(getClientDb(), "orders"),
+    where("branchId", "==", branchId),
+    where("paidAt", ">=", sinceIso),
+    where("paidAt", "<=", untilIso),
+  );
+}
+
+/** A paid query's orders — never one set back to pending (paidAt is deleted then, but be safe). */
+function paidOrdersOf(docs: { id: string; data: () => DocumentData }[]): Order[] {
+  return docs.map((d) => asOrder(d.id, d.data())).filter((o) => o.paymentStatus !== "pending" && !!o.paidAt);
+}
+
+/**
+ * Orders that may have moved drawer cash since sinceIso, whatever day they
+ * were sold: refunded, or changed (cancelled) since then — the cash leaves
+ * the drawer when that happens — and paid since then (a credit sale paid
+ * later: the cash comes in at paidAt). Until an index ((branchId, refundedAt)
+ * / (branchId, updatedAt)) is deployed those parts are empty, as before.
+ * The paid part needs (branchId, paidAt); when it fails, its part is empty
+ * and `onPaidError` is called (the screen should warn: the expected cash may
+ * miss old bills collected).
  */
 export function onCashBackOrdersSnapshot(
   branchId: string,
   sinceIso: string,
   callback: (orders: Order[]) => void,
+  onPaidError?: (err: Error) => void,
 ): Unsubscribe {
-  const parts: (Order[] | undefined)[] = [undefined, undefined];
+  const parts: (Order[] | undefined)[] = [undefined, undefined, undefined];
   const emit = () => {
     if (parts.some((p) => !p)) return;
     const byId = new Map<string, Order>();
     for (const p of parts) for (const o of p!) byId.set(o.id, o);
     callback([...byId.values()]);
   };
-  const unsubs = [refundedSince(branchId, sinceIso), changedSince(branchId, sinceIso)].map((q, i) =>
+  const queries = [
+    refundedSince(branchId, sinceIso),
+    changedSince(branchId, sinceIso),
+    paidSince(branchId, sinceIso),
+  ];
+  const unsubs = queries.map((q, i) =>
     onSnapshot(
       q,
       (snap) => {
-        parts[i] = snap.docs.map((d) => asOrder(d.id, d.data()));
+        parts[i] = i === 2 ? paidOrdersOf(snap.docs) : snap.docs.map((d) => asOrder(d.id, d.data()));
         emit();
       },
-      () => {
+      (err) => {
         parts[i] = [];
         emit();
+        if (i === 2) onPaidError?.(err);
       },
     ),
   );
   return () => unsubs.forEach((u) => u());
 }
 
-/** Server-only twin of onCashBackOrdersSnapshot, for the drawer auto close. */
+/**
+ * Server-only twin of onCashBackOrdersSnapshot, for the drawer auto close.
+ * The paid part (orders paid since sinceIso) has NO fallback: any failure —
+ * offline, cache only, or the (branchId, paidAt) index missing — throws, so
+ * the auto close never saves an expectedCash that misses collected cash.
+ */
 export async function fetchCashBackFromServer(params: {
   branchId: string;
   sinceIso: string;
@@ -3793,13 +4056,118 @@ export async function fetchCashBackFromServer(params: {
     if (snap.metadata.fromCache) throw new Error("Server data needed");
     return snap.docs.map((d) => asOrder(d.id, d.data()));
   };
-  const [refunded, changed] = await Promise.all([
+  const [refunded, changed, paid] = await Promise.all([
     one(refundedSince(params.branchId, params.sinceIso)),
     one(changedSince(params.branchId, params.sinceIso)),
+    fetchPaidSinceFromServer(params),
   ]);
   const byId = new Map<string, Order>();
-  for (const o of [...refunded, ...changed]) byId.set(o.id, o);
+  for (const o of [...refunded, ...changed, ...paid]) byId.set(o.id, o);
   return [...byId.values()];
+}
+
+/**
+ * Orders of a branch marked paid at or after sinceIso (credit sales paid
+ * later), from the server only. Throws on any failure (offline, cache only,
+ * missing (branchId, paidAt) index) — never an empty list by mistake.
+ */
+export async function fetchPaidSinceFromServer(params: {
+  branchId: string;
+  sinceIso: string;
+}): Promise<Order[]> {
+  const snap = await getDocsFromServer(paidSince(params.branchId, params.sinceIso));
+  return paidOrdersOf(snap.docs);
+}
+
+/**
+ * Orders of a branch marked paid in [sinceIso, untilIso] — the report's
+ * "Old bills collected" (filter out the ones sold in the same window: those
+ * already count under their paid method). On any error (offline with no
+ * cache, (branchId, paidAt) index missing) it calls back with [] and then
+ * onError, so a screen waiting for it never hangs.
+ */
+export function onPaidInRangeSnapshot(
+  branchId: string,
+  sinceIso: string,
+  untilIso: string,
+  callback: (orders: Order[], fromCache: boolean) => void,
+  onError?: (err: Error) => void,
+): Unsubscribe {
+  return onSnapshot(
+    paidBetween(branchId, sinceIso, untilIso),
+    (snap) => callback(paidOrdersOf(snap.docs), snap.metadata.fromCache),
+    (err) => {
+      callback([], false);
+      onError?.(err);
+    },
+  );
+}
+
+/** Server-only twin of onPaidInRangeSnapshot. Throws on any failure. */
+export async function fetchPaidInRangeFromServer(params: {
+  branchId: string;
+  sinceIso: string;
+  untilIso: string;
+}): Promise<Order[]> {
+  const snap = await getDocsFromServer(paidBetween(params.branchId, params.sinceIso, params.untilIso));
+  return paidOrdersOf(snap.docs);
+}
+
+function unpaidQuery(branchId: string, newestFirst: boolean) {
+  const base = query(
+    collection(getClientDb(), "orders"),
+    where("branchId", "==", branchId),
+    where("paymentStatus", "==", "pending"),
+  );
+  return newestFirst ? query(base, orderBy("createdAt", "desc")) : base;
+}
+
+function unpaidOrdersOf(docs: { id: string; data: () => DocumentData }[]): Order[] {
+  return docs
+    .map((d) => asOrder(d.id, d.data()))
+    .filter((o) => o.paymentStatus === "pending" && o.status !== "cancelled")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/**
+ * Every payment-pending order of a branch, any date (newest first, cancelled
+ * left out) — the customer comes back days later to pay. Uses the
+ * (branchId, paymentStatus, createdAt DESC) index; until it is deployed, the
+ * same two equality filters without the sort (Firestore merges single-field
+ * indexes) — NEVER the branch's whole history.
+ */
+export function onUnpaidOrdersSnapshot(
+  branchId: string,
+  callback: (orders: Order[], fromCache: boolean) => void,
+  onError?: (err: Error) => void,
+): Unsubscribe {
+  let unsub: Unsubscribe = () => {};
+  const listen = (newestFirst: boolean) =>
+    onSnapshot(
+      unpaidQuery(branchId, newestFirst),
+      (snap) => callback(unpaidOrdersOf(snap.docs), snap.metadata.fromCache),
+      (err) => {
+        if (newestFirst && isMissingIndex(err)) {
+          unsub = listen(false);
+          return;
+        }
+        onError?.(err);
+      },
+    );
+  unsub = listen(true);
+  return () => unsub();
+}
+
+/** Server-only twin of onUnpaidOrdersSnapshot. Throws offline / cache only. */
+export async function fetchUnpaidOrdersFromServer(branchId: string): Promise<Order[]> {
+  let snap;
+  try {
+    snap = await getDocsFromServer(unpaidQuery(branchId, true));
+  } catch (err) {
+    if (!isMissingIndex(err)) throw err;
+    snap = await getDocsFromServer(unpaidQuery(branchId, false));
+  }
+  return unpaidOrdersOf(snap.docs);
 }
 
 /**

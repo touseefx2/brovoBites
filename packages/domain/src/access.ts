@@ -1,4 +1,4 @@
-import type { AppUser, DiscountType, StaffPermissions, UserRole } from "./types";
+import type { AppUser, DiscountType, OrderStatus, StaffPermissions, UserRole } from "./types";
 import { businessDateKey, DEFAULT_BUSINESS_DAY_HOURS, type BusinessDayHours } from "./time";
 
 export function canAccessBranch(user: AppUser, branchId: string): boolean {
@@ -123,6 +123,43 @@ export function canCancelOrder(
 /** Only owner can permanently delete an order. */
 export function canDeleteOrder(user: AppUser): boolean {
   return user.isActive && user.role === "owner";
+}
+
+/**
+ * Mark a payment-pending order paid: the owner, or ANY active staff with
+ * access to the order's branch — any order age, any creator (customers pay
+ * days later, often to another cashier). Never on a cancelled order.
+ */
+export function canMarkOrderPaid(
+  user: AppUser,
+  order: { branchId: string; status: OrderStatus; paymentStatus?: string },
+): boolean {
+  if (!user.isActive) return false;
+  if (order.status === "cancelled") return false;
+  if (order.paymentStatus !== "pending") return false;
+  return canAccessBranch(user, order.branchId);
+}
+
+/**
+ * Set a paid order back to payment pending: OWNER ONLY (it lowers what the
+ * drawer expects, so it is a fraud path — always logged). Any non-cancelled
+ * order, including one paid at checkout — but never one with a refund: a
+ * payment-pending order never has refunds (the drawer counts its full total
+ * when it is paid; the rules and setOrderPayment refuse it too).
+ */
+export function canMarkOrderUnpaid(
+  user: AppUser,
+  order: {
+    branchId: string;
+    status: OrderStatus;
+    paymentStatus?: string;
+    refundAmount?: number | null;
+  },
+): boolean {
+  if (!user.isActive || user.role !== "owner") return false;
+  if (order.status === "cancelled") return false;
+  if ((order.refundAmount ?? 0) > 0) return false;
+  return order.paymentStatus !== "pending";
 }
 
 export function defaultLandingPath(role: UserRole): string {

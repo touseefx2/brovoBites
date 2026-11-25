@@ -8,12 +8,15 @@ import type {
 } from "@bravobites/domain";
 import {
   amendOrderTotals,
+  canMarkOrderPaid,
+  canMarkOrderUnpaid,
+  isPaymentMethod,
   money,
   orderRefundableAmount,
   orderRefundedAmount,
 } from "@bravobites/domain";
 import { orderItemsTotal, sanitizeOrderItems } from "@/lib/firestore";
-import { shopNow } from "@/lib/shop-clock";
+import { assertPcClockUsable, shopNow } from "@/lib/shop-clock";
 import { getQueuedOrder, listActiveQueuedMutations, putQueuedMutation } from "./db";
 import type { QueuedMutation } from "./types";
 
@@ -223,6 +226,11 @@ export async function enqueueOrderRefund(params: {
   }
   const order = await latestQueuedOrder(params.order);
   if (order.status === "cancelled") throw new Error("Cancelled orders cannot be refunded");
+  // No money came in yet — nothing to give back. Lower the bill by editing
+  // the items / discount, or cancel the order (i18n: unpaidRefundBlocked).
+  if (order.paymentStatus === "pending") {
+    throw new Error("Payment is pending — no refund. Edit the items or cancel the order.");
+  }
   const amount = money(params.refundAmount);
   // Checked against what this PC already refunded — sync would drop the extra
   // silently, after the cash was handed over.
@@ -252,6 +260,75 @@ export async function enqueueOrderRefund(params: {
     user: params.user,
     // One time for the local entry and the uploaded one (refundOrder's occurredAt).
     occurredAt: refundedAt,
+  });
+  return orderAfter;
+}
+
+/**
+ * Queue a payment change (its own action — never part of an edit):
+ * - to "paid": a payment-pending order was paid, with `method`. Anyone active
+ *   with access to the order's branch, any order age, any creator.
+ * - to "pending": OWNER ONLY — a paid order back to payment pending.
+ * The tap time (shop clock) is the order's paidAt here and on upload, so the
+ * cash lands in the drawer of the moment it was taken, not of the sync.
+ * Allowed while the sale itself is still queued: sync runs it once the order
+ * doc is on the cloud. Returns orderAfter for UI. Caller should kickSync().
+ */
+export async function enqueueOrderPayment(params: {
+  order: Order;
+  user: AppUser;
+  to: "paid" | "pending";
+  /** Required for "paid": how the customer actually paid. */
+  method?: PaymentMethod;
+}): Promise<Order> {
+  // The time decides which drawer / day gets the cash.
+  assertPcClockUsable();
+  const { user, to } = params;
+  const order = await latestQueuedOrder(params.order);
+  if (order.status === "cancelled") throw new Error("This order is already cancelled.");
+  const unpaid = order.paymentStatus === "pending";
+  let orderAfter: Order;
+  const occurredAt = shopNow().toISOString();
+  const byName = user.displayName || user.email;
+  if (to === "paid") {
+    if (!unpaid) throw new Error("This order is already paid.");
+    if (!isPaymentMethod(params.method)) throw new Error("Choose how the order was paid");
+    if (!canMarkOrderPaid(user, order)) {
+      throw new Error("You can't take payments for this branch.");
+    }
+    const { paymentStatus: _drop, ...rest } = order;
+    void _drop;
+    orderAfter = {
+      ...rest,
+      paymentMethod: params.method,
+      paidAt: occurredAt,
+      paidBy: user.uid,
+      paidByName: byName,
+    };
+  } else {
+    if (unpaid) throw new Error("This order's payment is already pending.");
+    if ((order.refundAmount ?? 0) > 0) {
+      throw new Error("A refunded order can't be set back to payment pending.");
+    }
+    if (user.role !== "owner" || !canMarkOrderUnpaid(user, order)) {
+      throw new Error("Only the owner can set a payment back to pending.");
+    }
+    const { paidAt: _a, paidBy: _b, paidByName: _c, ...rest } = order;
+    void _a;
+    void _b;
+    void _c;
+    orderAfter = { ...rest, paymentStatus: "pending" };
+  }
+  await enqueueMutation({
+    kind: "payment",
+    orderId: order.id,
+    orderBefore: order,
+    orderAfter,
+    paymentTo: to,
+    ...(to === "paid" ? { paidMethod: params.method } : {}),
+    user,
+    // One time for the local entry and the uploaded paidAt / activity log.
+    occurredAt,
   });
   return orderAfter;
 }

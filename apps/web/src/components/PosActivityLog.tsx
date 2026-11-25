@@ -14,7 +14,7 @@ import { useLocale } from "@/i18n/locale-context";
 import { mapFirebaseError } from "@/lib/errors";
 import { mergeActivityLogs } from "@/lib/activity-merge";
 import { onActivityLogsSnapshot } from "@/lib/firestore";
-import { isRefundLog } from "@/lib/activity-change";
+import { isPaymentLog, isRefundLog } from "@/lib/activity-change";
 import { openDatePicker } from "@/lib/open-date-picker";
 import { listLocalActivityLogs, subscribeQueue } from "@/lib/pos-queue";
 import { shopNow } from "@/lib/shop-clock";
@@ -23,7 +23,7 @@ import { shopNow } from "@/lib/shop-clock";
 export type PosLogEntity = "order" | "expense" | "inventory";
 
 type Preset = "today" | "yesterday" | "last7" | "month" | "all" | "custom";
-type ActionFilter = "all" | "create" | "update" | "cancel" | "refund" | "delete";
+type ActionFilter = "all" | "create" | "update" | "cancel" | "refund" | "payment" | "delete";
 
 /** Newest cloud logs per query — the date filter narrows the query itself. */
 const CLOUD_LIMIT = 100;
@@ -193,11 +193,15 @@ export function PosActivityLog({
         if (day < range.fromKey || day > range.toKey) return false;
       }
       const isRefund = isRefundLog(log);
+      // Payments (received / set back to pending) are their own kind, not edits.
+      const isPayment = isPaymentLog(log);
       if (action === "refund") {
         if (!isRefund) return false;
+      } else if (action === "payment") {
+        if (!isPayment) return false;
       } else if (action !== "all") {
         if (log.action !== action) return false;
-        if (action === "update" && isRefund) return false;
+        if (action === "update" && (isRefund || isPayment)) return false;
       }
       if (staff !== "all" && log.createdBy !== staff) return false;
       if (q) {
@@ -327,6 +331,7 @@ export function PosActivityLog({
                 <>
                   <option value="cancel">{t("activityCancel")}</option>
                   <option value="refund">{t("activityRefund")}</option>
+                  <option value="payment">{t("activityPayment")}</option>
                 </>
               ) : null}
               <option value="delete">{t("activityDelete")}</option>

@@ -24,6 +24,7 @@ import {
   fetchOwners,
   onExpensesSnapshot,
   onOrdersSnapshot,
+  onPaidInRangeSnapshot,
   onSettingsSnapshot,
 } from "@/lib/firestore";
 import { openDatePicker } from "@/lib/open-date-picker";
@@ -232,6 +233,26 @@ export default function OwnerReportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [approved, periodKey, locale, reload]);
 
+  // Credit sales of earlier days paid in the period — "Old bills collected"
+  // (money in, not the period's sales). Never for "all time" (nothing is
+  // earlier). An error (index not deployed yet) just leaves that line out.
+  const [paidOrders, setPaidOrders] = useState<Order[]>([]);
+  useEffect(() => {
+    setPaidOrders([]);
+    if (!approved || !sinceIso || !untilIso) return;
+    const ids = branchKey.split(",");
+    const paidBy = new Map<string, Order[]>();
+    const unsubs = ids.map((b) =>
+      onPaidInRangeSnapshot(b, sinceIso, untilIso, (o) => {
+        paidBy.set(b, o);
+        setPaidOrders([...paidBy.values()].flat());
+      }),
+    );
+    return () => unsubs.forEach((u) => u());
+    // periodKey covers branch + range.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approved, periodKey, reload]);
+
   const extras = useOwnerReportExtras({
     branchIds,
     sinceIso,
@@ -263,11 +284,12 @@ export default function OwnerReportPage() {
             toKey: range.toKey,
             ownerUids,
             catalog,
+            collectedOrders: paidOrders,
           })
         : null,
     // from/to follow periodKey.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [approved, dataKey, periodKey, local.orders, local.expenses, extras.logs, extras.pendingIds, extras.drawers, extras.stock, ownerUids, catalog],
+    [approved, dataKey, periodKey, paidOrders, local.orders, local.expenses, extras.logs, extras.pendingIds, extras.drawers, extras.stock, ownerUids, catalog],
   );
 
   const [selected, setSelected] = useState<Order | null>(null);

@@ -428,6 +428,36 @@ html[data-pos-theme="dark"] .pos-foot {
   border-color: var(--pd-line-strong);
   background: var(--pd-surface);
 }
+html[data-pos-theme="dark"] .pos-paystat {
+  border-color: var(--pd-line-strong);
+  background: var(--pd-surface);
+}
+html[data-pos-theme="dark"] .pos-paystat-btn {
+  color: var(--pd-ink-3);
+}
+html[data-pos-theme="dark"] .pos-paystat-btn:hover:not(.is-on) {
+  background: var(--pd-hover);
+  color: var(--pd-ink-2);
+}
+html[data-pos-theme="dark"] .pos-paystat-btn.is-on {
+  background: var(--bb-mustard-500);
+  color: var(--bb-brown-900);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+html[data-pos-theme="dark"] .pos-paystat-btn.is-unpaid.is-on {
+  background: var(--bb-red-600);
+  color: #ffffff;
+}
+html[data-pos-theme="dark"] :is(.pos-paystat-hint, .pos-unpaid-strip-total, .pos-unpaid-strip-note.is-warn) {
+  color: #fca5a5;
+}
+html[data-pos-theme="dark"] .pos-unpaid-strip {
+  border-color: rgba(232, 90, 79, 0.45);
+  background: rgba(215, 54, 43, 0.12);
+}
+html[data-pos-theme="dark"] .pos-unpaid-strip-note {
+  color: var(--pd-ink-3);
+}
 html[data-pos-theme="dark"] .pos-switch {
   background: var(--pd-active);
 }

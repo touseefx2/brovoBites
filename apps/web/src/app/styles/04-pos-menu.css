@@ -878,6 +878,90 @@ html[lang="ur"] .pos-cart-title {
   letter-spacing: 0.01em;
   color: var(--bb-red-700);
 }
+/* Checkout: Paid | Payment pending (under the payment methods) */
+.pos-paystat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--border);
+  background: #ffffff;
+}
+.pos-paystat-btn {
+  min-height: 2.75rem;
+  border-radius: 0.65rem;
+  padding: 0.35rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--bb-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.pos-paystat-btn:hover:not(.is-on) {
+  background: var(--bb-cream-100);
+  color: var(--ink);
+}
+.pos-paystat-btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.pos-paystat-btn.is-on {
+  background: linear-gradient(180deg, var(--bb-brown-800) 0%, var(--bb-brown-900) 100%);
+  color: var(--bb-mustard-500);
+  box-shadow: 0 2px 8px rgba(42, 20, 14, 0.22);
+}
+.pos-paystat-btn.is-unpaid.is-on {
+  background: var(--bb-red-600);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(185, 43, 33, 0.35);
+}
+.pos-paystat-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--bb-red-700);
+}
+/* "Payment pending" under the checkout total */
+.pos-unpaid-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  background: var(--bb-red-600);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* Recent orders → Payment pending: "Rs X pending · N orders" */
+.pos-unpaid-strip {
+  border-radius: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--bb-red-500) 35%, transparent);
+  background: color-mix(in srgb, var(--bb-red-500) 7%, #ffffff);
+  padding: 0.6rem 0.8rem;
+}
+.pos-unpaid-strip-total {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--bb-red-700);
+}
+.pos-unpaid-strip-note {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--bb-muted);
+}
+.pos-unpaid-strip-note.is-warn {
+  font-weight: 600;
+  color: var(--bb-red-700);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pos-paystat-btn {
+    transition: none;
+  }
+}
 
 @media (max-width: 640px) {
   .pos-product-info {
