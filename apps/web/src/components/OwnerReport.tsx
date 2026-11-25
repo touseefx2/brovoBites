@@ -243,25 +243,35 @@ export function useWithLocalPending(opts: {
 export function useReportCatalog(enabled: boolean): ReportCatalog | null | undefined {
   const [catalog, setCatalog] = useState<ReportCatalog | null | undefined>(undefined);
   const started = useRef(false);
+  /** The full menu is here (POS copy or server): never read it again while mounted. */
+  const full = useRef(false);
   useEffect(() => {
-    if (!enabled || started.current) return;
+    if (!enabled || started.current || full.current) return;
     started.current = true;
     let alive = true;
     void (async () => {
       const pos = await readCachedPosCatalog().catch(() => null);
       if (pos) {
-        if (alive) setCatalog({ categories: pos.categories, products: pos.products });
+        if (alive) {
+          full.current = true;
+          setCatalog({ categories: pos.categories, products: pos.products });
+        }
         return;
       }
       const shown = peekPublicMenu() ?? (await loadPublicMenu().catch(() => null));
-      if (alive) setCatalog(shown ? { categories: shown.categories, products: shown.products } : null);
+      // A retry (offline earlier) never replaces a menu already shown with a lesser one.
+      if (alive) setCatalog((prev) => prev ?? (shown ? { categories: shown.categories, products: shown.products } : null));
       // Hidden items too (sold before they were hidden) — from the server only; offline it stays as is.
-      const full = await fetchMenuFromServer().catch(() => null);
-      if (alive && full) setCatalog(full);
+      const server = await fetchMenuFromServer().catch(() => null);
+      if (alive && server) {
+        full.current = true;
+        setCatalog(server);
+      }
     })();
     return () => {
       alive = false;
-      started.current = false;
+      // Unfinished (torn down, or the server couldn't be reached): the next open tries again.
+      if (!full.current) started.current = false;
     };
   }, [enabled]);
   return catalog;
