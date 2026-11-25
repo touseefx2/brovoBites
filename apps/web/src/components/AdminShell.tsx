@@ -20,6 +20,7 @@ type NavIconName =
   | "menu"
   | "staff"
   | "orders"
+  | "customers"
   | "pos"
   | "landing"
   | "expenses"
@@ -41,6 +42,7 @@ const links: {
 }[] = [
   { href: "/admin", key: "dashboard", icon: "dash", roles: ["owner", "counter"], group: "main" },
   { href: "/admin/orders", key: "orders", icon: "orders", roles: ["owner", "counter"], group: "sales" },
+  { href: "/admin/customers", key: "customers", icon: "customers", roles: ["owner", "counter"], group: "sales" },
   { href: "/admin/item-sales", key: "itemSales", icon: "itemSales", roles: ["owner", "counter"], group: "sales" },
   { href: "/admin/day-report", key: "dayEndReport", icon: "dayReport", roles: ["owner", "counter"], group: "sales" },
   { href: "/admin/owner-report", key: "ownerReport", icon: "ownerReport", roles: ["owner", "counter"], group: "sales" },
@@ -106,6 +108,14 @@ function NavIcon({ name }: { name: NavIconName }) {
           <path d="M2.5 19c.8-3.2 3-5 6.5-5s5.7 1.8 6.5 5" />
           <circle cx="17" cy="9" r="2.2" />
           <path d="M16 19c.4-1.8 1.6-3 3.5-3.5" />
+        </svg>
+      );
+    case "customers":
+      return (
+        <svg {...common}>
+          <circle cx="9" cy="8" r="3.5" />
+          <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+          <path d="M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-3-5.5" />
         </svg>
       );
     case "orders":

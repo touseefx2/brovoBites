@@ -150,3 +150,22 @@ export {
   computeItemsMade,
   madeCountText,
 } from "./items-made";
+
+export {
+  type Customer,
+  type CustomerVisit,
+  type CustomerOrderLike,
+  type CustomerStats,
+  CUSTOMER_MAX_ADDRESSES,
+  CUSTOMER_MAX_OTHER_NAMES,
+  CUSTOMER_NOTE_MAX,
+  phoneKey,
+  asciiDigits,
+  isMobileKey,
+  formatPhone,
+  pushRecent,
+  searchCustomers,
+  applyVisit,
+  statsFromOrders,
+  customerKpis,
+} from "./customers";

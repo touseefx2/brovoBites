@@ -272,6 +272,18 @@ export async function listActiveQueuedOrders(): Promise<QueuedOrder[]> {
   return [...a, ...b].filter(isQueueActive).sort((x, y) => x.enqueuedAt - y.enqueuedAt);
 }
 
+/** Sales queued on this PC since `sinceMs` (synced ones too) — a bounded read of the by-enqueued index. */
+export async function listQueuedOrdersSince(sinceMs: number): Promise<QueuedOrder[]> {
+  const db = await getDb();
+  return db.getAllFromIndex("orders", "by-enqueued", IDBKeyRange.lowerBound(sinceMs));
+}
+
+/** Order changes queued on this PC since `sinceMs` (synced ones too), bounded like the above. */
+export async function listQueuedMutationsSince(sinceMs: number): Promise<QueuedMutation[]> {
+  const db = await getDb();
+  return db.getAllFromIndex("mutations", "by-enqueued", IDBKeyRange.lowerBound(sinceMs));
+}
+
 export async function listAllQueuedOrders(): Promise<QueuedOrder[]> {
   const db = await getDb();
   return db.getAllFromIndex("orders", "by-enqueued");

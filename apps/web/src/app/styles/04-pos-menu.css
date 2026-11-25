@@ -1459,3 +1459,193 @@ html[lang="ur"] .pos-dialog-title {
   font-weight: 700;
   color: var(--danger);
 }
+
+/* ── Checkout: customer suggestions under name / phone (dark header in both themes) ── */
+/* Checkout: saved-customer picker — arrow button in the name field, panel with search. */
+.pos-cust-trigger {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  pointer-events: auto;
+  display: flex;
+  height: 100%;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-inline-start: 1px solid rgba(240, 176, 40, 0.25);
+  border-start-end-radius: 0.75rem;
+  border-end-end-radius: 0.75rem;
+  color: #f0b028;
+  transition: background 0.15s;
+}
+.pos-cust-trigger:hover,
+.pos-cust-trigger.is-open {
+  background: rgba(240, 176, 40, 0.16);
+}
+.pos-cust-trigger svg {
+  transition: transform 0.15s;
+}
+.pos-cust-trigger.is-open svg {
+  transform: rotate(180deg);
+}
+.pos-cust-trigger:focus-visible {
+  outline: 2px solid #f0b028;
+  outline-offset: -2px;
+}
+.pos-cust-panel {
+  position: absolute;
+  /* Under the name field, growing past it (readable where the field is a narrow column). */
+  inset-inline-start: 0;
+  pointer-events: auto;
+  width: min(30rem, calc(100vw - 2rem));
+  top: calc(100% + 6px);
+  z-index: 50;
+  padding: 0.5rem;
+  border: 1px solid rgba(240, 176, 40, 0.35);
+  border-radius: 14px;
+  background: #2a140e;
+  color: #fff4e8;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+}
+.pos-cust-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(240, 176, 40, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 244, 232, 0.06);
+  color: #d9bfa6;
+}
+.pos-cust-search:focus-within {
+  border-color: #f0b028;
+}
+.pos-cust-search input {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: #fff4e8;
+  font-size: 1rem;
+  outline: none;
+}
+.pos-cust-search input::placeholder {
+  color: #b39b85;
+}
+.pos-cust-panel-title {
+  margin: 0.55rem 0.35rem 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #b39b85;
+}
+.pos-cust-empty {
+  margin: 0;
+  padding: 1rem 0.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #d9bfa6;
+}
+.pos-cust-rows {
+  max-height: min(20rem, 50vh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pos-cust-addr {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: #fff4e8;
+}
+.pos-cust-addr svg {
+  flex-shrink: 0;
+  color: #f0b028;
+}
+.pos-cust-tag {
+  border-radius: 999px;
+  background: rgba(240, 176, 40, 0.18);
+  padding: 0 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #f0b028;
+}
+.pos-cust-option + .pos-cust-option {
+  margin-top: 2px;
+}
+.pos-cust-option.is-picked {
+  box-shadow: inset 3px 0 0 #f0b028;
+}
+.pos-cust-option {
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 9px;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.pos-cust-option.is-active {
+  background: rgba(240, 176, 40, 0.18);
+}
+.pos-cust-meta {
+  display: flex;
+  min-width: 0;
+  gap: 0.5rem;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: #d9bfa6;
+}
+.pos-cust-note {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f0b028;
+}
+.pos-cust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 28px;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  background: rgba(240, 176, 40, 0.16);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f0b028;
+  white-space: nowrap;
+}
+.pos-cust-badge.is-new {
+  background: rgba(255, 244, 232, 0.08);
+  color: #d9bfa6;
+}
+.pos-cust-chip {
+  min-height: 32px;
+  max-width: 100%;
+  padding: 0 0.6rem;
+  border: 1px solid rgba(240, 176, 40, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.75rem;
+  color: #fff4e8;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pos-cust-chip:hover,
+.pos-cust-chip.is-active {
+  background: rgba(240, 176, 40, 0.18);
+}
+@media (pointer: coarse) {
+  .pos-cust-chip {
+    min-height: 44px;
+  }
+}

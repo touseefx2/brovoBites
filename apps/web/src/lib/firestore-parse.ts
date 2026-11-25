@@ -149,6 +149,9 @@ export function asOrder(id: string, data: DocumentData): Order {
     ...(typeof data.customerPhone === "string" && data.customerPhone.trim()
       ? { customerPhone: data.customerPhone.trim() }
       : {}),
+    ...(typeof data.customerKey === "string" && /^\d{7,15}$/.test(data.customerKey)
+      ? { customerKey: data.customerKey }
+      : {}),
     ...(typeof data.deliveryAddress === "string" && data.deliveryAddress.trim()
       ? { deliveryAddress: data.deliveryAddress.trim() }
       : {}),

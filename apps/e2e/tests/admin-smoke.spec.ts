@@ -31,6 +31,18 @@ const SCREENS: Screen[] = [
     },
   },
   {
+    path: "/admin/customers",
+    name: "customers (list, search, a customer's orders)",
+    extra: async (page) => {
+      const first = page.locator("[data-customer]").first();
+      if (await first.isVisible()) {
+        await first.click();
+        await expect(page.getByTestId("customer-orders").or(page.getByText("No orders yet"))).toBeVisible({ timeout: 30_000 });
+        await page.getByRole("button", { name: "Close" }).first().click();
+      }
+    },
+  },
+  {
     path: "/admin/item-sales",
     name: "item sales (+ All time)",
     extra: async (page) => {

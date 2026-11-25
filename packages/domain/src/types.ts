@@ -174,6 +174,8 @@ export interface Order {
   customerName?: string;
   /** Optional phone entered at counter */
   customerPhone?: string;
+  /** The phone as a customer key ("03001234567", see phoneKey) — finds a customer's orders. */
+  customerKey?: string;
   /** Delivery address — only for delivery orders */
   deliveryAddress?: string;
   /** Optional table number — dine-in only */

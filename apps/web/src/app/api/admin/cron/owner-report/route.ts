@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { runDailyOwnerReport, runOwnerReportUpdates } from "@/lib/server/daily-report";
+import { reconcileChangedCustomers } from "@/lib/server/customers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,8 +22,15 @@ export async function GET(req: NextRequest) {
     const db = getAdminDb();
     const daily = await runDailyOwnerReport(db);
     const updates = await runOwnerReportUpdates(db);
+    // Safety net for customers (a PC that couldn't send its update): never fails the report run.
+    const customers = await reconcileChangedCustomers(db).catch(
+      (err: unknown) => {
+        console.error("[customers] cron", err);
+        return { error: err instanceof Error ? err.message : String(err) };
+      },
+    );
     const failed = daily.status === "failed" || updates.some((u) => u.status === "failed");
-    return NextResponse.json({ daily, updates }, { status: failed ? 500 : 200 });
+    return NextResponse.json({ daily, updates, customers }, { status: failed ? 500 : 200 });
   } catch (err) {
     console.error("[owner-report] cron", err);
     return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 500 });

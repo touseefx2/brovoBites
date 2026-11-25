@@ -14,7 +14,8 @@
     "seed:e2e": "tsx scripts/seed-e2e.ts",
     "backfill-images": "tsx scripts/backfill-images.ts",
     "images:sync": "tsx scripts/sync-static-images.ts",
-    "receipt-logo": "tsx scripts/build-receipt-logo.ts"
+    "receipt-logo": "tsx scripts/build-receipt-logo.ts",
+    "customers:rebuild": "tsx scripts/rebuild-customers.ts"
   },
   "dependencies": {
     "@bravobites/domain": "workspace:^",

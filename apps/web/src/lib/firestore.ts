@@ -62,6 +62,7 @@ import {
   SHARED_MENU_ID,
   cleanParts,
   orderItemKey,
+  phoneKey,
   readChanged,
   splitPack,
   amendOrderTotals,
@@ -869,6 +870,8 @@ export async function syncQueuedOrderToFirestore(params: {
       orderType: params.orderType,
       ...(params.customerName ? { customerName: params.customerName } : {}),
       ...(params.customerPhone ? { customerPhone: params.customerPhone } : {}),
+      // The phone as typed stays for the receipt; the key finds the customer's orders.
+      ...(phoneKey(params.customerPhone) ? { customerKey: phoneKey(params.customerPhone) } : {}),
       ...(params.deliveryAddress
         ? { deliveryAddress: params.deliveryAddress }
         : {}),
@@ -929,6 +932,7 @@ export async function syncQueuedOrderToFirestore(params: {
     orderType: params.orderType,
     ...(params.customerName ? { customerName: params.customerName } : {}),
     ...(params.customerPhone ? { customerPhone: params.customerPhone } : {}),
+    ...(phoneKey(params.customerPhone) ? { customerKey: phoneKey(params.customerPhone) } : {}),
     ...(params.deliveryAddress
       ? { deliveryAddress: params.deliveryAddress }
       : {}),
@@ -1105,6 +1109,7 @@ export async function updateOrderItems(params: {
       deliveryCharges: deliveryCharges > 0 ? deliveryCharges : deleteField(),
       customerName: customerName ? customerName : deleteField(),
       customerPhone: customerPhone ? customerPhone : deleteField(),
+      customerKey: phoneKey(customerPhone) || deleteField(),
       deliveryAddress: deliveryAddress ? deliveryAddress : deleteField(),
       tableNumber: tableNumber ? tableNumber : deleteField(),
       updatedAt,
@@ -1204,6 +1209,7 @@ export async function updateOrderItems(params: {
     paymentMethod,
     ...(customerName ? { customerName } : { customerName: undefined }),
     ...(customerPhone ? { customerPhone } : { customerPhone: undefined }),
+    ...(phoneKey(customerPhone) ? { customerKey: phoneKey(customerPhone) } : { customerKey: undefined }),
     ...(deliveryAddress ? { deliveryAddress } : { deliveryAddress: undefined }),
     ...(tableNumber ? { tableNumber } : { tableNumber: undefined }),
     subtotal: totals.subtotal,
@@ -2363,8 +2369,12 @@ async function settleLocalFirst(write: Promise<unknown>): Promise<void> {
  */
 const pendingInventoryWrites = new Set<Promise<unknown>>();
 
-/** Counted until the server answers — the logout guard waits for it. */
-function trackInventoryWrite(write: Promise<unknown>): void {
+/**
+ * Counted until the server answers — the logout guard waits for it. Also used
+ * for other writes made in one person's name (a customer note), so a shared
+ * PC never leaves them in the next login's queue.
+ */
+export function trackInventoryWrite(write: Promise<unknown>): void {
   pendingInventoryWrites.add(write);
   void write.then(
     () => pendingInventoryWrites.delete(write),

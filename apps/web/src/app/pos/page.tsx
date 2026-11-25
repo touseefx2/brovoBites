@@ -17,6 +17,9 @@ import {
   isCartEmpty,
   money,
   partText,
+  applyVisit,
+  formatPhone,
+  phoneKey,
   removeFromCart,
   SHARED_MENU_ID,
   startOfBusinessDay,
@@ -30,6 +33,9 @@ import { PosThemeToggle } from "@/components/PosThemeToggle";
 import { BrandLogo } from "@/components/Brand";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DealEditorSheet, type DealEditResult } from "@/components/DealEditorSheet";
+import { CustomerPicker } from "@/components/CustomerPicker";
+import { onCustomersSnapshot, saveCustomerNote } from "@/lib/customers";
+import { CUSTOMER_OUTBOX_EVENT, queuedCustomerKeys } from "@/lib/customer-outbox";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { OrderDetailSheet } from "@/components/OrderDetailSheet";
 import { OrderListCard } from "@/components/OrderListCard";
@@ -56,6 +62,8 @@ import {
   kickSync,
   listActiveQueuedMutations,
   listActiveQueuedOrders,
+  listQueuedOrdersSince,
+  listQueuedMutationsSince,
   peekLocalNextOrderNumber,
   queuedToOrder,
   reconcileFromServer,
@@ -81,7 +89,11 @@ import {
   subscribeShopClock,
 } from "@/lib/shop-clock";
 import { resolveCategoryImage, resolveProductImage } from "@/lib/menu-images";
-import type { Order, PaymentMethod, ShopSettings } from "@bravobites/domain";
+import type { Customer, CustomerVisit, Order, PaymentMethod, ShopSettings } from "@bravobites/domain";
+import type { QueuedMutation } from "@/lib/pos-queue";
+
+/** A sale on this PC for the customer list; `inCloud`: uploaded (the cloud may count it already). */
+type LocalVisit = CustomerVisit & { inCloud: boolean };
 
 
 /** Recent orders = this business day only (e.g. 12 PM → 4 AM), not the whole history. */
@@ -450,6 +462,11 @@ function PosApp() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [tableNumber, setTableNumber] = useState("");
+  /** Customers: the cloud list (offline from the cache) + this PC's sales not counted there yet. */
+  const [cloudCustomers, setCloudCustomers] = useState<Customer[]>([]);
+  const [localVisits, setLocalVisits] = useState<LocalVisit[]>([]);
+  const [customerNote, setCustomerNote] = useState("");
+  const [customerNoteDirty, setCustomerNoteDirty] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [lockedTaxPercent, setLockedTaxPercent] = useState<number | null>(null);
   const [lockedDlvCharges, setLockedDlvCharges] = useState<number | null>(null);
@@ -995,6 +1012,134 @@ function PosApp() {
     return resolveProductImage(product?.imageUrl, line.productName, cat?.name);
   }
 
+  // Customers, live the whole time the POS is open: this browser's copy stays current, so
+  // offline the search still shows the latest numbers and notes (it never waits).
+  const signedInUid = profile?.uid;
+  useEffect(() => {
+    if (!signedInUid) return;
+    return onCustomersSnapshot(setCloudCustomers, () => {});
+  }, [signedInUid]);
+
+  // The customer outbox changed (a customer rebuilt by the server leaves it): re-read below.
+  const [outboxTick, setOutboxTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setOutboxTick((n) => n + 1);
+    window.addEventListener(CUSTOMER_OUTBOX_EVENT, bump);
+    return () => window.removeEventListener(CUSTOMER_OUTBOX_EVENT, bump);
+  }, []);
+
+  // This PC's recent sales: a customer typed in minutes ago (or offline) is found at once.
+  useEffect(() => {
+    if (!signedInUid) return;
+    let alive = true;
+    const since = new Date(Date.now() - 3 * 86_400_000).toISOString();
+    const recentMs = Date.now() - 12 * 3_600_000;
+    // Sales not in the cloud yet, and sales in the cloud whose customer the server hasn't
+    // rebuilt yet (number still in the customer outbox), each as this PC last left it: the
+    // newest cancel / delete / phone edit — waiting or already sent — applies first.
+    // Bounded reads (waiting rows + the last hours), never the whole 30-day queue.
+    void Promise.all([
+      listActiveQueuedOrders(),
+      listQueuedOrdersSince(recentMs),
+      listActiveQueuedMutations(),
+      listQueuedMutationsSince(recentMs),
+    ])
+      .then(([active, recent, activeMuts, recentMuts]) => {
+        if (!alive) return;
+        const waiting = new Set(queuedCustomerKeys());
+        const rows = new Map([...recent, ...active].map((q) => [q.clientId, q]));
+        const muts = new Map([...recentMuts, ...activeMuts].map((m) => [m.mutationId, m]));
+        const latest = new Map<string, QueuedMutation>();
+        for (const m of [...muts.values()].sort((a, b) => a.enqueuedAt - b.enqueuedAt)) {
+          if (m.outcome !== "dropped") latest.set(m.orderId, m);
+        }
+        const visits: LocalVisit[] = [];
+        for (const q of rows.values()) {
+          if (q.createdAt < since) continue;
+          const m = latest.get(q.clientId);
+          if (m?.kind === "delete" || m?.orderAfter.status === "cancelled") continue;
+          const o = m?.orderAfter;
+          const key = phoneKey(o ? o.customerPhone : q.customerPhone);
+          if (!key) continue;
+          const inCloud = q.status === "synced";
+          if (inCloud && !waiting.has(key)) continue; // the cloud's customer already counts it
+          visits.push({
+            key,
+            name: (o ? o.customerName : q.customerName) ?? "",
+            address: o ? o.deliveryAddress : q.deliveryAddress,
+            total: o ? o.total : q.total,
+            at: q.createdAt,
+            inCloud,
+          });
+        }
+        setLocalVisits(visits);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [signedInUid, queueSnap.pendingCount, checkoutPreviewOpen, outboxTick]);
+
+  /** Cloud customers + this PC's sales the cloud hasn't counted yet (never counted twice). */
+  const posCustomers = useMemo(() => {
+    const byKey = new Map(cloudCustomers.map((c) => [c.id, c]));
+    // A merged-away number counts for the customer it was merged into.
+    const owner = new Map<string, string>();
+    for (const c of cloudCustomers) for (const alt of c.altPhones ?? []) owner.set(alt, c.id);
+    for (const v of [...localVisits].sort((a, b) => a.at.localeCompare(b.at))) {
+      const key = owner.get(v.key) ?? v.key;
+      const prev = byKey.get(key) ?? null;
+      // In the cloud and not newer than the customer's last counted order: already counted.
+      // (A sale not uploaded yet can't be counted there, even if another PC's is newer.)
+      if (v.inCloud && prev && prev.lastOrderAt && v.at <= prev.lastOrderAt) continue;
+      byKey.set(key, applyVisit(prev, { ...v, key }));
+    }
+    return [...byKey.values()];
+  }, [cloudCustomers, localVisits]);
+
+  const phoneKeyTyped = phoneKey(customerPhone);
+  /** The customer behind the typed phone (also through a merged number). */
+  const knownCustomer = useMemo(
+    () =>
+      phoneKeyTyped
+        ? posCustomers.find((c) => c.id === phoneKeyTyped || c.altPhones?.includes(phoneKeyTyped)) ?? null
+        : null,
+    [posCustomers, phoneKeyTyped],
+  );
+  // The note box shows the customer's note until someone types in it; another
+  // number starts again from that customer's note (a typed note never moves over).
+  const noteForKey = useRef("");
+  useEffect(() => {
+    const key = knownCustomer?.id ?? phoneKeyTyped;
+    if (key !== noteForKey.current) {
+      noteForKey.current = key;
+      setCustomerNoteDirty(false);
+      setCustomerNote(knownCustomer?.note ?? "");
+      return;
+    }
+    if (!customerNoteDirty) setCustomerNote(knownCustomer?.note ?? "");
+  }, [knownCustomer?.id, knownCustomer?.note, phoneKeyTyped, customerNoteDirty]);
+
+  /**
+   * A saved customer picked: fill everything known. The address is filled for any order
+   * type — it goes on the bill / receipt only when Delivery is chosen.
+   */
+  function pickCustomer(c: Customer) {
+    setCustomerName(c.name);
+    setCustomerPhone(formatPhone(c.id));
+    setDeliveryAddress(c.addresses[0] ?? "");
+    setCustomerNote(c.note);
+    setCustomerNoteDirty(false);
+  }
+
+  function resetCustomerFields() {
+    setCustomerName("");
+    setCustomerPhone("");
+    setDeliveryAddress("");
+    setCustomerNote("");
+    setCustomerNoteDirty(false);
+  }
+
   function closeCheckoutPreview() {
     if (busy) return;
     setCheckoutPreviewOpen(false);
@@ -1002,9 +1147,7 @@ function PosApp() {
     setPreviewOrderNumber(null);
     setPreviewAt("");
     setOrderType("dine-in");
-    setCustomerName("");
-    setCustomerPhone("");
-    setDeliveryAddress("");
+    resetCustomerFields();
     setTableNumber("");
     setPaymentMethod("cash");
     setDiscountType("percent");
@@ -1035,9 +1178,7 @@ function PosApp() {
     setMobileCartOpen(false);
     setPreviewAt(shopNowIso());
     setPreviewOrderNumber(null);
-    setCustomerName("");
-    setCustomerPhone("");
-    setDeliveryAddress("");
+    resetCustomerFields();
     setTableNumber("");
     setCheckoutPreviewOpen(true);
     void (async () => {
@@ -1168,6 +1309,12 @@ function PosApp() {
         user: profile,
       });
 
+      // A note written for this customer goes up on its own (offline: Firestore's queue) — never waited for.
+      if (customerNoteDirty && phoneKey(customerPhone) && profile) {
+        // The customer it is shown for (a merged-away number writes to the kept customer).
+        void saveCustomerNote(knownCustomer?.id ?? customerPhone, customerNote, profile).catch(() => {});
+      }
+
       // Local save done — clear cart + close modal, then print (no success popup).
       setLastOrder(order);
       setCart([]);
@@ -1176,9 +1323,7 @@ function PosApp() {
       setCheckoutModalError(null);
       setPreviewOrderNumber(null);
       setPreviewAt("");
-      setCustomerName("");
-      setCustomerPhone("");
-      setDeliveryAddress("");
+      resetCustomerFields();
       setTableNumber("");
       setDiscountType("percent");
       setDiscountValue(0);
@@ -1965,14 +2110,16 @@ function PosApp() {
                       type="text"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base outline-none transition sm:text-sm"
-                      autoComplete="name"
+                      className={`h-11 w-full modal-dark-input rounded-xl ps-3 text-base outline-none transition sm:text-sm ${
+                        customerName ? "pe-[5.25rem]" : "pe-12"
+                      }`}
+                      autoComplete="off"
                       maxLength={80}
                     />
                     {customerName ? (
                       <button
                         type="button"
-                        className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
+                        className="pos-field-clear absolute inset-y-0 end-10 flex w-10 items-center justify-center"
                         aria-label={t("clear")}
                         onClick={() => setCustomerName("")}
                       >
@@ -1983,6 +2130,13 @@ function PosApp() {
                         </span>
                       </button>
                     ) : null}
+                    {/* Saved customers: search by name or number, pick to fill the bill. */}
+                    <CustomerPicker
+                      className="pointer-events-none absolute inset-0"
+                      customers={posCustomers}
+                      onPick={pickCustomer}
+                      selectedId={knownCustomer?.id}
+                    />
                   </div>
                 </section>
 
@@ -2004,8 +2158,8 @@ function PosApp() {
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
-                      autoComplete="tel"
-                      maxLength={20}
+                      autoComplete="off"
+                      maxLength={24}
                       dir="ltr"
                     />
                     {customerPhone ? (
@@ -2103,6 +2257,23 @@ function PosApp() {
                         </button>
                       ) : null}
                     </div>
+                    {/* A known customer's saved addresses: one tap to use. */}
+                    {knownCustomer && knownCustomer.addresses.length > 0 &&
+                    !(knownCustomer.addresses.length === 1 && knownCustomer.addresses[0] === deliveryAddress.trim()) ? (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5" aria-label={t("customerSavedAddresses")}>
+                        {knownCustomer.addresses.slice(0, 3).map((a) => (
+                          <button
+                            key={a}
+                            type="button"
+                            className={`pos-cust-chip ${a === deliveryAddress.trim() ? "is-active" : ""}`}
+                            onClick={() => setDeliveryAddress(a)}
+                            title={a}
+                          >
+                            <bdi>{a}</bdi>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </section>
                 ) : null}
 
@@ -2244,6 +2415,33 @@ function PosApp() {
                   ) : null}
                 </section>
               </div>
+              {/* A phone number typed: who it is, and the counter note for them. */}
+              {phoneKeyTyped ? (
+                <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <span
+                    className={`pos-cust-badge ${knownCustomer && knownCustomer.orderCount > 0 ? "" : "is-new"}`}
+                    data-testid="checkout-customer-badge"
+                  >
+                    {knownCustomer && knownCustomer.orderCount > 0
+                      ? `${t("customerReturning")} · ${t(knownCustomer.orderCount === 1 ? "customerOrdersOne" : "customerOrders").replace("{n}", String(knownCustomer.orderCount))}`
+                      : t("customerNew")}
+                  </span>
+                  <input
+                    id="checkout-customer-note"
+                    type="text"
+                    value={customerNote}
+                    onChange={(e) => {
+                      setCustomerNote(e.target.value);
+                      setCustomerNoteDirty(true);
+                    }}
+                    placeholder={t("customerNotePlaceholder")}
+                    aria-label={t("customerNoteLabel")}
+                    maxLength={300}
+                    autoComplete="off"
+                    className="h-10 min-w-0 flex-1 modal-dark-input rounded-xl px-3 text-sm outline-none transition"
+                  />
+                </div>
+              ) : null}
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
@@ -2266,7 +2464,11 @@ function PosApp() {
                           onClick={() => {
                             setOrderType(ot);
                             if (ot !== "dine-in") setTableNumber("");
-                            if (ot !== "delivery") setDeliveryAddress("");
+                            // The address stays filled (it prints only for Delivery); a known
+                            // customer's last address is ready when Delivery is chosen.
+                            if (ot === "delivery" && !deliveryAddress && knownCustomer?.addresses[0]) {
+                              setDeliveryAddress(knownCustomer.addresses[0]);
+                            }
                           }}
                         >
                           {selected ? (

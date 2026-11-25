@@ -406,6 +406,38 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Customers — one per phone number (id = its key, e.g. 03001234567).
+    // Everyone signed in reads them (POS search, also offline from the cache).
+    // Their numbers are rebuilt from the orders by the server only; anyone
+    // signed in may write the counter note (stamped: who, server time).
+    function customerNoteOk(key) {
+      let d = request.resource.data;
+      return key.matches('^[0-9]{7,15}$')
+        && d.phone == key
+        && d.note is string
+        && d.note.size() <= 300
+        && d.noteUpdatedBy == request.auth.uid
+        // The name shown with the note is the writer's own (display name, else email).
+        && d.noteUpdatedByName is string
+        && d.noteUpdatedByName.size() <= 120
+        && (d.noteUpdatedByName == userDoc().get('displayName', '')
+          || d.noteUpdatedByName == userDoc().get('email', ''))
+        && d.noteUpdatedAt == request.time;
+    }
+
+    match /customers/{key} {
+      allow read: if isActiveUser();
+      allow create: if isActiveUser()
+        && customerNoteOk(key)
+        && request.resource.data.keys().hasOnly(['phone', 'note', 'noteUpdatedBy', 'noteUpdatedByName', 'noteUpdatedAt']);
+      allow update: if isActiveUser()
+        && customerNoteOk(key)
+        && !('mergedInto' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['note', 'noteUpdatedBy', 'noteUpdatedByName', 'noteUpdatedAt']);
+      allow delete: if false;
+    }
+
     match /settings/{id} {
       allow read: if true;
       allow write: if isOwner();

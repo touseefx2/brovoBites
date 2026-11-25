@@ -25,6 +25,8 @@ export {
   listAllQueuedExpenses,
   listAllQueuedMutations,
   listAllQueuedOrders,
+  listQueuedOrdersSince,
+  listQueuedMutationsSince,
   peekLocalNextOrderNumber,
   reconcileFromServer,
   reconcileLastOrderNumber,

@@ -572,6 +572,9 @@ async function doSync(
     }
   }
 
+  // Customers of what reached the cloud: sent on the side, never holding the pass.
+  customerUpdate();
+
   // Synced rows stay as the local copy for 30 days, not forever.
   live(epoch);
   if (Date.now() - lastPruneAt >= PRUNE_EVERY_MS) {
@@ -582,6 +585,22 @@ async function doSync(
       console.error("[pos-queue] prune failed", err);
     }
   }
+}
+
+/**
+ * Customers to bring up to date after something reached the cloud, then sent.
+ * Loaded on demand (after the first pass it is in memory, so it also queues
+ * when the line drops right after a write; the send itself waits for the
+ * line). The sync engine stays free of it, and a failure never touches a
+ * sale (the hourly server run catches up).
+ */
+function customerUpdate(...phones: (string | undefined)[]): void {
+  void import("@/lib/customer-outbox")
+    .then((m) => {
+      if (phones.length > 0) m.queueCustomerUpdate(...phones);
+      else void m.flushCustomerUpdates();
+    })
+    .catch(() => {});
 }
 
 function deviceTimeIfChanged(q: QueuedOrder): string | undefined {
@@ -657,6 +676,8 @@ async function syncOne(q: QueuedOrder, user: AppUser, epoch: number): Promise<vo
       };
       await putQueuedOrder(q);
       await markOrderSynced(q.orderNumber);
+      // In the cloud: its customer gets brought up to date (best effort, after the pass).
+      customerUpdate(q.customerPhone);
     } catch (err) {
       let failure: unknown = err;
       if (err instanceof OrderNumberCollisionError) {
@@ -859,6 +880,8 @@ async function syncOneMutation(m: QueuedMutation, epoch: number): Promise<void> 
       updatedAt: Date.now(),
       syncedAt: Date.now(),
     });
+    // The order changed (edit, cancel, refund, delete): its customer(s), old and new number.
+    customerUpdate(m.orderBefore?.customerPhone, m.orderAfter?.customerPhone);
     lastError = null;
   } catch (err) {
     if (err instanceof PassAbandonedError) throw err;

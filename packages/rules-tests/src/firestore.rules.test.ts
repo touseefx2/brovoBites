@@ -1081,3 +1081,73 @@ describe("owner report email — recipients are owner-only", () => {
     await assertFails(setDoc(doc(ownerAuth(), "reportEmails/x"), { kind: "manual" }));
   });
 });
+
+describe("customers — everyone signed in reads; numbers by the server; anyone writes the note", () => {
+  const KEY = "03001234567";
+  const NAMES: Record<string, string> = { staff1: "Staff One", staff2: "Staff Two", owner1: "Owner One" };
+  const note = (by: string, text = "Gate 2, extra spicy", name = NAMES[by] ?? "") => ({
+    phone: KEY,
+    note: text,
+    noteUpdatedBy: by,
+    noteUpdatedByName: name,
+    noteUpdatedAt: serverTimestamp(),
+  });
+  // Notes carry the writer's own name: give the seeded users names.
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      for (const [uid, displayName] of Object.entries(NAMES)) {
+        await setDoc(doc(ctx.firestore(), `users/${uid}`), { displayName }, { merge: true });
+      }
+    });
+  });
+  const seedCustomer = (data: Record<string, unknown>, key = KEY) =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `customers/${key}`), data);
+    });
+  const stats = { phone: KEY, name: "Ali", orderCount: 3, totalSpent: 1500, addresses: ["House 1"], otherNames: [] };
+
+  it("staff, coworkers and owners read one and the whole list; disabled and signed-out users can't", async () => {
+    await seedCustomer(stats);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "users/staffOff"), { role: "counter", isActive: false, branchIds: ["main"] });
+    });
+    await assertSucceeds(getDoc(doc(staffAuth(), `customers/${KEY}`)));
+    await assertSucceeds(getDocs(collection(coworkerAuth(), "customers")));
+    await assertSucceeds(getDocs(query(collection(ownerAuth(), "customers"), orderBy("lastOrderAt", "desc"), limit(50))));
+    await assertFails(getDocs(collection(env.authenticatedContext("staffOff").firestore(), "customers")));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), `customers/${KEY}`)));
+  });
+
+  it("staff write the note — new customer or existing — stamped with themselves and the server time", async () => {
+    await assertSucceeds(setDoc(doc(staffAuth(), `customers/${KEY}`), note("staff1")));
+    await seedCustomer({ ...stats, phone: "03211234567" }, "03211234567");
+    await assertSucceeds(
+      setDoc(doc(coworkerAuth(), "customers/03211234567"), { ...note("staff2"), phone: "03211234567" }, { merge: true }),
+    );
+    // Someone else's name on it, a client clock, too long, or a key that isn't a number: refused.
+    await assertFails(setDoc(doc(staffAuth(), `customers/${KEY}`), note("staff2"), { merge: true }));
+    await assertFails(setDoc(doc(staffAuth(), `customers/${KEY}`), { ...note("staff1"), noteUpdatedAt: Timestamp.now() }, { merge: true }));
+    await assertFails(setDoc(doc(staffAuth(), `customers/${KEY}`), note("staff1", "x".repeat(301)), { merge: true }));
+    await assertFails(setDoc(doc(staffAuth(), "customers/ali"), { ...note("staff1"), phone: "ali" }));
+    // Someone else's name shown as the author: refused.
+    await assertFails(setDoc(doc(staffAuth(), `customers/${KEY}`), note("staff1", "x", "Owner One"), { merge: true }));
+  });
+
+  it("staff can't touch the numbers, names or addresses — not on create, not on update", async () => {
+    await assertFails(setDoc(doc(staffAuth(), `customers/${KEY}`), { ...note("staff1"), orderCount: 99 }));
+    await seedCustomer(stats);
+    await assertFails(updateDoc(doc(staffAuth(), `customers/${KEY}`), { orderCount: 99 }));
+    await assertFails(setDoc(doc(staffAuth(), `customers/${KEY}`), { ...note("staff1"), name: "Someone" }, { merge: true }));
+    await assertFails(setDoc(doc(staffAuth(), `customers/${KEY}`), { ...note("staff1"), addresses: [] }, { merge: true }));
+    // Owners too: those come from the orders (server), not from a screen.
+    await assertFails(updateDoc(doc(ownerAuth(), `customers/${KEY}`), { totalSpent: 1 }));
+  });
+
+  it("a number merged into another customer takes no note; nobody deletes from the app", async () => {
+    await seedCustomer({ phone: KEY, mergedInto: "03211234567" });
+    await assertFails(setDoc(doc(staffAuth(), `customers/${KEY}`), note("staff1"), { merge: true }));
+    await seedCustomer(stats, "03211234567");
+    await assertFails(deleteDoc(doc(ownerAuth(), "customers/03211234567")));
+    await assertFails(deleteDoc(doc(staffAuth(), "customers/03211234567")));
+  });
+});
