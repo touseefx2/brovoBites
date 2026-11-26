@@ -218,6 +218,8 @@ function buildCopyEscPos(
     softwareCompanyPhone?: string;
     /** Customer copy: the logo in place of the shop name, website under the branch. */
     logo?: boolean;
+    /** "PAID" / "PENDING" on the payment line (owner setting). */
+    showPaymentStatus?: boolean;
   },
 ): void {
   const { order, shopName, branchName, labels, showReprint, copyLabel, kitchen, reviewUrl } = opts;
@@ -329,20 +331,10 @@ function buildCopyEscPos(
   buf.boldOn();
   buf.lr(labels.total, formatPkr(order.total));
   buf.boldOff();
-  // Same lines as print-receipt.ts (receiptPayment): fixed ASCII status words.
-  const payment = receiptPayment(order, labels);
+  // Same lines as print-receipt.ts (receiptPayment): plain text, fixed ASCII status words.
+  const payment = receiptPayment(order, labels, opts.showPaymentStatus);
   buf.lr(labels.paymentMethod, payment.value);
   if (payment.paidOn) buf.lr(RECEIPT_PAID_ON, payment.paidOn);
-  if (payment.banner) {
-    // Only commands already proven on the POS80 (shop-name line): ESC a 1,
-    // ESC E 1, GS ! 0x11 — 15 chars at double width = 30 of 48 columns.
-    // Always back to normal / bold off / left before anything else prints.
-    buf.separator("*");
-    buf.center().boldOn().doubleSize();
-    buf.line(payment.banner);
-    buf.normalSize().boldOff().left();
-    buf.separator("*");
-  }
   buf.lf();
 
   // Thank you + QR
@@ -382,6 +374,7 @@ export function buildReceiptEscPos(opts: ReceiptOptions): Uint8Array {
     softwareCompanyName, softwareCompanyPhone,
     copies = ["customer", "branch", "kitchen"],
     reviewUrl,
+    showPaymentStatus,
   } = opts;
 
   const copyLabels: Record<ReceiptCopy, string> = {
@@ -409,6 +402,7 @@ export function buildReceiptEscPos(opts: ReceiptOptions): Uint8Array {
       reviewUrl: copy === "customer" ? reviewUrl : undefined,
       softwareCompanyName, softwareCompanyPhone,
       logo: copy === "customer",
+      showPaymentStatus,
     });
     buf.cut();
   });

@@ -71,6 +71,9 @@ export default function LandingPageSettings() {
   const [receiptPrintWidthMm, setReceiptPrintWidthMm] = useState(
     DEFAULT_SETTINGS.receiptPrintWidthMm,
   );
+  const [receiptShowPaymentStatus, setReceiptShowPaymentStatus] = useState(
+    DEFAULT_SETTINGS.receiptShowPaymentStatus,
+  );
   const [businessDayStart, setBusinessDayStart] = useState(
     DEFAULT_SETTINGS.businessDayStart,
   );
@@ -108,6 +111,7 @@ export default function LandingPageSettings() {
         setSoftwareCompanyPhone(s.softwareCompanyPhone);
         setReceiptPaper(s.receiptPaper);
         setReceiptPrintWidthMm(s.receiptPrintWidthMm);
+        setReceiptShowPaymentStatus(s.receiptShowPaymentStatus);
         setBusinessDayStart(s.businessDayStart || DEFAULT_SETTINGS.businessDayStart);
         setBusinessDayEnd(s.businessDayEnd || DEFAULT_SETTINGS.businessDayEnd);
         setLogoUrl(s.logoUrl);
@@ -182,6 +186,7 @@ export default function LandingPageSettings() {
         softwareCompanyPhone: softwareCompanyPhone.trim(),
         receiptPaper,
         receiptPrintWidthMm: clampPrintWidth(receiptPrintWidthMm),
+        receiptShowPaymentStatus,
         businessDayStart: start,
         businessDayEnd: end,
         logoUrl: finalLogoUrl,
@@ -230,6 +235,7 @@ export default function LandingPageSettings() {
       dir,
       paper: receiptPaper,
       paperWidthMm: clampPrintWidth(receiptPrintWidthMm),
+      showPaymentStatus: receiptShowPaymentStatus,
       copies: ["customer"],
     });
     if (!ok) showToast("error", t("errGeneric"));
@@ -510,6 +516,33 @@ export default function LandingPageSettings() {
               </div>
             ) : null}
           </div>
+
+          {/* Payment status on the slip: off = the method only, as always printed. */}
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3 select-none">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={receiptShowPaymentStatus}
+              data-testid="receipt-show-payment-status"
+              onClick={() => setReceiptShowPaymentStatus((v) => !v)}
+              disabled={saving}
+              className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                receiptShowPaymentStatus ? "bg-[var(--bb-red-600)]" : "bg-stone-300"
+              }`}
+            >
+              <span
+                className={`inline-block size-[1.125rem] rounded-full bg-white shadow transition-transform ${
+                  receiptShowPaymentStatus
+                    ? "translate-x-[1.375rem] rtl:-translate-x-[1.375rem]"
+                    : "translate-x-[0.1875rem] rtl:-translate-x-[0.1875rem]"
+                }`}
+              />
+            </button>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-[var(--ink)]">{t("receiptShowPaymentStatus")}</span>
+              <span className="mt-0.5 block text-xs text-[var(--muted)]">{t("receiptShowPaymentStatusHint")}</span>
+            </span>
+          </label>
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <button

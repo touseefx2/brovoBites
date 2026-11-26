@@ -494,6 +494,18 @@ html[dir="rtl"] .admin-filter-panel select.input:not([dir="ltr"]) {
   background: var(--bb-mustard-500);
   color: var(--bb-on-accent);
 }
+/* Checkout rails on wide screens: one row per option (icon · label · check),
+   a fixed height so nothing can overlap however short the dialog is. */
+@media (min-width: 1024px) {
+  .pos-opt--row {
+    padding-inline-end: 2.1rem;
+  }
+  .pos-opt--row .pos-opt-check {
+    top: 50%;
+    inset-inline-end: 0.75rem;
+    transform: translateY(-50%);
+  }
+}
 .pos-foot {
   border-top: 1px solid var(--border);
   background: #ffffff;

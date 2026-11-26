@@ -1049,6 +1049,7 @@ function PosApp() {
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
+      showPaymentStatus: settings?.receiptShowPaymentStatus === true,
       copies: [...printCopies] as ReceiptCopy[],
     });
   }, [
@@ -1075,6 +1076,7 @@ function PosApp() {
     settings?.shopName,
     settings?.receiptPaper,
     settings?.receiptPrintWidthMm,
+    settings?.receiptShowPaymentStatus,
     settings?.googleReviewUrl,
     activeBranchName,
     softwareCompanyName,
@@ -1303,6 +1305,7 @@ function PosApp() {
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
+      showPaymentStatus: settings?.receiptShowPaymentStatus === true,
       copies: [...printCopies] as ReceiptCopy[],
     });
   }
@@ -2153,7 +2156,7 @@ function PosApp() {
             disabled={busy}
             onClick={() => closeCheckoutPreview()}
           />
-          <div className="pos-dialog relative z-10 flex max-h-[min(95dvh,42rem)] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:rounded-2xl">
+          <div className="pos-dialog relative z-10 flex max-h-[min(96dvh,52rem)] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl shadow-[0_25px_80px_rgba(0,0,0,0.45)] sm:rounded-2xl">
             {/* Header — title + customer + discount */}
             <div className="modal-dark-head shrink-0 px-4 pb-3.5 pt-4 sm:px-5 sm:pt-[1.125rem]">
               <div className="flex items-start justify-between gap-3">
@@ -2551,9 +2554,9 @@ function PosApp() {
 
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
                 {/* Left — order type (espresso rail, tall option cards) */}
-                <div className="pos-rail flex shrink-0 flex-col border-b px-3 py-3 sm:px-3.5 lg:w-[11rem] lg:border-b-0 lg:border-e lg:py-4">
+                <div className="pos-rail flex shrink-0 flex-col border-b px-3 py-3 sm:px-3.5 lg:w-[13.75rem] lg:overflow-y-auto lg:border-b-0 lg:border-e lg:py-4">
                   <p className="pos-rail-title mb-3 shrink-0 text-center">{t("orderType")}</p>
-                  <div className="grid grid-cols-3 gap-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2.5">
+                  <div className="grid grid-cols-3 gap-2 lg:flex lg:flex-col lg:gap-2">
                     {(["dine-in", "takeaway", "delivery"] as const).map((ot) => {
                       const selected = orderType === ot;
                       const label =
@@ -2563,7 +2566,7 @@ function PosApp() {
                           key={ot}
                           type="button"
                           aria-pressed={selected}
-                          className={`pos-opt min-h-14 gap-2 px-2 py-2.5 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2.5 lg:py-3 ${
+                          className={`pos-opt pos-opt--row min-h-14 gap-2 px-2 py-2.5 lg:h-[3.75rem] lg:min-h-0 lg:shrink-0 lg:justify-start lg:gap-3 lg:px-3 lg:py-0 ${
                             selected ? "is-active" : ""
                           }`}
                           onClick={() => {
@@ -2584,12 +2587,12 @@ function PosApp() {
                             </span>
                           ) : null}
                           <span
-                            className="pos-opt-icon size-9 text-[1.25rem] leading-none lg:size-16 lg:text-[2rem]"
+                            className="pos-opt-icon size-9 shrink-0 text-[1.25rem] leading-none lg:size-10 lg:text-[1.375rem]"
                             aria-hidden
                           >
                             <OptIcon kind={ot} />
                           </span>
-                          <span className="text-xs font-bold tracking-wide lg:text-sm">{label}</span>
+                          <span className="min-w-0 text-xs font-bold leading-tight tracking-wide lg:text-[0.9375rem]">{label}</span>
                         </button>
                       );
                     })}
@@ -2602,9 +2605,9 @@ function PosApp() {
                 </div>
 
                 {/* Right — payment (espresso rail, matches order type) */}
-                <div className="pos-rail flex shrink-0 flex-col border-b px-3 py-3 sm:px-3.5 lg:w-[11.5rem] lg:border-b-0 lg:border-s lg:py-4">
+                <div className="pos-rail flex shrink-0 flex-col border-b px-3 py-3 sm:px-3.5 lg:w-[13.75rem] lg:overflow-y-auto lg:border-b-0 lg:border-s lg:py-4">
                   <p className="pos-rail-title mb-3 shrink-0 text-center">{t("paymentMethod")}</p>
-                  <div className="grid grid-cols-3 gap-2 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2.5">
+                  <div className="grid grid-cols-3 gap-2 lg:flex lg:flex-col lg:gap-2">
                     {(["cash", "card", "digital"] as const).map((pm) => {
                       const selected = paymentMethod === pm;
                       const label = pm === "cash" ? t("cash") : pm === "card" ? t("card") : t("digital");
@@ -2614,7 +2617,7 @@ function PosApp() {
                           type="button"
                           aria-pressed={selected}
                           title={pm === "digital" ? t("digitalHint") : label}
-                          className={`pos-opt min-h-14 gap-2 px-2 py-2.5 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2.5 lg:py-3 ${
+                          className={`pos-opt pos-opt--row min-h-14 gap-2 px-2 py-2.5 lg:h-[3.75rem] lg:min-h-0 lg:shrink-0 lg:justify-start lg:gap-3 lg:px-3 lg:py-0 ${
                             selected ? "is-active" : ""
                           }`}
                           onClick={() => setPaymentMethod(pm)}
@@ -2627,12 +2630,12 @@ function PosApp() {
                             </span>
                           ) : null}
                           <span
-                            className="pos-opt-icon size-9 text-[1.25rem] leading-none lg:size-16 lg:text-[2rem]"
+                            className="pos-opt-icon size-9 shrink-0 text-[1.25rem] leading-none lg:size-10 lg:text-[1.375rem]"
                             aria-hidden
                           >
                             <OptIcon kind={pm} />
                           </span>
-                          <span className="text-xs font-bold tracking-wide lg:text-sm">{label}</span>
+                          <span className="min-w-0 text-xs font-bold leading-tight tracking-wide lg:text-[0.9375rem]">{label}</span>
                         </button>
                       );
                     })}

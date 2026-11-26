@@ -723,6 +723,7 @@ export function OrderDetailSheet({
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
+      showPaymentStatus: settings?.receiptShowPaymentStatus === true,
       copies: [...printCopies] as ReceiptCopy[],
     });
     setPrintPreviewOpen(false);
@@ -745,11 +746,12 @@ export function OrderDetailSheet({
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
+      showPaymentStatus: settings?.receiptShowPaymentStatus === true,
       copies: [...printCopies] as ReceiptCopy[],
     });
     // `order`: a payment change (no updatedAt) must refresh an open preview.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [printPreviewOpen, printCopies, order, dirty, draft, draftOrderType, draftPayment, draftCustomerName, draftCustomerPhone, draftDeliveryAddress, draftTableNumber, draftDiscountType, draftDiscountValue]);
+  }, [printPreviewOpen, printCopies, order, settings, dirty, draft, draftOrderType, draftPayment, draftCustomerName, draftCustomerPhone, draftDeliveryAddress, draftTableNumber, draftDiscountType, draftDiscountValue]);
 
   const typeOptions: { id: OrderType; label: string }[] = [
     { id: "dine-in", label: t("dineIn") },

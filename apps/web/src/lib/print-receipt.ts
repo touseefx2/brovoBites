@@ -122,6 +122,8 @@ export type ReceiptOptions = {
   copies?: ReceiptCopy[];
   /** Customer-copy QR target — settings.googleReviewUrl via reviewUrlOf(). */
   reviewUrl?: string;
+  /** Print "PAID" / "PENDING" on the payment line (settings.receiptShowPaymentStatus); off by default. */
+  showPaymentStatus?: boolean;
 };
 
 export type ReceiptCopy = "customer" | "branch" | "kitchen";
@@ -173,35 +175,33 @@ export function paymentLabel(
   return labels.cash;
 }
 
-/** The banner under TOTAL on a payment-pending slip (both builders). */
-export const RECEIPT_PAYMENT_PENDING = "PAYMENT PENDING";
 /** Label of the "paid later" line (both builders). */
 export const RECEIPT_PAID_ON = "Paid on";
 
 /**
  * The payment lines of the customer and branch copies — ONE helper for the
  * paper (escpos.ts) and the preview / browser print, so they cannot drift.
- * The status words are fixed ASCII English, never translated: the POS80
- * prints Urdu as "????" (toPrinterAscii).
  *
- * - Payment pending (not cancelled): "Payment  PENDING" + the PAYMENT PENDING banner.
+ * Payment status is printed only when the owner turned it on (Settings →
+ * Receipt printer, `receiptShowPaymentStatus`); off, the slip shows the method
+ * exactly as before. On, it is one small line like the others, in fixed ASCII
+ * English (the POS80 prints Urdu as "????"):
+ * - Payment pending (not cancelled): "Payment  PENDING".
  * - Paid: "Payment  Cash - PAID"; paid later (paidAt) adds "Paid on  <date>".
- * - Cancelled: the method only, as before — neither PAID nor PENDING.
+ * - Cancelled: the method only — neither PAID nor PENDING.
  * `paymentMethod` is never "pending": on a pending order it is only the
- * expected method, so it is not printed there.
+ * expected method.
  */
 export function receiptPayment(
   order: Pick<ReceiptOrder, "paymentMethod" | "status" | "paymentStatus" | "paidAt">,
   labels: Pick<PrintReceiptLabels, "cash" | "card" | "digital">,
-): { value: string; banner: string | null; paidOn: string | null } {
+  showStatus = false,
+): { value: string; paidOn: string | null } {
   const method = paymentLabel(labels, order.paymentMethod);
-  if (order.status === "cancelled") return { value: method, banner: null, paidOn: null };
-  if (order.paymentStatus === "pending") {
-    return { value: "PENDING", banner: RECEIPT_PAYMENT_PENDING, paidOn: null };
-  }
+  if (!showStatus || order.status === "cancelled") return { value: method, paidOn: null };
+  if (order.paymentStatus === "pending") return { value: "PENDING", paidOn: null };
   return {
     value: `${method} - PAID`,
-    banner: null,
     paidOn: order.paidAt ? formatOrderDateTime(order.paidAt) : null,
   };
 }
@@ -221,6 +221,8 @@ function buildReceiptSection(opts: {
   logo?: boolean;
   softwareCompanyName?: string;
   softwareCompanyPhone?: string;
+  /** "PAID" / "PENDING" on the payment line (owner setting). */
+  showPaymentStatus?: boolean;
 }): string {
   const {
     order,
@@ -234,6 +236,7 @@ function buildReceiptSection(opts: {
     logo,
     softwareCompanyName,
     softwareCompanyPhone,
+    showPaymentStatus,
   } = opts;
 
   const itemRows = order.items
@@ -332,15 +335,11 @@ function buildReceiptSection(opts: {
     discountHtml = `<div class="row"><span>${dlabel}</span><span dir="ltr">−${escapeHtml(formatPkr(order.discountAmount!))}</span></div><hr />`;
   }
 
-  const payment = receiptPayment(order, labels);
-  // Same order as escpos.ts: payment line, "Paid on", then the banner.
-  const paymentExtraHtml =
-    (payment.paidOn
-      ? `\n    <p class="row paid-on"><span dir="ltr">${RECEIPT_PAID_ON}</span><span dir="ltr">${escapeHtml(payment.paidOn)}</span></p>`
-      : "") +
-    (payment.banner
-      ? `\n    <p class="payment-banner" dir="ltr">${escapeHtml(payment.banner)}</p>`
-      : "");
+  const payment = receiptPayment(order, labels, showPaymentStatus);
+  // Same order as escpos.ts: payment line, then "Paid on".
+  const paymentExtraHtml = payment.paidOn
+    ? `\n    <p class="row paid-on"><span dir="ltr">${RECEIPT_PAID_ON}</span><span dir="ltr">${escapeHtml(payment.paidOn)}</span></p>`
+    : "";
   const reviewQr = reviewUrl ? qrSvg(reviewUrl) : "";
   const vendorName = (softwareCompanyName || "").trim();
   const vendorPhone = (softwareCompanyPhone || "").trim();
@@ -559,17 +558,6 @@ function receiptCss(widthMm: number, paperMm: number): string {
       white-space: nowrap;
     }
     .payment { margin: 4px 0 0; }
-    /* Same as the paper's double-size bold line (escpos.ts): bold only at 16px. */
-    .payment-banner {
-      margin: 6px 0 0;
-      padding: 4px 2px;
-      border: 2px solid #000;
-      text-align: center;
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      white-space: nowrap;
-    }
     .thanks {
       margin-top: 10px;
       text-align: center;
@@ -646,7 +634,6 @@ const NARROW_CSS = `
     .review .qr { width: 26mm; height: 26mm; }
     .logo { width: 22mm; height: 22mm; }
     h1, .total-value { font-size: 14px; }
-    .payment-banner { font-size: 14px; letter-spacing: 0; }
     .total-label { font-size: 12px; }
     .items .note { font-size: 10px; }
     .items.kitchen { font-size: 13px; }
@@ -673,6 +660,7 @@ export function buildReceiptHtml(opts: ReceiptOptions): string {
     paperWidthMm,
     copies = ["customer", "branch", "kitchen"],
     reviewUrl = reviewUrlOf(null),
+    showPaymentStatus = false,
   } = opts;
   const title =
     order.orderNumber != null
@@ -687,6 +675,7 @@ export function buildReceiptHtml(opts: ReceiptOptions): string {
     showReprint,
     softwareCompanyName,
     softwareCompanyPhone,
+    showPaymentStatus,
   };
 
   const copyLabels: Record<ReceiptCopy, string> = {

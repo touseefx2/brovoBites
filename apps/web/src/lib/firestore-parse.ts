@@ -427,6 +427,7 @@ export function parseShopSettings(d: DocumentData): ShopSettings {
       Number(d.receiptPrintWidthMm) > 0
         ? Number(d.receiptPrintWidthMm)
         : DEFAULT_SETTINGS.receiptPrintWidthMm,
+    receiptShowPaymentStatus: d.receiptShowPaymentStatus === true,
     businessDayStart:
       coerceBusinessTime(
         d.businessDayStart != null ? String(d.businessDayStart) : null,
