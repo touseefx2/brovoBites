@@ -28,6 +28,8 @@ const GS  = 0x1d;
 const LF  = 0x0a;
 
 const COLS = 48;
+/** Columns in font B (9-dot cells) on the same 576-dot line — the smaller payment lines. */
+const COLS_SMALL = 64;
 
 const CMD = {
   // ESC @ reset, FS . leave Chinese (Kanji) mode, ESC t 0 code page PC437.
@@ -40,6 +42,9 @@ const CMD = {
   doubleSize:     [GS,  0x21, 0x11],
   doubleWidth:    [GS,  0x21, 0x10],
   normalSize:     [GS,  0x21, 0x00],
+  // ESC M n: font A (12x24, normal) / font B (9x17, smaller) — footer line only.
+  fontSmall:      [ESC, 0x4d, 0x01],
+  fontNormal:     [ESC, 0x4d, 0x00],
   partialCut:     [GS,  0x56, 0x42, 0x03],
 } as const;
 
@@ -90,6 +95,8 @@ class EscPosBuffer {
   doubleSize(): this { return this.raw(CMD.doubleSize); }
   doubleWidth(): this { return this.raw(CMD.doubleWidth); }
   normalSize(): this { return this.raw(CMD.normalSize); }
+  fontSmall(): this { return this.raw(CMD.fontSmall); }
+  fontNormal(): this { return this.raw(CMD.fontNormal); }
 
   /**
    * Partial cut (GS V 66 n). The POS80 / Xprinter family has no full cut —
@@ -146,6 +153,15 @@ class EscPosBuffer {
     const pad = COLS - l.length - r.length;
     if (pad > 0) return this.line(l + " ".repeat(pad) + r);
     return this.line(l + " " + r);
+  }
+
+  /** lr() in the smaller font B (64 columns), then back to font A. */
+  lrSmall(l: string, r: string): this {
+    const pad = COLS_SMALL - l.length - r.length;
+    this.fontSmall();
+    if (pad > 0) this.line(l + " ".repeat(pad) + r);
+    else this.line(l + " " + r);
+    return this.fontNormal();
   }
 
   /** Three-column row: qty(4) + name(fill) + amount(right) */
@@ -218,7 +234,7 @@ function buildCopyEscPos(
     softwareCompanyPhone?: string;
     /** Customer copy: the logo in place of the shop name, website under the branch. */
     logo?: boolean;
-    /** "PAID" / "PENDING" on the payment line (owner setting). */
+    /** "Paid" / "Pending" on the payment line (owner setting). */
     showPaymentStatus?: boolean;
   },
 ): void {
@@ -333,8 +349,9 @@ function buildCopyEscPos(
   buf.boldOff();
   // Same lines as print-receipt.ts (receiptPayment): plain text, fixed ASCII status words.
   const payment = receiptPayment(order, labels, opts.showPaymentStatus);
-  buf.lr(labels.paymentMethod, payment.value);
-  if (payment.paidOn) buf.lr(RECEIPT_PAID_ON, payment.paidOn);
+  // A size smaller than the rest (font B, 64 columns), like the preview.
+  buf.lrSmall(labels.paymentMethod, payment.value);
+  if (payment.paidOn) buf.lrSmall(RECEIPT_PAID_ON, payment.paidOn);
   buf.lf();
 
   // Thank you + QR
@@ -354,7 +371,8 @@ function buildCopyEscPos(
   if (vendorName || vendorPhone) {
     const vendorLine = [vendorName ? `Software by ${vendorName}` : "", vendorPhone]
       .filter(Boolean).join(" ");
-    buf.line(vendorLine);
+    // Smaller font (B) for the software credit, then straight back to font A.
+    buf.fontSmall().line(vendorLine).fontNormal();
   }
 }
 

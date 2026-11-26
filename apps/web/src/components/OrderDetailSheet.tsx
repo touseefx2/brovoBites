@@ -55,6 +55,7 @@ import {
 } from "@/lib/pos-queue";
 import { buildReceiptHtml, printReceipt, receiptLabels, type ReceiptCopy } from "@/lib/print-receipt";
 import { ReceiptPreview } from "@/components/ReceiptPreview";
+import { usePrintPaymentStatus } from "@/lib/print-prefs";
 import { reviewUrlOf } from "@/lib/review-request";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DealEditorSheet, type DealEditResult } from "@/components/DealEditorSheet";
@@ -187,6 +188,7 @@ export function OrderDetailSheet({
   useEffect(() => {
     try { localStorage.setItem("pos:printCopies", JSON.stringify([...printCopies])); } catch {}
   }, [printCopies]);
+  const [printPaymentStatus, setPrintPaymentStatus] = usePrintPaymentStatus();
 
   const resolvedBranch =
     (order.branchName || branchName || "").trim() || null;
@@ -486,12 +488,6 @@ export function OrderDetailSheet({
       setConfirmSave(false);
       return;
     }
-    // Who owes the money must stay known.
-    if (isUnpaid && !norm(draftCustomerName) && !norm(draftCustomerPhone)) {
-      setError(t("unpaidNeedsCustomer"));
-      setConfirmSave(false);
-      return;
-    }
     setBusy(true);
     try {
       const saved = await enqueueOrderEdit({
@@ -723,7 +719,7 @@ export function OrderDetailSheet({
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
-      showPaymentStatus: settings?.receiptShowPaymentStatus === true,
+      showPaymentStatus: printPaymentStatus,
       copies: [...printCopies] as ReceiptCopy[],
     });
     setPrintPreviewOpen(false);
@@ -746,12 +742,12 @@ export function OrderDetailSheet({
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
-      showPaymentStatus: settings?.receiptShowPaymentStatus === true,
+      showPaymentStatus: printPaymentStatus,
       copies: [...printCopies] as ReceiptCopy[],
     });
     // `order`: a payment change (no updatedAt) must refresh an open preview.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [printPreviewOpen, printCopies, order, settings, dirty, draft, draftOrderType, draftPayment, draftCustomerName, draftCustomerPhone, draftDeliveryAddress, draftTableNumber, draftDiscountType, draftDiscountValue]);
+  }, [printPreviewOpen, printCopies, printPaymentStatus, order, settings, dirty, draft, draftOrderType, draftPayment, draftCustomerName, draftCustomerPhone, draftDeliveryAddress, draftTableNumber, draftDiscountType, draftDiscountValue]);
 
   const typeOptions: { id: OrderType; label: string }[] = [
     { id: "dine-in", label: t("dineIn") },
@@ -1797,6 +1793,19 @@ export function OrderDetailSheet({
                     <span className="text-xs font-medium text-stone-600 capitalize">{copy}</span>
                   </label>
                 ))}
+                <label
+                  className="flex cursor-pointer items-center gap-1.5 border-s border-stone-200 ps-3 select-none"
+                  title={t("receiptPaymentStatusHint")}
+                >
+                  <input
+                    type="checkbox"
+                    checked={printPaymentStatus}
+                    onChange={(e) => setPrintPaymentStatus(e.target.checked)}
+                    data-testid="print-payment-status"
+                    className="size-4 rounded accent-amber-600"
+                  />
+                  <span className="text-xs font-medium text-stone-600">{t("receiptPaymentStatusToggle")}</span>
+                </label>
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto bg-[#efe2d3] px-3 py-3">

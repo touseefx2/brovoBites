@@ -448,7 +448,7 @@ html[data-pos-theme="dark"] .pos-paystat-btn.is-unpaid.is-on {
   background: var(--bb-red-600);
   color: #ffffff;
 }
-html[data-pos-theme="dark"] :is(.pos-paystat-hint, .pos-unpaid-strip-total, .pos-unpaid-strip-note.is-warn) {
+html[data-pos-theme="dark"] :is(.pos-unpaid-strip-total, .pos-unpaid-strip-note.is-warn) {
   color: #fca5a5;
 }
 html[data-pos-theme="dark"] .pos-unpaid-strip {

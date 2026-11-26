@@ -1,4 +1,4 @@
-export { enqueueCheckout, UnpaidNeedsCustomerError } from "./checkout";
+export { enqueueCheckout } from "./checkout";
 export { listLocalActivityLogs } from "./activity";
 export { listSyncIssues, type SyncIssue, type SyncIssueReason } from "./issues";
 export {

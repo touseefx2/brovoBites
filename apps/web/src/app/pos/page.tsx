@@ -40,6 +40,7 @@ import { onCustomersSnapshot, saveCustomerNote } from "@/lib/customers";
 import { CUSTOMER_OUTBOX_EVENT, queuedCustomerKeys } from "@/lib/customer-outbox";
 import { AppUpdateBanner } from "@/components/AppUpdateBanner";
 import { OrderDetailSheet } from "@/components/OrderDetailSheet";
+import { usePrintPaymentStatus } from "@/lib/print-prefs";
 import { OrderListCard } from "@/components/OrderListCard";
 import { PosExpensesSheet } from "@/components/PosExpensesSheet";
 import { PosInventorySheet } from "@/components/PosInventorySheet";
@@ -71,7 +72,6 @@ import {
   peekLocalNextOrderNumber,
   queuedToOrder,
   reconcileFromServer,
-  UnpaidNeedsCustomerError,
   subscribeQueue,
   type QueueSnapshot,
 } from "@/lib/pos-queue";
@@ -547,6 +547,7 @@ function PosApp() {
   useEffect(() => {
     try { localStorage.setItem("pos:printCopies", JSON.stringify([...printCopies])); } catch {}
   }, [printCopies]);
+  const [printPaymentStatus, setPrintPaymentStatus] = usePrintPaymentStatus();
   useEffect(() => {
     try { localStorage.setItem("pos:autoPrint", autoPrint ? "1" : "0"); } catch {}
   }, [autoPrint]);
@@ -1049,7 +1050,7 @@ function PosApp() {
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
-      showPaymentStatus: settings?.receiptShowPaymentStatus === true,
+      showPaymentStatus: printPaymentStatus,
       copies: [...printCopies] as ReceiptCopy[],
     });
   }, [
@@ -1076,7 +1077,7 @@ function PosApp() {
     settings?.shopName,
     settings?.receiptPaper,
     settings?.receiptPrintWidthMm,
-    settings?.receiptShowPaymentStatus,
+    printPaymentStatus,
     settings?.googleReviewUrl,
     activeBranchName,
     softwareCompanyName,
@@ -1305,7 +1306,7 @@ function PosApp() {
       dir,
       paper: settings?.receiptPaper,
       paperWidthMm: settings?.receiptPrintWidthMm,
-      showPaymentStatus: settings?.receiptShowPaymentStatus === true,
+      showPaymentStatus: printPaymentStatus,
       copies: [...printCopies] as ReceiptCopy[],
     });
   }
@@ -1371,11 +1372,6 @@ function PosApp() {
     // Ref lock only — no "Saving…" UI. Fast double-tap must not mint two numbers.
     if (checkoutLockRef.current) return;
     if (!discountAllowed) return;
-    // Payment pending: who owes it (enqueueCheckout refuses it too).
-    if (paymentPending && !customerName.trim() && !customerPhone.trim()) {
-      setCheckoutModalError(t("unpaidNeedsCustomer"));
-      return;
-    }
     checkoutLockRef.current = true;
     setError(null);
     setCheckoutModalError(null);
@@ -1434,9 +1430,7 @@ function PosApp() {
       setCheckoutModalError(
         e instanceof PcClockWrongError
           ? t("pcClockBlocked")
-          : e instanceof UnpaidNeedsCustomerError
-            ? t("unpaidNeedsCustomer")
-            : checkoutFailMessage(e),
+          : checkoutFailMessage(e),
       );
     } finally {
       checkoutLockRef.current = false;
@@ -2193,13 +2187,28 @@ function PosApp() {
                       </label>
                     );
                   })}
+                  {/* Print "Cash - PAID" / "PENDING" on the slip — remembered on this PC. */}
+                  <label
+                    className="flex cursor-pointer items-center gap-1.5 border-s border-white/15 ps-3 select-none"
+                    title={t("receiptPaymentStatusHint")}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={printPaymentStatus}
+                      onChange={(e) => setPrintPaymentStatus(e.target.checked)}
+                      data-testid="print-payment-status"
+                      className="size-4 rounded accent-amber-600"
+                    />
+                    <span className="text-xs font-medium text-stone-300">{t("receiptPaymentStatusToggle")}</span>
+                  </label>
                 </div>
               </div>
               <div
+                // Dine-in: name · phone · table · discount (one row). Takeaway: name ·
+                // phone · discount. Delivery: name · phone · address (wide), then
+                // delivery charges · discount (half each) — every control the same height.
                 className={`mt-3 grid grid-cols-1 gap-2.5 sm:gap-3 ${
-                  orderType === "dine-in" || orderType === "delivery"
-                    ? "sm:grid-cols-2 lg:grid-cols-4"
-                    : "sm:grid-cols-3"
+                  orderType === "takeaway" ? "sm:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"
                 }`}
               >
                 <section>
@@ -2329,7 +2338,7 @@ function PosApp() {
                 ) : null}
 
                 {orderType === "delivery" ? (
-                  <section>
+                  <section className="sm:col-span-2">
                     <label
                       htmlFor="checkout-delivery-address"
                       className="modal-dark-label mb-1.5 block text-xs font-semibold"
@@ -2386,75 +2395,92 @@ function PosApp() {
                 ) : null}
 
                 {orderType === "delivery" ? (
-                  <section>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label
-                        htmlFor="checkout-manual-dlv"
-                        className="modal-dark-label text-xs font-semibold"
+                  <section className="lg:col-span-2">
+                    <label
+                      htmlFor="checkout-manual-dlv"
+                      className="modal-dark-label mb-1.5 block text-xs font-semibold"
+                    >
+                      {t("deliveryCharges")}
+                    </label>
+                    {/* Same shape as Discount: Auto | Manual, then the amount. */}
+                    <div className="flex gap-1.5">
+                      <div
+                        className="modal-dark-seg grid shrink-0 grid-cols-2 gap-0.5 rounded-lg p-0.5"
+                        role="radiogroup"
+                        aria-label={t("deliveryCharges")}
                       >
-                        {t("deliveryCharges")}
-                      </label>
-                      <label className="flex cursor-pointer items-center gap-1.5 select-none">
-                        <span className="text-[10px] font-medium text-stone-400">
-                          {manualDlv ? t("manualDeliveryCharges") : t("autoDeliveryCharges")}
-                        </span>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={manualDlv}
-                          onClick={() => {
-                            setManualDlv((v) => !v);
-                            setManualDlvText("");
-                            setManualDlvAmount(0);
-                          }}
-                          className={`pos-switch relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${manualDlv ? "is-on" : ""}`}
-                        >
-                          <span className={`inline-block size-3.5 rounded-full bg-white shadow transition-transform ${manualDlv ? "translate-x-[1.125rem] rtl:-translate-x-[1.125rem]" : "translate-x-[0.1875rem] rtl:-translate-x-[0.1875rem]"}`} />
-                        </button>
-                      </label>
-                    </div>
-                    {manualDlv ? (
-                      <div className="relative">
-                        <input
-                          id="checkout-manual-dlv"
-                          type="text"
-                          inputMode="decimal"
-                          value={manualDlvText}
-                          onChange={(e) => {
-                            const digits = e.target.value.replace(/[^\d.]/g, "");
-                            const [int, ...rest] = digits.split(".");
-                            const raw = rest.length ? `${int}.${rest.join("")}` : int;
-                            setManualDlvText(raw);
-                            setManualDlvAmount(Math.max(0, Number(raw) || 0));
-                          }}
-                          className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
-                          dir="ltr"
-                          placeholder="0"
-                        />
-                        {manualDlvText ? (
+                        {([false, true] as const).map((manual) => (
                           <button
+                            key={manual ? "manual" : "auto"}
                             type="button"
-                            className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
-                            aria-label={t("clear")}
-                            onClick={() => { setManualDlvText(""); setManualDlvAmount(0); }}
+                            role="radio"
+                            aria-checked={manualDlv === manual}
+                            title={manual ? t("manualDeliveryCharges") : t("autoDeliveryCharges")}
+                            className={`modal-dark-seg-btn h-11 min-w-11 rounded-md px-2.5 text-xs font-extrabold transition ${
+                              manualDlv === manual ? "is-active" : ""
+                            }`}
+                            onClick={() => {
+                              if (manualDlv === manual) return;
+                              setManualDlv(manual);
+                              setManualDlvText("");
+                              setManualDlvAmount(0);
+                            }}
                           >
-                            <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
-                                <path d="M18 6 6 18M6 6l12 12" />
-                              </svg>
-                            </span>
+                            {manual ? t("dlvManual") : t("dlvAuto")}
                           </button>
-                        ) : null}
+                        ))}
                       </div>
-                    ) : (
-                      <p className="text-xs tabular-nums text-stone-400" dir="ltr">
-                        {formatPkr(lockedDlvCharges ?? liveDlvCharges)}
-                      </p>
-                    )}
+                      <div className="relative min-w-0 flex-1">
+                        {manualDlv ? (
+                          <>
+                            <input
+                              id="checkout-manual-dlv"
+                              type="text"
+                              inputMode="decimal"
+                              value={manualDlvText}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/[^\d.]/g, "");
+                                const [int, ...rest] = digits.split(".");
+                                const raw = rest.length ? `${int}.${rest.join("")}` : int;
+                                setManualDlvText(raw);
+                                setManualDlvAmount(Math.max(0, Number(raw) || 0));
+                              }}
+                              className="h-11 w-full modal-dark-input rounded-xl pe-11 ps-3 text-base tabular-nums outline-none transition sm:text-sm"
+                              dir="ltr"
+                              placeholder="0"
+                              autoFocus
+                            />
+                            {manualDlvText ? (
+                              <button
+                                type="button"
+                                className="pos-field-clear absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-xl"
+                                aria-label={t("clear")}
+                                onClick={() => { setManualDlvText(""); setManualDlvAmount(0); }}
+                              >
+                                <span className="modal-dark-clear flex size-7 items-center justify-center rounded-full" aria-hidden>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden>
+                                    <path d="M18 6 6 18M6 6l12 12" />
+                                  </svg>
+                                </span>
+                              </button>
+                            ) : null}
+                          </>
+                        ) : (
+                          // Auto: the shop's delivery fee (Settings), read-only.
+                          <p
+                            id="checkout-manual-dlv"
+                            className="modal-dark-input flex h-11 w-full items-center justify-between gap-2 rounded-xl px-3 text-sm tabular-nums opacity-80"
+                          >
+                            <span dir="ltr">{formatPkr(lockedDlvCharges ?? liveDlvCharges)}</span>
+                            <span className="modal-dark-muted truncate text-[11px] font-medium">{t("autoDeliveryCharges")}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </section>
                 ) : null}
 
-                <section>
+                <section className={orderType === "delivery" ? "lg:col-span-2" : undefined}>
                   <p className="modal-dark-label mb-1.5 text-xs font-semibold">
                     {t("discount")}
                   </p>
@@ -2663,11 +2689,6 @@ function PosApp() {
                       );
                     })}
                   </div>
-                  {paymentPending && !customerName.trim() && !customerPhone.trim() ? (
-                    <p className="pos-paystat-hint" role="status">
-                      {t("unpaidNeedsCustomer")}
-                    </p>
-                  ) : null}
                 </div>
             </div>
 

@@ -916,13 +916,6 @@ html[lang="ur"] .pos-cart-title {
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(185, 43, 33, 0.35);
 }
-.pos-paystat-hint {
-  margin: 0.4rem 0 0;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--bb-red-700);
-}
 /* "Payment pending" under the checkout total */
 .pos-unpaid-pill {
   display: inline-flex;

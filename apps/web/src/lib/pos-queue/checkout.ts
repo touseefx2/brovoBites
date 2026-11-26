@@ -9,14 +9,6 @@ import { allocateAndEnqueueOrder } from "./db";
 import type { EnqueueCheckoutInput, QueuedOrder } from "./types";
 import { queuedToOrder } from "./types";
 
-/** Payment-pending sale without a customer name or phone (i18n: unpaidNeedsCustomer). */
-export class UnpaidNeedsCustomerError extends Error {
-  constructor() {
-    super("Add the customer's name or phone for a payment-pending order");
-    this.name = "UnpaidNeedsCustomerError";
-  }
-}
-
 function newClientId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -54,13 +46,8 @@ export async function enqueueCheckout(
   const tableNumber =
     input.orderType === "dine-in" ? (input.tableNumber || "").trim() : "";
   const branchLabel = (input.branchName || "").trim();
-  // Payment pending: someone must be able to collect it later. Checked here
-  // (and in the checkout UI), never in firestore.rules — a queued offline sale
-  // the rules refuse would be stuck for good.
+  // Payment pending: customer name / phone optional (the shop's choice).
   const unpaid = input.paymentStatus === "pending";
-  if (unpaid && !customerName && !customerPhone) {
-    throw new UnpaidNeedsCustomerError();
-  }
 
   const clientId = newClientId();
   const { at, stamp } = takeClockStamp();

@@ -1,11 +1,11 @@
 /**
  * Payment status on orders: Paid (default) or Payment pending (the customer
- * pays later). A pending sale needs a name or phone; the receipt shows the
- * status only when the owner turned it on (Settings → "Show payment status on
- * receipt": one small "Payment  PENDING" line),
+ * pays later). A pending sale needs no customer name or phone; the receipt shows the
+ * status only when "Payment status" is ticked in the print preview
+ * (remembered on the PC: one small "Payment  Cash - Pending" line),
  * shows a badge, is not in the cash drawer and can't be refunded. Anyone of
  * the branch marks it paid later (any method) — then the drawer counts the
- * cash and a reprint says "Cash - PAID" + "Paid on". Only the owner sets it
+ * cash and a reprint says "Cash - Paid" + "Paid on". Only the owner sets it
  * back to pending. Pending sales and mark-paid also work offline.
  *
  * The first test shares the branch's drawer for today — run with --workers=1.
@@ -13,6 +13,8 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   acknowledgeSuccess,
+  commitAdmin,
+  updateWrite,
   confirmAlert,
   getDoc,
   isTimestamp,
@@ -32,16 +34,6 @@ const ITEM = "Classic Zinger"; // Rs 380
 
 /* ─────────────────────── printing ─────────────────────── */
 
-/** Settings → Receipt printer → "Show payment status on receipt" (owner), then Save. */
-async function setReceiptPaymentStatus(page: Page, on: boolean) {
-  await page.goto("/admin/landing");
-  const sw = page.getByTestId("receipt-show-payment-status");
-  await expect(sw).toBeVisible({ timeout: 30_000 });
-  if ((await sw.getAttribute("aria-checked")) !== String(on)) await sw.click();
-  await expect(sw).toHaveAttribute("aria-checked", String(on));
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.getByText("Settings saved")).toBeVisible({ timeout: 15_000 });
-}
 
 /**
  * No printer: local print route 404 (as on Vercel), no counter-Mac helper, so
@@ -216,7 +208,7 @@ function expectUnpaidDoc(d: FsDoc) {
 
 /* ─────────────────────── tests ─────────────────────── */
 
-test("payment pending: needs a customer, prints PENDING, badge, not in the drawer; marked paid by another user, owner sets it back", async ({
+test("payment pending: no customer needed, prints Pending, badge, not in the drawer; marked paid by another user, owner sets it back", async ({
   browser,
 }) => {
   test.setTimeout(420_000);
@@ -249,44 +241,27 @@ test("payment pending: needs a customer, prints PENDING, badge, not in the drawe
   // Setting off (default): the slip shows the method only, never the status.
   const previewBody = op.frameLocator('iframe[title="Receipt preview"]').locator("body");
   await expect(previewBody).toContainText("Cash");
-  await expect(previewBody).not.toContainText("PENDING");
-  await expect(previewBody).not.toContainText("PAID");
-  await op.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(dlg).toBeHidden();
-
-  // Owner turns it on: one small "Payment  PENDING" line (no banner).
-  await setReceiptPaymentStatus(op, true);
-  await ownerPos.goto();
-  // The cart may or may not survive leaving the POS: one Classic Zinger either way.
-  await op.waitForTimeout(1_500);
-  if ((await op.locator(".pos-cart-thumb").count()) === 0) await ownerPos.addProduct(ITEM);
-  await expect(op.locator(".pos-cart-thumb")).toHaveCount(1);
-  dlg = await openCheckout(op);
-  await chooseUnpaid(dlg);
-  await expect(previewBody).toContainText(/Payment\s*PENDING/);
+  await expect(previewBody).not.toContainText("Pending");
+  await expect(previewBody).not.toContainText("Paid");
+  // Ticked in the preview: one small "Payment  Cash - Pending" line (no banner).
+  await dlg.getByTestId("print-payment-status").check();
+  await expect(previewBody).toContainText(/Payment\s*Cash - Pending/);
   await expect(previewBody).not.toContainText("PAYMENT PENDING");
 
-  // No name and no phone: refused, nothing saved, the sale stays open.
-  await expect(dlg.getByText("Add the customer's name or phone for a payment-pending order")).toBeVisible();
-  await clickCheckout(dlg);
-  const refused = op.getByRole("alertdialog", { name: "Checkout failed" });
-  await expect(refused).toContainText("Add the customer's name or phone for a payment-pending order");
-  await refused.getByRole("button", { name: "OK", exact: true }).click();
-  await expect(refused).toBeHidden();
-  await expect(dlg).toBeVisible();
+  // No customer name / phone needed for a payment-pending sale (no hint, no block).
+  await expect(dlg.getByText(/name or phone/i)).toHaveCount(0);
 
   const customer = tag("unpaid");
   await dlg.locator("#checkout-customer-name").fill(customer);
-  await expect(dlg.getByText("Add the customer's name or phone for a payment-pending order")).toHaveCount(0);
   await setPrint(dlg, true);
   await clickCheckout(dlg);
   await expect(dlg).toBeHidden({ timeout: 15_000 });
 
-  // The slip printed at checkout says "Payment  PENDING" (never "PAID"), small — no banner.
+  // The slip printed at checkout says "Payment  Cash - Pending" (never "Paid"), small — no banner.
   const slip = await waitPrintJob(op, 1);
-  expect(slip).toMatch(/Payment\s*PENDING/);
+  expect(slip).toMatch(/Payment\s*Cash - Pending/);
   expect(slip).not.toContain("PAYMENT PENDING");
-  expect(slip).not.toContain("- PAID");
+  expect(slip).not.toContain("- Paid");
 
   const sale = await waitForOne("orders", { customerName: customer }, (d) => isTimestamp(d.data.syncedAtServer));
   expectUnpaidDoc(sale);
@@ -299,6 +274,8 @@ test("payment pending: needs a customer, prints PENDING, badge, not in the drawe
   await ownerPos.addProduct("Naan");
   dlg = await openCheckout(op);
   await expect(dlg.getByTestId("checkout-payment-paid")).toHaveAttribute("aria-checked", "true");
+  // "Payment status" stays as it was last left on this PC (ticked above).
+  await expect(dlg.getByTestId("print-payment-status")).toBeChecked();
   await dlg.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dlg).toBeHidden();
 
@@ -377,12 +354,15 @@ test("payment pending: needs a customer, prints PENDING, badge, not in the drawe
   await expect(paymentRow(sheet)).toContainText(/Paid .+ · Cash · by /);
   await expect(paymentRow(sheet).getByRole("button", { name: "Mark as paid", exact: true })).toHaveCount(0);
 
-  // Reprint: "Cash - PAID" + "Paid on", in the preview and on the printed job.
+  // Reprint: off on this PC by default (method only); ticked: "Cash - Paid" + "Paid on".
   await sheet.getByRole("button", { name: /^(Print bill|Reprint)$/ }).click();
   const preview = sp.frameLocator('iframe[title="Print bill"]').locator("body");
-  await expect(preview).toContainText("Cash - PAID");
+  await expect(preview).toContainText("Cash");
+  await expect(preview).not.toContainText("Paid");
+  await sp.getByTestId("print-payment-status").check();
+  await expect(preview).toContainText("Cash - Paid");
   await expect(preview).toContainText("Paid on");
-  await expect(preview).not.toContainText("PENDING");
+  await expect(preview).not.toContainText("Pending");
   await expect(preview).not.toContainText("REPRINT");
   const before = (await printJobs(sp)).length;
   await sp
@@ -391,9 +371,9 @@ test("payment pending: needs a customer, prints PENDING, badge, not in the drawe
     .getByRole("button", { name: "Print bill" })
     .click();
   const reprint = await waitPrintJob(sp, before + 1);
-  expect(reprint).toContain("Cash - PAID");
+  expect(reprint).toContain("Cash - Paid");
   expect(reprint).toContain("Paid on");
-  expect(reprint).not.toContain("PENDING");
+  expect(reprint).not.toContain("Pending");
   await closeSheet(sp);
 
   // ── Drawer: the cash is in now (collected, not a sale of the drawer) ──
@@ -450,8 +430,6 @@ test("payment pending: needs a customer, prints PENDING, badge, not in the drawe
   await expect(drawerStat(sp, "Cash")).toHaveText("+Rs 0");
   await expect(sp.getByTestId("drawer-unpaid")).toHaveCount(0);
 
-  // Back to the default for the other specs.
-  await setReceiptPaymentStatus(op, false);
   await staffSession.context.close();
   await ownerSession.context.close();
 });
@@ -538,4 +516,33 @@ test("offline: a payment-pending sale syncs with its status, and marking it paid
   ]);
   await pos.waitAllSynced(100_000);
   await context.close();
+});
+
+test("payment pending without a customer name or phone: checkout is allowed", async ({ browser }) => {
+  test.setTimeout(180_000);
+  const session = await newSession(browser, "staff");
+  const page = session.page;
+  await capturePrints(page);
+  const pos = new Pos(page);
+  await pos.goto();
+  await pos.addProduct(ITEM);
+  const dlg = await openCheckout(page);
+  await chooseUnpaid(dlg);
+  // Name and phone empty; only a table number (dine-in) to find the sale again.
+  await expect(dlg.locator("#checkout-customer-name")).toHaveValue("");
+  await expect(dlg.locator("#checkout-customer-phone")).toHaveValue("");
+  const table = tag("t").slice(-10);
+  await dlg.locator("#checkout-table-number").fill(table);
+  await setPrint(dlg, false);
+  await clickCheckout(dlg);
+  await expect(dlg).toBeHidden({ timeout: 15_000 });
+  await expect(page.getByRole("alertdialog", { name: "Checkout failed" })).toHaveCount(0);
+
+  const sale = await waitForOne("orders", { tableNumber: table });
+  expect(sale.data.paymentStatus).toBe("pending");
+  expect(sale.data.customerName ?? "").toBe("");
+  expect(sale.data.customerPhone ?? "").toBe("");
+  // Out of the way of the drawer / pending-list tests that run after (admin, rules bypassed).
+  expect((await commitAdmin([updateWrite(sale.path, { status: "cancelled" }, { mask: ["status"] })])).status).toBe(200);
+  await session.context.close();
 });

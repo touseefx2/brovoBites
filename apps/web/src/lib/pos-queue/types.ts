@@ -88,7 +88,7 @@ export type EnqueueCheckoutInput = {
   lines: import("@bravobites/domain").CartLine[];
   paymentMethod: PaymentMethod;
   /**
-   * "pending" = the customer pays later: needs a customer name or phone.
+   * "pending" = the customer pays later (customer name / phone optional).
    * Missing / "paid" = paid now (the default).
    */
   paymentStatus?: "paid" | "pending";

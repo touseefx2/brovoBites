@@ -122,7 +122,7 @@ export type ReceiptOptions = {
   copies?: ReceiptCopy[];
   /** Customer-copy QR target — settings.googleReviewUrl via reviewUrlOf(). */
   reviewUrl?: string;
-  /** Print "PAID" / "PENDING" on the payment line (settings.receiptShowPaymentStatus); off by default. */
+  /** Print "Paid" / "Pending" on the payment line (the previews' "Payment status" checkbox, per PC); off by default. */
   showPaymentStatus?: boolean;
 };
 
@@ -182,15 +182,15 @@ export const RECEIPT_PAID_ON = "Paid on";
  * The payment lines of the customer and branch copies — ONE helper for the
  * paper (escpos.ts) and the preview / browser print, so they cannot drift.
  *
- * Payment status is printed only when the owner turned it on (Settings →
- * Receipt printer, `receiptShowPaymentStatus`); off, the slip shows the method
+ * Payment status is printed only when "Payment status" is ticked in the print
+ * preview (remembered per PC, lib/print-prefs.ts); off, the slip shows the method
  * exactly as before. On, it is one small line like the others, in fixed ASCII
  * English (the POS80 prints Urdu as "????"):
- * - Payment pending (not cancelled): "Payment  PENDING".
- * - Paid: "Payment  Cash - PAID"; paid later (paidAt) adds "Paid on  <date>".
- * - Cancelled: the method only — neither PAID nor PENDING.
- * `paymentMethod` is never "pending": on a pending order it is only the
- * expected method.
+ * - Payment pending (not cancelled): "Payment  Cash - Pending" (the method it is expected in).
+ * - Paid: "Payment  Cash - Paid"; paid later (paidAt) adds "Paid on  <date>".
+ * - Cancelled: the method only — neither Paid nor Pending.
+ * `paymentMethod` is never "pending": on a pending order it is the expected
+ * method. The payment lines print a size smaller than the rest (font B on paper).
  */
 export function receiptPayment(
   order: Pick<ReceiptOrder, "paymentMethod" | "status" | "paymentStatus" | "paidAt">,
@@ -199,9 +199,9 @@ export function receiptPayment(
 ): { value: string; paidOn: string | null } {
   const method = paymentLabel(labels, order.paymentMethod);
   if (!showStatus || order.status === "cancelled") return { value: method, paidOn: null };
-  if (order.paymentStatus === "pending") return { value: "PENDING", paidOn: null };
+  if (order.paymentStatus === "pending") return { value: `${method} - Pending`, paidOn: null };
   return {
-    value: `${method} - PAID`,
+    value: `${method} - Paid`,
     paidOn: order.paidAt ? formatOrderDateTime(order.paidAt) : null,
   };
 }
@@ -221,7 +221,7 @@ function buildReceiptSection(opts: {
   logo?: boolean;
   softwareCompanyName?: string;
   softwareCompanyPhone?: string;
-  /** "PAID" / "PENDING" on the payment line (owner setting). */
+  /** "Paid" / "Pending" on the payment line (owner setting). */
   showPaymentStatus?: boolean;
 }): string {
   const {
@@ -558,6 +558,8 @@ function receiptCss(widthMm: number, paperMm: number): string {
       white-space: nowrap;
     }
     .payment { margin: 4px 0 0; }
+    /* The payment lines: a size smaller (paper: font B, see escpos.ts lrSmall). */
+    .payment, .paid-on { font-size: 10px; }
     .thanks {
       margin-top: 10px;
       text-align: center;
@@ -576,7 +578,7 @@ function receiptCss(widthMm: number, paperMm: number): string {
     .vendor {
       margin-top: 4px;
       text-align: center;
-      font-size: 11px;
+      font-size: 9px;
     }
     .nowrap { white-space: nowrap; }
     /* Preview only — paper slips on a stage with a cut line between copies.
@@ -630,7 +632,9 @@ function receiptCss(widthMm: number, paperMm: number): string {
 const NARROW_CSS = `
     body { font-size: 11px; }
     .receipt { padding-left: 1mm; padding-right: 1mm; }
-    .copy-label, .items .th, .vendor, .review { font-size: 10px; }
+    .copy-label, .items .th, .review { font-size: 10px; }
+    .vendor { font-size: 8px; }
+    .payment, .paid-on { font-size: 9px; }
     .review .qr { width: 26mm; height: 26mm; }
     .logo { width: 22mm; height: 22mm; }
     h1, .total-value { font-size: 14px; }

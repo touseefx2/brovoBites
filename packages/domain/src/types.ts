@@ -282,8 +282,6 @@ export interface ShopSettings {
   receiptPaper: ReceiptPaper;
   /** Printable width in mm, used when receiptPaper is "custom" (e.g. 76). */
   receiptPrintWidthMm: number;
-  /** Print "PAID" / "PENDING" on the receipt's payment line (off: the method only). */
-  receiptShowPaymentStatus: boolean;
   /**
    * Shop day open time in Pakistan (`HH:mm`), e.g. `"12:00"`.
    * Orders from this time count toward that business date.
@@ -315,7 +313,6 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   softwareCompanyPhone: "0307-5839836",
   receiptPaper: "80mm",
   receiptPrintWidthMm: 72,
-  receiptShowPaymentStatus: false,
   businessDayStart: "00:00",
   businessDayEnd: "23:59",
 };
